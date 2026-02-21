@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Rallye Motors{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fuente opcional -->
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Oswald', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white text-black shadow-lg px-12 py-4 flex justify-between items-center">
+        
+        <!-- Logo -->
+        <div class="text-2xl font-bold tracking-widest">
+            RALLYE <span class="italic font-light">MOTORS</span>
+        </div>
+
+        <!-- Menu -->
+        <ul class="flex gap-10 font-semibold text-lg">
+            <li><a href="/" class="hover:text-red-600 transition">HOME</a></li>
+            <li><a href="/sedes/" class="hover:text-red-600 transition">SEDES</a></li>
+            <li><a href="/motos/" class="hover:text-red-600 transition">MOTOS</a></li>
+            <li><a href="/repuestos/" class="hover:text-red-600 transition">REPUESTOS</a></li>
+            <li><a href="/login/" class="hover:text-red-600 transition">AGENDAMIENTOS</a></li>
+        </ul>
+
+    </nav>
+
+
+    <!-- CONTENIDO DINÁMICO -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer class="bg-white text-black py-4 px-12 flex justify-between items-center text-sm">
+        <div class="flex items-center gap-2 text-red-600 font-semibold">
+            ✉ sistemas@rallyemotors.com.co
+        </div>
+
+        <div class="text-red-600 font-semibold">
+            Cuatro ruedas mueven el cuerpo, dos ruedas mueven el alma
+        </div>
+    </footer>
+
+</body>
+</html>
