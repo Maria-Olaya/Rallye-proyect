@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
+from users.views import LoginView, LogoutView
+
 urlpatterns = [
     # ✅ FRONT (como tus pantallas)
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
@@ -10,7 +12,8 @@ urlpatterns = [
     path("repuestos/", TemplateView.as_view(template_name="public/repuestos.html"), name="repuestos"),
 
     # Login admin (tu pantalla roja)
-    path("login/", TemplateView.as_view(template_name="login.html"), name="login"),
+    path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
 
     # Panel admin (tus pantallas internas)
     path(
