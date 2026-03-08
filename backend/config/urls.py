@@ -13,12 +13,36 @@ urlpatterns = [
     path("login/", TemplateView.as_view(template_name="login.html"), name="login"),
 
     # Panel admin (tus pantallas internas)
-    path("panel/", TemplateView.as_view(template_name="admin_panel/dashboard.html"), name="panel_dashboard"),
-    path("panel/disponibilidad/", TemplateView.as_view(template_name="admin_panel/disponibilidad.html"), name="panel_disponibilidad"),
-    path("panel/agenda/", TemplateView.as_view(template_name="admin_panel/agenda.html"), name="panel_agenda"),
-    path("panel/diagnostico/", TemplateView.as_view(template_name="admin_panel/diagnostico.html"), name="panel_diagnostico"),
-    path("panel/graficos/", TemplateView.as_view(template_name="admin_panel/graficos.html"), name="panel_graficos"),
-    path("panel/motocicletas/", TemplateView.as_view(template_name="admin_panel/crud_motocicleta.html"), name="panel_motos_crud"),
+    path(
+        "panel/",
+        TemplateView.as_view(template_name="admin_panel/dashboard.html"),
+        name="panel_dashboard",
+    ),
+    path(
+        "panel/disponibilidad/",
+        TemplateView.as_view(template_name="admin_panel/disponibilidad.html"),
+        name="panel_disponibilidad",
+    ),
+    path(
+        "panel/agenda/",
+        TemplateView.as_view(template_name="admin_panel/agenda.html"),
+        name="panel_agenda",
+    ),
+    path(
+        "panel/diagnostico/",
+        TemplateView.as_view(template_name="admin_panel/diagnostico.html"),
+        name="panel_diagnostico",
+    ),
+    path(
+        "panel/graficos/",
+        TemplateView.as_view(template_name="admin_panel/graficos.html"),
+        name="panel_graficos",
+    ),
+    path(
+        "panel/motocicletas/",
+        TemplateView.as_view(template_name="admin_panel/crud_motocicleta.html"),
+        name="panel_motos_crud",
+    ),
 
     # Django admin (opcional)
     path("admin/", admin.site.urls),

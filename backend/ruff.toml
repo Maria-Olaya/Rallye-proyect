@@ -1,0 +1,22 @@
+line-length = 120
+
+[lint]
+select = [
+    "E",
+    "F",
+    "N",
+    "W",
+]
+ignore = [
+    "N999",
+]
+exclude = [
+    "*/migrations/*",
+]
+
+[lint.pep8-naming]
+classmethod-decorators = ["classmethod"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

@@ -1,0 +1,29 @@
+﻿name: Quality Check - Ruff + PEP 8
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ruff-check:
+    name: Analisis estatico con Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Ruff
+        run: pip install ruff
+
+      - name: Ejecutar Ruff
+        run: python -m ruff check backend/
+
+      - name: Verificar formato
+        run: python -m ruff format --check backend/
