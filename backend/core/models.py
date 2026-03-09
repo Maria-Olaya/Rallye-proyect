@@ -1,11 +1,13 @@
 from django.db import models
 
+
 class Municipio(models.Model):
     nombre = models.CharField(max_length=120)
     departamento = models.CharField(max_length=120)
 
     def __str__(self):
         return f"{self.nombre}, {self.departamento}"
+
 
 class Sede(models.Model):
     nombre = models.CharField(max_length=120)

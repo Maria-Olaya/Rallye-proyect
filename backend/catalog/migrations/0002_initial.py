@@ -6,33 +6,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('catalog', '0001_initial'),
+        ("catalog", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='cotizacionmotocicleta',
-            name='usuario',
+            model_name="cotizacionmotocicleta",
+            name="usuario",
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
-            model_name='interesrepuesto',
-            name='usuario',
+            model_name="interesrepuesto",
+            name="usuario",
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
-            model_name='cotizacionmotocicleta',
-            name='motocicleta',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='catalog.motocicleta'),
+            model_name="cotizacionmotocicleta",
+            name="motocicleta",
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="catalog.motocicleta"),
         ),
         migrations.AddField(
-            model_name='interesrepuesto',
-            name='repuesto',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='catalog.repuesto'),
+            model_name="interesrepuesto",
+            name="repuesto",
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="catalog.repuesto"),
         ),
     ]

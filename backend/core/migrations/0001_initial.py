@@ -5,31 +5,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Municipio',
+            name="Municipio",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=120)),
-                ('departamento', models.CharField(max_length=120)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=120)),
+                ("departamento", models.CharField(max_length=120)),
             ],
         ),
         migrations.CreateModel(
-            name='Sede',
+            name="Sede",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=120)),
-                ('direccion', models.CharField(max_length=200)),
-                ('lat', models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
-                ('lng', models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
-                ('activa', models.BooleanField(default=True)),
-                ('municipio', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='sedes', to='core.municipio')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=120)),
+                ("direccion", models.CharField(max_length=200)),
+                ("lat", models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
+                ("lng", models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
+                ("activa", models.BooleanField(default=True)),
+                (
+                    "municipio",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, related_name="sedes", to="core.municipio"
+                    ),
+                ),
             ],
         ),
     ]

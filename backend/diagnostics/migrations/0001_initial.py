@@ -4,37 +4,35 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Diagnostico',
+            name="Diagnostico",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('descripcion', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("descripcion", models.TextField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Evidencia',
+            name="Evidencia",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('archivo_url', models.URLField(blank=True, default='')),
-                ('nota', models.CharField(blank=True, default='', max_length=255)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("archivo_url", models.URLField(blank=True, default="")),
+                ("nota", models.CharField(blank=True, default="", max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Radicado',
+            name="Radicado",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('codigo', models.CharField(max_length=30, unique=True)),
-                ('enviado', models.BooleanField(default=False)),
-                ('enviado_at', models.DateTimeField(blank=True, null=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("codigo", models.CharField(max_length=30, unique=True)),
+                ("enviado", models.BooleanField(default=False)),
+                ("enviado_at", models.DateTimeField(blank=True, null=True)),
             ],
         ),
     ]

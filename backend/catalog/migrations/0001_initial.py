@@ -4,48 +4,46 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='CotizacionMotocicleta',
+            name="CotizacionMotocicleta",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('comentario', models.CharField(blank=True, default='', max_length=255)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("comentario", models.CharField(blank=True, default="", max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='InteresRepuesto',
+            name="InteresRepuesto",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Motocicleta',
+            name="Motocicleta",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('marca', models.CharField(max_length=80)),
-                ('modelo', models.CharField(max_length=80)),
-                ('anio', models.IntegerField()),
-                ('precio', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
-                ('activa', models.BooleanField(default=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("marca", models.CharField(max_length=80)),
+                ("modelo", models.CharField(max_length=80)),
+                ("anio", models.IntegerField()),
+                ("precio", models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
+                ("activa", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Repuesto',
+            name="Repuesto",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=120)),
-                ('referencia', models.CharField(blank=True, default='', max_length=80)),
-                ('precio', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
-                ('stock', models.IntegerField(default=0)),
-                ('activo', models.BooleanField(default=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=120)),
+                ("referencia", models.CharField(blank=True, default="", max_length=80)),
+                ("precio", models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
+                ("stock", models.IntegerField(default=0)),
+                ("activo", models.BooleanField(default=True)),
             ],
         ),
     ]
