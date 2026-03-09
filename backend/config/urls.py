@@ -2,20 +2,21 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
-from users.views import LoginView, LogoutView
-
 urlpatterns = [
-    # ✅ FRONT (como tus pantallas)
+    # ── FRONT ────────────────────────────────────────────────────────────
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("sedes/", TemplateView.as_view(template_name="public/sedes.html"), name="sedes"),
     path("motos/", TemplateView.as_view(template_name="public/motos.html"), name="motos"),
-    path("repuestos/", TemplateView.as_view(template_name="public/repuestos.html"), name="repuestos"),
+    path(
+        "repuestos/",
+        TemplateView.as_view(template_name="public/repuestos.html"),
+        name="repuestos",
+    ),
 
-    # Login admin (tu pantalla roja)
-    path("login/", LoginView.as_view(), name="login"),
-    path("logout/", LogoutView.as_view(), name="logout"),
+    # ── LOGIN (sirve el template HTML) ───────────────────────────────────
+    path("login/", TemplateView.as_view(template_name="login.html"), name="login"),
 
-    # Panel admin (tus pantallas internas)
+    # ── PANEL ADMINISTRATIVO ─────────────────────────────────────────────
     path(
         "panel/",
         TemplateView.as_view(template_name="admin_panel/dashboard.html"),
@@ -47,10 +48,10 @@ urlpatterns = [
         name="panel_motos_crud",
     ),
 
-    # Django admin (opcional)
+    # ── DJANGO ADMIN ─────────────────────────────────────────────────────
     path("admin/", admin.site.urls),
 
-    # ✅ API (tu arquitectura por apps)
+    # ── API REST ──────────────────────────────────────────────────────────
     path("api/core/", include("core.urls")),
     path("api/users/", include("users.urls")),
     path("api/scheduling/", include("scheduling.urls")),

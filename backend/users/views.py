@@ -1,35 +1,85 @@
-from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import render, redirect
-from django.views import View
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from users.serializers import LoginSerializer
 
 
-class LoginView(View):
-    template_name = "login.html"
+class LoginView(APIView):
+    """
+    POST /api/users/login/
 
-    def get(self, request):
-        if request.user.is_authenticated:
-            return redirect("panel_dashboard")
-        return render(request, self.template_name)
+    Recibe username y password, valida credenciales y retorna
+    access token (JWT) y refresh token.
+
+    Respuesta exitosa (200):
+        {
+            "access": "<jwt_access_token>",
+            "refresh": "<jwt_refresh_token>",
+            "username": "<username>"
+        }
+
+    Respuesta fallida (400):
+        {
+            "error": "<mensaje de error>"
+        }
+    """
+
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.POST.get("username", "").strip()
-        password = request.POST.get("password", "").strip()
-        error = None
+        serializer = LoginSerializer(data=request.data)
 
-        if not username or not password:
-            error = "Por favor ingresa usuario y contraseña."
-        else:
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect("panel_dashboard")
-            else:
-                error = "Credenciales incorrectas. Intenta de nuevo."
+        if not serializer.is_valid():
+            errors = serializer.errors
+            # Extraer el primer mensaje de error legible
+            error_msg = ""
+            for field_errors in errors.values():
+                if isinstance(field_errors, list) and field_errors:
+                    error_msg = field_errors[0]
+                    break
+            return Response({"error": str(error_msg)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return render(request, self.template_name, {"error": error})
+        user = serializer.validated_data["user"]
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "username": user.username,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
-class LogoutView(View):
-    def get(self, request):
-        logout(request)
-        return redirect("login")
+class LogoutView(APIView):
+    """
+    POST /api/users/logout/
+
+    Recibe el refresh token y lo invalida (blacklist).
+    Requiere Authorization: Bearer <access_token> en el header.
+
+    Respuesta exitosa (200):
+        { "message": "Sesión cerrada correctamente." }
+
+    Respuesta fallida (400):
+        { "error": "Token inválido o ya expirado." }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response({"error": "Se requiere el refresh token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({"error": "Token inválido o ya expirado."}, status=status.HTTP_400_BAD_REQUEST)
