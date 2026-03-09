@@ -12,10 +12,8 @@ urlpatterns = [
         TemplateView.as_view(template_name="public/repuestos.html"),
         name="repuestos",
     ),
-
     # ── LOGIN (sirve el template HTML) ───────────────────────────────────
     path("login/", TemplateView.as_view(template_name="login.html"), name="login"),
-
     # ── PANEL ADMINISTRATIVO ─────────────────────────────────────────────
     path(
         "panel/",
@@ -47,10 +45,8 @@ urlpatterns = [
         TemplateView.as_view(template_name="admin_panel/crud_motocicleta.html"),
         name="panel_motos_crud",
     ),
-
     # ── DJANGO ADMIN ─────────────────────────────────────────────────────
     path("admin/", admin.site.urls),
-
     # ── API REST ──────────────────────────────────────────────────────────
     path("api/core/", include("core.urls")),
     path("api/users/", include("users.urls")),

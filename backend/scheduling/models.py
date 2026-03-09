@@ -2,12 +2,14 @@ from django.db import models
 from django.conf import settings
 from core.models import Sede
 
+
 class Jornada(models.Model):
     sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name="jornadas")
     dia_semana = models.IntegerField()  # 0 lunes ... 6 domingo
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     activa = models.BooleanField(default=True)
+
 
 class Cita(models.Model):
     class Estado(models.TextChoices):

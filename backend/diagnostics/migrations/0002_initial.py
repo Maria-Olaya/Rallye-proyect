@@ -5,28 +5,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('diagnostics', '0001_initial'),
-        ('scheduling', '0001_initial'),
+        ("diagnostics", "0001_initial"),
+        ("scheduling", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='diagnostico',
-            name='cita',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='diagnostico', to='scheduling.cita'),
+            model_name="diagnostico",
+            name="cita",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, related_name="diagnostico", to="scheduling.cita"
+            ),
         ),
         migrations.AddField(
-            model_name='evidencia',
-            name='diagnostico',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='evidencias', to='diagnostics.diagnostico'),
+            model_name="evidencia",
+            name="diagnostico",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, related_name="evidencias", to="diagnostics.diagnostico"
+            ),
         ),
         migrations.AddField(
-            model_name='radicado',
-            name='diagnostico',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='radicado', to='diagnostics.diagnostico'),
+            model_name="radicado",
+            name="diagnostico",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, related_name="radicado", to="diagnostics.diagnostico"
+            ),
         ),
     ]

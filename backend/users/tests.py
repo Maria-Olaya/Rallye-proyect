@@ -372,11 +372,7 @@ class HU07IniciarSesionTests(TestCase):
         """
         CP-28 · Token con estructura JWT pero contenido aleatorio → 401.
         """
-        token_falso = (
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"
-            ".eyJmYWtlIjoidHJ1ZSJ9"
-            ".invalidsig"
-        )
+        token_falso = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmYWtlIjoidHJ1ZSJ9.invalidsig"
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token_falso}")
         response = self.client.post(
             self.logout_url,
