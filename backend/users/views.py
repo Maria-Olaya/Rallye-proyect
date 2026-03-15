@@ -11,14 +11,17 @@ class LoginView(APIView):
     """
     POST /api/users/login/
 
-    Recibe username y password, valida credenciales y retorna
+    Recibe email y password, valida credenciales y retorna
     access token (JWT) y refresh token.
+    Solo permite acceso a administradores de Rallye Motor's (no superusers).
 
     Respuesta exitosa (200):
         {
             "access": "<jwt_access_token>",
             "refresh": "<jwt_refresh_token>",
-            "username": "<username>"
+            "email": "<email>",
+            "local_id": <id del local o null>,
+            "local_nombre": "<nombre del local o null>"
         }
 
     Respuesta fallida (400):
@@ -34,7 +37,6 @@ class LoginView(APIView):
 
         if not serializer.is_valid():
             errors = serializer.errors
-            # Extraer el primer mensaje de error legible
             error_msg = ""
             for field_errors in errors.values():
                 if isinstance(field_errors, list) and field_errors:
@@ -49,7 +51,9 @@ class LoginView(APIView):
             {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "username": user.username,
+                "email": user.email,
+                "local_id": user.local.id if user.local else None,
+                "local_nombre": user.local.nombre if user.local else None,
             },
             status=status.HTTP_200_OK,
         )

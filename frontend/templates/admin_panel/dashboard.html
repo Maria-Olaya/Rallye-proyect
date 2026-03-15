@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Panel — Rallye Motors{% endblock %}
+{% block content %}
+<h1>Panel administrativo</h1>
+<p>Bienvenido al panel.</p>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Verificar autenticación — si no hay token redirigir al login
+  if (!sessionStorage.getItem('access')) {
+    window.location.href = '/login/';
+  }
+</script>
+{% endblock %}

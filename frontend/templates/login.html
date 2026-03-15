@@ -298,16 +298,16 @@
 
         <!-- Formulario -->
         <div class="form-group">
-            <label class="form-label" for="username">Usuario</label>
+            <label class="form-label" for="email">Correo corporativo</label>
             <input
                 class="form-input"
-                type="text"
-                id="username"
-                name="username"
-                placeholder="Tu nombre de usuario"
-                autocomplete="username"
-                autocapitalize="none"
+                type="email"
+                id="email"
+                name="email"
+                placeholder="correo@rallyemotors.com.co"
+                autocomplete="email"
             >
+            
         </div>
 
         <div class="form-group">
@@ -335,7 +335,7 @@
 <script>
     // ── Elementos del DOM ──────────────────────────────────────
     const btnLogin     = document.getElementById('btnLogin');
-    const inputUser    = document.getElementById('username');
+    const inputUser    = document.getElementById('email');
     const inputPass    = document.getElementById('password');
     const alertError   = document.getElementById('alertError');
     const alertErrorMsg= document.getElementById('alertErrorMsg');
@@ -372,7 +372,7 @@
 
         // Validación client-side básica
         if (!username || !password) {
-            showError('Por favor ingresa usuario y contraseña.');
+            showError('Por favor ingresa correo y contraseña.');    
             return;
         }
 
@@ -382,7 +382,7 @@
             const response = await fetch('/api/users/login/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ email: username, password }),
             });
 
             const data = await response.json();
@@ -391,7 +391,9 @@
                 // Guardar tokens en sessionStorage
                 sessionStorage.setItem('access_token', data.access);
                 sessionStorage.setItem('refresh_token', data.refresh);
-                sessionStorage.setItem('username', data.username);
+                sessionStorage.setItem('email', data.email);
+                sessionStorage.setItem('local_id', data.local_id);
+                sessionStorage.setItem('local_nombre', data.local_nombre);
 
                 showSuccess();
 
