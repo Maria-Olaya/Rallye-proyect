@@ -38,3 +38,16 @@ def generar_citas_para_local(local: Local, fecha: date) -> list[Cita]:
         hora_actual += slot_duration
 
     return citas_creadas
+
+
+def generar_citas_rango(local: Local, fecha_inicio: date, dias: int = 30) -> int:
+    """
+    Genera citas para un local durante N días a partir de fecha_inicio.
+    Omite fechas que ya tienen citas. Retorna total de citas creadas.
+    """
+    total = 0
+    for i in range(dias):
+        fecha = fecha_inicio + timedelta(days=i)
+        citas = generar_citas_para_local(local, fecha)
+        total += len(citas)
+    return total
