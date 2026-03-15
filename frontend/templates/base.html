@@ -203,12 +203,9 @@
             <li><a href="/motos/">MOTOS</a></li>
             <li><a href="/repuestos/">REPUESTOS</a></li>
             <li><a href="/agendamientos/" class="dropdown-trigger">AGENDAMIENTOS ▾</a></li>
-            {% if user.is_authenticated %}
-                <li><a href="/panel/" class="btn-login">PANEL</a></li>
-                <li><a href="/logout/">SALIR</a></li>
-            {% else %}
-                <li><a href="/login/" class="btn-login">INICIAR SESIÓN</a></li>
-            {% endif %}
+            <li id="nav-auth">
+                <a href="/login/" class="btn-login">INICIAR SESIÓN</a>
+            </li>
         </ul>
     </nav>
 
@@ -222,6 +219,35 @@
         <div class="footer-email">✉ sistemas@rallyemotors.com.co</div>
         <div class="footer-slogan">Cuatro ruedas mueven el cuerpo, dos ruedas mueven el alma</div>
     </footer>
+
+    <!-- Navbar dinámico según token JWT -->
+    <script>
+        const access = sessionStorage.getItem('access');
+        const navAuth = document.getElementById('nav-auth');
+        if (access) {
+            navAuth.innerHTML = `
+                <a href="/panel/" class="btn-login" style="margin-right:0.5rem">PANEL</a>
+                <a href="#" class="btn-login" id="btn-salir" style="background:#555;margin-left:0.5rem">SALIR</a>
+            `;
+            document.getElementById('btn-salir').addEventListener('click', function(e) {
+                e.preventDefault();
+                const refresh = sessionStorage.getItem('refresh');
+                fetch('/api/users/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + access
+                    },
+                    body: JSON.stringify({ refresh })
+                }).finally(() => {
+                    sessionStorage.clear();
+                    window.location.href = '/login/';
+                });
+            });
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
 
 </body>
 </html>
