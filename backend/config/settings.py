@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     "core",
     "users",
     "scheduling",
-    "diagnostics",
+    # "diagnostics",
     "catalog",
 ]
 
