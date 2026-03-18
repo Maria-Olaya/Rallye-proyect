@@ -4,20 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('scheduling', '0001_initial'),
+        ("scheduling", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='cita',
-            name='anio_moto',
+            model_name="cita",
+            name="anio_moto",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='cita',
-            name='tipo_documento',
-            field=models.CharField(blank=True, choices=[('CC', 'Cédula de ciudadanía'), ('CE', 'Cédula de extranjería'), ('PP', 'Pasaporte')], default='', max_length=5),
+            model_name="cita",
+            name="tipo_documento",
+            field=models.CharField(
+                blank=True,
+                choices=[("CC", "Cédula de ciudadanía"), ("CE", "Cédula de extranjería"), ("PP", "Pasaporte")],
+                default="",
+                max_length=5,
+            ),
         ),
     ]

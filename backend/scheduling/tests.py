@@ -276,9 +276,7 @@ class AgendarCitaAPITest(TestCase):
             cliente_documento="000",
             cliente_correo="previo@test.com",
         )
-        response = self.client.get(
-            f"/api/scheduling/disponibles/?local={self.local.id}&fecha={self.fecha}"
-        )
+        response = self.client.get(f"/api/scheduling/disponibles/?local={self.local.id}&fecha={self.fecha}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["hora_inicio"], "08:00:00")
