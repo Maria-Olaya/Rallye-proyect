@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Rallye Motors{% endblock %}</title>
+    <title>{% block title %}Rallye Motor's{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -116,6 +116,61 @@
 
         .navbar-menu .btn-login::after { display: none; }
 
+        /* DROPDOWN */
+        .dropdown-wrapper {
+            position: relative;
+        }
+
+        .dropdown-trigger {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 16px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border-top: 3px solid var(--red);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            list-style: none;
+            min-width: 200px;
+            z-index: 200;
+            padding: 0.4rem 0;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-menu li a {
+            display: block;
+            padding: 0.65rem 1.3rem;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #111;
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .dropdown-menu li a::after { display: none; }
+
+        .dropdown-menu li a:hover {
+            background: #f5f5f5;
+            color: var(--red);
+        }
+
+        .dropdown-menu li + li {
+            border-top: 1px solid #f0f0f0;
+        }
+
         /* FOOTER */
         footer {
             background: #fff;
@@ -196,13 +251,24 @@
 
     <!-- NAVBAR -->
     <nav class="navbar">
-        <a href="/" class="navbar-logo">RALLYE <span>MOTORS</span></a>
+        <a href="/" class="navbar-logo">RALLYE <span>MOTOR'S</span></a>
         <ul class="navbar-menu">
             <li><a href="/">HOME</a></li>
             <li><a href="/sedes/">SEDES</a></li>
             <li><a href="/motos/">MOTOS</a></li>
             <li><a href="/repuestos/">REPUESTOS</a></li>
-            <li><a href="/agendamientos/" class="dropdown-trigger">AGENDAMIENTOS ▾</a></li>
+
+            <!-- DROPDOWN AGENDAMIENTOS -->
+            <li class="dropdown-wrapper">
+                <a href="#" class="dropdown-trigger" id="btn-agendamientos" onclick="toggleDropdown(event)">
+                    AGENDAMIENTOS ▾
+                </a>
+                <ul class="dropdown-menu" id="dropdown-agendamientos">
+                    <li><a href="/agendamientos/">Servicio técnico</a></li>
+                    <li><a href="/cancelar-cita/">Cancelar cita</a></li>
+                </ul>
+            </li>
+
             <li id="nav-auth">
                 <a href="/login/" class="btn-login">INICIAR SESIÓN</a>
             </li>
@@ -245,6 +311,20 @@
                 });
             });
         }
+
+        // Dropdown agendamientos
+        function toggleDropdown(e) {
+            e.preventDefault();
+            document.getElementById('dropdown-agendamientos').classList.toggle('open');
+        }
+
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            const wrapper = document.querySelector('.dropdown-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('dropdown-agendamientos').classList.remove('open');
+            }
+        });
     </script>
 
     {% block extra_scripts %}{% endblock %}
