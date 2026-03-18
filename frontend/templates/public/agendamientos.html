@@ -451,7 +451,7 @@
           document.getElementById("paso-2").style.display = "none";
           document.getElementById("confirmacion").style.display = "flex";
           document.getElementById("msg-confirmacion").textContent =
-            `Tu cita #${data.cita_id} quedó registrada. Recibirás un correo de confirmación.`;
+            `Tu cita quedó registrada. Recibirás un correo de confirmación.`;
         } else {
           mostrarError("msg-error-2", data.error || "No se pudo agendar la cita.");
         }
