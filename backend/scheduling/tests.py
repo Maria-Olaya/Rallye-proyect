@@ -2,6 +2,7 @@
 
 from datetime import date, time
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from core.models import Local, Sede, Municipio
 from scheduling.models import Cita
@@ -186,3 +187,120 @@ class GenerarCitasTest(TestCase):
         local = make_local(time(8, 0), time(10, 0), 3)
         generar_citas_para_local(local, date(2025, 1, 15))
         self.assertEqual(Cita.objects.filter(hora_inicio=time(8, 0)).count(), 3)
+
+
+# ─────────────────────────────────────────
+# HU-01 · Agendar servicio técnico
+# ─────────────────────────────────────────
+
+
+class AgendarCitaAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local(time(8, 0), time(12, 0), 2)
+        self.fecha = date(2026, 4, 20)
+
+    def _cita_libre(self):
+        """Crea y retorna una cita en estado LIBRE para usar en los tests."""
+        return Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.LIBRE,
+        )
+
+    def _payload_valido(self):
+        """Payload completo con todos los datos válidos para agendar."""
+        return {
+            "tipo_servicio": "MANTENIMIENTO",
+            "tipo_documento": "CC",
+            "cliente_nombre": "Juan Pérez",
+            "cliente_documento": "1023456789",
+            "cliente_telefono": "3001234567",
+            "cliente_correo": "juan@test.com",
+            "placa_moto": "ABC123",
+            "referencia_moto": "FZ 150",
+            "anio_moto": 2022,
+        }
+
+    def test_cp_hu01_01_agendamiento_completo_datos_validos(self):
+        """CP-HU01-01 · Caja negra — flujo feliz · CA-01 · CA-03
+        Agendamiento completo con todos los datos válidos.
+        Resultado esperado: cita registrada en BD · estado cambia a ASIGNADA · HTTP 200."""
+        cita = self._cita_libre()
+        response = self.client.patch(
+            f"/api/scheduling/agendar/{cita.id}/",
+            self._payload_valido(),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.ASIGNADA)
+        self.assertIn("cita_id", response.data)
+
+    def test_cp_hu01_02_campo_nombre_vacio_retorna_error(self):
+        """CP-HU01-02 · Caja negra — validación · CA-01
+        Campo obligatorio vacío (nombre).
+        Resultado esperado: HTTP 400 · cita permanece en estado LIBRE."""
+        cita = self._cita_libre()
+        payload = self._payload_valido()
+        payload["cliente_nombre"] = ""
+        response = self.client.patch(
+            f"/api/scheduling/agendar/{cita.id}/",
+            payload,
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.LIBRE)
+
+    def test_cp_hu01_03_solo_se_muestran_horarios_disponibles(self):
+        """CP-HU01-03 · Caja negra — restricción de negocio · CA-02
+        Local con slots parcialmente ocupados.
+        Resultado esperado: endpoint retorna solo citas en estado LIBRE."""
+        Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.LIBRE,
+        )
+        Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(10, 0),
+            hora_fin=time(12, 0),
+            estado=Cita.Estado.ASIGNADA,
+            cliente_nombre="Cliente previo",
+            cliente_documento="000",
+            cliente_correo="previo@test.com",
+        )
+        response = self.client.get(
+            f"/api/scheduling/disponibles/?local={self.local.id}&fecha={self.fecha}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["hora_inicio"], "08:00:00")
+
+    def test_cp_hu01_04_cita_persistida_correctamente_en_bd(self):
+        """CP-HU01-04 · Integración · CA-01 · CA-03
+        Cita queda persistida en BD con todos los campos correctos.
+        Resultado esperado: registro visible en BD con datos del cliente y moto."""
+        cita = self._cita_libre()
+        self.client.patch(
+            f"/api/scheduling/agendar/{cita.id}/",
+            self._payload_valido(),
+            format="json",
+        )
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.ASIGNADA)
+        self.assertEqual(cita.cliente_nombre, "Juan Pérez")
+        self.assertEqual(cita.cliente_documento, "1023456789")
+        self.assertEqual(cita.cliente_telefono, "3001234567")
+        self.assertEqual(cita.cliente_correo, "juan@test.com")
+        self.assertEqual(cita.placa_moto, "ABC123")
+        self.assertEqual(cita.referencia_moto, "FZ 150")
+        self.assertEqual(cita.anio_moto, 2022)
+        self.assertEqual(cita.tipo_servicio, "MANTENIMIENTO")
+        self.assertEqual(cita.tipo_documento, "CC")

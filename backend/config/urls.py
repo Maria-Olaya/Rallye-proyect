@@ -12,6 +12,7 @@ urlpatterns = [
         TemplateView.as_view(template_name="public/repuestos.html"),
         name="repuestos",
     ),
+    path("agendamientos/", TemplateView.as_view(template_name="public/agendamientos.html"), name="agendamientos"),
     # ── LOGIN (sirve el template HTML) ───────────────────────────────────
     path("login/", TemplateView.as_view(template_name="login.html"), name="login"),
     # ── PANEL ADMINISTRATIVO ─────────────────────────────────────────────
