@@ -75,7 +75,7 @@ class AgendarCitaView(APIView):
                 return Response(
                     {
                         "error": "No pudimos enviar el correo de confirmación. "
-                                 "Por favor verifica tu correo e intenta de nuevo."
+                        "Por favor verifica tu correo e intenta de nuevo."
                     },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )

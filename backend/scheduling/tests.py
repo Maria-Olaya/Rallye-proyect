@@ -346,6 +346,7 @@ class ConfirmacionCorreoTest(TestCase):
         cita = self._cita_libre()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
+
             self.client.patch(
                 f"/api/scheduling/agendar/{cita.id}/",
                 self._payload_valido(),
@@ -366,6 +367,7 @@ class ConfirmacionCorreoTest(TestCase):
         cita = self._cita_libre()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
+
             payload = self._payload_valido()
             payload["cliente_nombre"] = ""
             self.client.patch(

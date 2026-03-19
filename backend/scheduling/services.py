@@ -125,20 +125,24 @@ Equipo Rallye Motor's
         cita.correo_confirmacion_enviado = True
         cita.fecha_envio_confirmacion = timezone.now()
         cita.error_envio_confirmacion = ""
-        cita.save(update_fields=[
-            "correo_confirmacion_enviado",
-            "fecha_envio_confirmacion",
-            "error_envio_confirmacion",
-        ])
+        cita.save(
+            update_fields=[
+                "correo_confirmacion_enviado",
+                "fecha_envio_confirmacion",
+                "error_envio_confirmacion",
+            ]
+        )
         return True
 
     except Exception as e:
         cita.correo_confirmacion_enviado = False
         cita.fecha_envio_confirmacion = timezone.now()
         cita.error_envio_confirmacion = str(e)
-        cita.save(update_fields=[
-            "correo_confirmacion_enviado",
-            "fecha_envio_confirmacion",
-            "error_envio_confirmacion",
-        ])
+        cita.save(
+            update_fields=[
+                "correo_confirmacion_enviado",
+                "fecha_envio_confirmacion",
+                "error_envio_confirmacion",
+            ]
+        )
         return False

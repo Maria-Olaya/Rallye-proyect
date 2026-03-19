@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('scheduling', '0002_cita_anio_moto_cita_tipo_documento'),
+        ("scheduling", "0002_cita_anio_moto_cita_tipo_documento"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='cita',
-            name='correo_confirmacion_enviado',
+            model_name="cita",
+            name="correo_confirmacion_enviado",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='cita',
-            name='error_envio_confirmacion',
-            field=models.TextField(blank=True, default=''),
+            model_name="cita",
+            name="error_envio_confirmacion",
+            field=models.TextField(blank=True, default=""),
         ),
         migrations.AddField(
-            model_name='cita',
-            name='fecha_envio_confirmacion',
+            model_name="cita",
+            name="fecha_envio_confirmacion",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]
