@@ -1,13 +1,16 @@
-# Create your views here.
+# scheduling/views.py
+
 from datetime import date
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from core.models import Local
 from scheduling.models import Cita
 from scheduling.serializers import AgendarCitaSerializer, CitaDisponibleSerializer
-from scheduling.services import generar_citas_para_local
-from core.models import Local
+from scheduling.services import enviar_correo_confirmacion, generar_citas_para_local
 
 
 class CitasDisponiblesView(APIView):
@@ -53,8 +56,36 @@ class AgendarCitaView(APIView):
         serializer = AgendarCitaSerializer(cita, data=request.data, partial=False)
         if serializer.is_valid():
             serializer.save()
+
+            # HU-03: enviar correo de confirmación — si falla, revertir la cita a LIBRE
+            enviado = enviar_correo_confirmacion(cita)
+
+            if not enviado:
+                cita.estado = Cita.Estado.LIBRE
+                cita.tipo_servicio = None
+                cita.tipo_documento = ""
+                cita.cliente_nombre = ""
+                cita.cliente_documento = ""
+                cita.cliente_telefono = ""
+                cita.cliente_correo = ""
+                cita.placa_moto = ""
+                cita.referencia_moto = ""
+                cita.anio_moto = None
+                cita.save()
+                return Response(
+                    {
+                        "error": "No pudimos enviar el correo de confirmación. "
+                        "Por favor verifica tu correo e intenta de nuevo."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
             return Response(
-                {"mensaje": "Cita agendada correctamente.", "cita_id": cita.id},
+                {
+                    "mensaje": "Cita agendada correctamente.",
+                    "cita_id": cita.id,
+                    "correo_enviado": True,
+                },
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

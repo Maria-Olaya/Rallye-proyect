@@ -25,7 +25,7 @@ class Cita(models.Model):
     hora_fin = models.TimeField()
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.LIBRE)
 
-    # Datos del cliente — null mientras la cita está LIBRE
+    # Datos del cliente — vacíos mientras la cita está LIBRE
     tipo_servicio = models.CharField(max_length=20, choices=TipoServicio.choices, null=True, blank=True)
     tipo_documento = models.CharField(max_length=5, choices=TipoDocumento.choices, blank=True, default="")
     cliente_nombre = models.CharField(max_length=120, blank=True, default="")
@@ -35,6 +35,11 @@ class Cita(models.Model):
     placa_moto = models.CharField(max_length=10, blank=True, default="")
     referencia_moto = models.CharField(max_length=60, blank=True, default="")
     anio_moto = models.PositiveIntegerField(null=True, blank=True)
+
+    # Registro de envío de confirmación por correo
+    correo_confirmacion_enviado = models.BooleanField(default=False)
+    fecha_envio_confirmacion = models.DateTimeField(null=True, blank=True)
+    error_envio_confirmacion = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["fecha", "hora_inicio"]

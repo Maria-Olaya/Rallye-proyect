@@ -302,3 +302,93 @@ class AgendarCitaAPITest(TestCase):
         self.assertEqual(cita.anio_moto, 2022)
         self.assertEqual(cita.tipo_servicio, "MANTENIMIENTO")
         self.assertEqual(cita.tipo_documento, "CC")
+
+
+# ─────────────────────────────────────────
+# HU-03 · Recibir confirmación del servicio técnico
+# ─────────────────────────────────────────
+
+
+class ConfirmacionCorreoTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local(time(8, 0), time(12, 0), 2)
+        self.fecha = date(2026, 4, 20)
+
+    def _cita_libre(self):
+        """Crea y retorna una cita en estado LIBRE para usar en los tests."""
+        return Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.LIBRE,
+        )
+
+    def _payload_valido(self):
+        """Payload completo con todos los datos válidos para agendar."""
+        return {
+            "tipo_servicio": "MANTENIMIENTO",
+            "tipo_documento": "CC",
+            "cliente_nombre": "Juan Pérez",
+            "cliente_documento": "1023456789",
+            "cliente_telefono": "3001234567",
+            "cliente_correo": "juan@test.com",
+            "placa_moto": "ABC123",
+            "referencia_moto": "FZ 150",
+            "anio_moto": 2022,
+        }
+
+    def test_cp_hu03_01_correo_enviado_automaticamente_tras_agendamiento(self):
+        """CP-HU03-01 · Caja negra — flujo feliz · CA-01
+        Correo enviado automáticamente tras agendamiento válido.
+        Resultado esperado: correo enviado con fecha, hora, sede y categoría correctas."""
+        cita = self._cita_libre()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            self.client.patch(
+                f"/api/scheduling/agendar/{cita.id}/",
+                self._payload_valido(),
+                format="json",
+            )
+            self.assertEqual(len(mail.outbox), 1)
+            correo = mail.outbox[0]
+            self.assertIn("Juan Pérez", correo.body)
+            self.assertIn("20/04/2026", correo.body)
+            self.assertIn("08:00", correo.body)
+            self.assertIn("Mantenimiento General", correo.body)
+            self.assertEqual(correo.to, ["juan@test.com"])
+
+    def test_cp_hu03_02_correo_no_se_envia_si_agendamiento_falla(self):
+        """CP-HU03-02 · Caja negra — validación · CA-01
+        Correo no se envía si los datos del agendamiento son inválidos.
+        Resultado esperado: no se envía correo · error mostrado al usuario."""
+        cita = self._cita_libre()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            payload = self._payload_valido()
+            payload["cliente_nombre"] = ""
+            self.client.patch(
+                f"/api/scheduling/agendar/{cita.id}/",
+                payload,
+                format="json",
+            )
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_cp_hu03_03_estado_envio_queda_registrado(self):
+        """CP-HU03-03 · Integración · CA-02
+        El estado de envío del correo queda registrado correctamente en BD.
+        Resultado esperado: correo_confirmacion_enviado = True tras agendamiento exitoso."""
+        cita = self._cita_libre()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.patch(
+                f"/api/scheduling/agendar/{cita.id}/",
+                self._payload_valido(),
+                format="json",
+            )
+            cita.refresh_from_db()
+            self.assertTrue(cita.correo_confirmacion_enviado)
+            self.assertIsNotNone(cita.fecha_envio_confirmacion)
+            self.assertEqual(cita.error_envio_confirmacion, "")
