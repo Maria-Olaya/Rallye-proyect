@@ -263,7 +263,7 @@
         </div>
         <div class="field">
           <label class="lbl">Modelo (año)</label>
-          <input id="anio_moto" type="number" class="inp" placeholder="Ej: 2022" min="2000" max="2026">
+          <input id="anio_moto" type="number" class="inp" placeholder="Ej: 2022" min="1900" max="2026">
         </div>
         <div class="field">
           <label class="lbl">Categoría de servicio</label>
@@ -413,6 +413,21 @@
         return;
       }
     }
+
+    const telefono = document.getElementById("cliente_telefono").value.trim();
+    const telefonoRegex = /^\d{7,10}$/;
+    if (!telefonoRegex.test(telefono.replace(/\s/g, ""))) {
+      mostrarError("msg-error-1", "El teléfono debe tener entre 7 y 10 dígitos numéricos.");
+      return;
+    }
+
+    const correo = document.getElementById("cliente_correo").value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+      mostrarError("msg-error-1", "Ingresa un correo electrónico válido. Ejemplo: nombre@dominio.com");
+      return;
+    }
+
     ocultarError("msg-error-1");
     document.getElementById("paso-1").style.display = "none";
     document.getElementById("paso-2").style.display = "flex";
@@ -425,8 +440,17 @@
 
   function confirmarCita() {
     if (!document.getElementById("referencia_moto").value.trim()) return mostrarError("msg-error-2", "Ingresa la referencia de la moto.");
-    if (!document.getElementById("anio_moto").value.trim()) return mostrarError("msg-error-2", "Ingresa el año de la moto.");
-    if (!document.getElementById("placa_moto").value.trim()) return mostrarError("msg-error-2", "Ingresa la placa.");
+
+    const anio = parseInt(document.getElementById("anio_moto").value);
+    const anioActual = new Date().getFullYear();
+    if (!anio) return mostrarError("msg-error-2", "Ingresa el año de la moto.");
+    if (anio < 1900 || anio > anioActual) return mostrarError("msg-error-2", `El año debe estar entre 1900 y ${anioActual}.`);
+
+    const placa = document.getElementById("placa_moto").value.trim().toUpperCase();
+    const placaRegex = /^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$/;
+    if (!placa) return mostrarError("msg-error-2", "Ingresa la placa.");
+    if (!placaRegex.test(placa)) return mostrarError("msg-error-2", "Formato de placa inválido. Use ABC123 o AB123C.");
+
     if (!document.getElementById("local_id").value) return mostrarError("msg-error-2", "Selecciona un local.");
     if (!document.getElementById("fecha").value) return mostrarError("msg-error-2", "Selecciona una fecha.");
     if (!citaSeleccionada) return mostrarError("msg-error-2", "Selecciona un horario disponible.");
@@ -444,9 +468,9 @@
       cliente_documento: document.getElementById("cliente_documento").value,
       cliente_telefono:  document.getElementById("cliente_telefono").value,
       cliente_correo:    document.getElementById("cliente_correo").value,
-      placa_moto:        document.getElementById("placa_moto").value,
+      placa_moto:        placa,
       referencia_moto:   document.getElementById("referencia_moto").value,
-      anio_moto:         parseInt(document.getElementById("anio_moto").value) || null,
+      anio_moto:         anio,
     };
 
     fetch(`/api/scheduling/agendar/${citaSeleccionada}/`, {
