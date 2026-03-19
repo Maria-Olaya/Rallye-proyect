@@ -1,4 +1,8 @@
+import re
+from datetime import date
+
 from rest_framework import serializers
+
 from scheduling.models import Cita
 
 
@@ -57,12 +61,18 @@ class AgendarCitaSerializer(serializers.ModelSerializer):
     def validate_cliente_telefono(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Este campo es obligatorio.")
-        return value.strip()
+        digitos = re.sub(r"\D", "", value)
+        if len(digitos) < 7 or len(digitos) > 10:
+            raise serializers.ValidationError("El teléfono debe tener entre 7 y 10 dígitos.")
+        return digitos
 
     def validate_placa_moto(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Este campo es obligatorio.")
-        return value.strip().upper()
+        placa = value.strip().upper()
+        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
+            raise serializers.ValidationError("Formato de placa inválido. Use ABC123 o AB123C.")
+        return placa
 
     def validate_referencia_moto(self, value):
         if not value or not value.strip():
@@ -72,8 +82,9 @@ class AgendarCitaSerializer(serializers.ModelSerializer):
     def validate_anio_moto(self, value):
         if value is None:
             raise serializers.ValidationError("Este campo es obligatorio.")
-        if value < 1900:
-            raise serializers.ValidationError("Ingrese un año válido.")
+        anio_actual = date.today().year
+        if value < 1900 or value > anio_actual:
+            raise serializers.ValidationError(f"Ingrese un año válido entre 1900 y {anio_actual}.")
         return value
 
     def update(self, instance, validated_data):
