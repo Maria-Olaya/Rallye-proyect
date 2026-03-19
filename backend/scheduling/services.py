@@ -87,7 +87,7 @@ def enviar_correo_confirmacion(cita: Cita) -> bool:
         duracion = _DURACION_ESTIMADA.get(cita.tipo_servicio, "2 horas")
         sede_nombre = cita.local.sede.nombre if cita.local.sede else ""
 
-        asunto = f"Confirmación de cita — Rallye Motor's · "
+        asunto = "Confirmación de cita — Rallye Motor's · "
 
         mensaje = f"""Hola {cita.cliente_nombre},
 
