@@ -127,6 +127,7 @@
   }
 
   .btn-main:hover { background: #cc0000; border-color: #cc0000; color: #fff; }
+  .btn-main:disabled { background: #555; border-color: #555; cursor: not-allowed; }
 
   .btn-secondary {
     background: #fff;
@@ -295,7 +296,7 @@
 
       <div class="btn-row">
         <button onclick="volverPaso1()" class="btn-secondary">← Volver</button>
-        <button onclick="confirmarCita()" class="btn-main">Confirmar revisión</button>
+        <button id="btn-confirmar" onclick="confirmarCita()" class="btn-main">Confirmar revisión</button>
       </div>
     </div>
 
@@ -345,9 +346,13 @@
       document.getElementById("local_id").innerHTML = '<option value="">Error al cargar locales</option>';
     });
 
+  // Fecha mínima: mañana en hora local colombiana (evita problema de UTC)
   const hoy = new Date();
-  hoy.setDate(hoy.getDate() + 1);
-  document.getElementById("fecha").min = hoy.toISOString().split("T")[0];
+  const manana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+  const yyyy = manana.getFullYear();
+  const mm = String(manana.getMonth() + 1).padStart(2, "0");
+  const dd = String(manana.getDate()).padStart(2, "0");
+  document.getElementById("fecha").min = `${yyyy}-${mm}-${dd}`;
 
   function onLocalChange() {
     document.getElementById("horarios-container").style.display = "none";
@@ -428,6 +433,10 @@
 
     ocultarError("msg-error-2");
 
+    const btn = document.getElementById("btn-confirmar");
+    btn.textContent = "Enviando...";
+    btn.disabled = true;
+
     const body = {
       tipo_servicio:     document.getElementById("tipo_servicio").value,
       tipo_documento:    document.getElementById("tipo_documento").value,
@@ -451,12 +460,18 @@
           document.getElementById("paso-2").style.display = "none";
           document.getElementById("confirmacion").style.display = "flex";
           document.getElementById("msg-confirmacion").textContent =
-            `Tu cita quedó registrada. Recibirás un correo de confirmación.`;
+            `Tu cita quedó registrada. Te enviamos un correo de confirmación con los detalles.`;
         } else {
+          btn.textContent = "Confirmar revisión";
+          btn.disabled = false;
           mostrarError("msg-error-2", data.error || "No se pudo agendar la cita.");
         }
       })
-      .catch(() => mostrarError("msg-error-2", "Error de conexión. Intenta de nuevo."));
+      .catch(() => {
+        btn.textContent = "Confirmar revisión";
+        btn.disabled = false;
+        mostrarError("msg-error-2", "Error de conexión. Intenta de nuevo.");
+      });
   }
 
   function mostrarError(id, msg) {

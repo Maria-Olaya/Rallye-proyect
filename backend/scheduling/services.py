@@ -1,8 +1,13 @@
 # scheduling/services.py
 
 from datetime import datetime, timedelta, date
-from scheduling.models import Cita
+
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
+
 from core.models import Local
+from scheduling.models import Cita
 
 
 def citas_por_dia(local: Local) -> int:
@@ -51,3 +56,89 @@ def generar_citas_rango(local: Local, fecha_inicio: date, dias: int = 30) -> int
         citas = generar_citas_para_local(local, fecha)
         total += len(citas)
     return total
+
+
+# ── HU-03 · Enviar correo de confirmación ─────────────────────────────
+
+_NOMBRE_SERVICIO = {
+    "MANTENIMIENTO": "Mantenimiento General",
+    "REVISION": "Revisión General",
+    "ALISTAMIENTO": "Alistamiento",
+    "GARANTIA": "Revisión por Garantía",
+}
+
+_DURACION_ESTIMADA = {
+    "MANTENIMIENTO": "2 horas",
+    "REVISION": "2 horas",
+    "ALISTAMIENTO": "2 horas",
+    "GARANTIA": "2 horas",
+}
+
+
+def enviar_correo_confirmacion(cita: Cita) -> bool:
+    """
+    Envía correo de confirmación al cliente tras el agendamiento.
+    Registra resultado en correo_confirmacion_enviado,
+    fecha_envio_confirmacion y error_envio_confirmacion.
+    Retorna True si fue exitoso, False si falló.
+    """
+    try:
+        nombre_servicio = _NOMBRE_SERVICIO.get(cita.tipo_servicio, cita.tipo_servicio)
+        duracion = _DURACION_ESTIMADA.get(cita.tipo_servicio, "2 horas")
+        sede_nombre = cita.local.sede.nombre if cita.local.sede else ""
+
+        asunto = f"Confirmación de cita — Rallye Motor's · "
+
+        mensaje = f"""Hola {cita.cliente_nombre},
+
+Tu cita de servicio técnico ha sido registrada exitosamente.
+
+──────────────────────────────
+DETALLES DE TU CITA
+──────────────────────────────
+Categoría:         {nombre_servicio}
+Fecha:             {cita.fecha.strftime("%d/%m/%Y")}
+Hora:              {cita.hora_inicio.strftime("%I:%M %p")} – {cita.hora_fin.strftime("%I:%M %p")}
+Duración:          Max. {duracion}
+Sede:              {sede_nombre}
+Local:             {cita.local.nombre}
+Dirección:         {cita.local.direccion}
+──────────────────────────────
+
+Recuerda que puedes cancelar tu cita hasta un día antes de la fecha programada dentro de la app web.
+
+Para más información contáctanos:
+✉ sistemas@rallyemotors.com.co
+
+¡Te esperamos!
+Equipo Rallye Motor's
+"""
+
+        send_mail(
+            subject=asunto,
+            message=mensaje,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[cita.cliente_correo],
+            fail_silently=False,
+        )
+
+        cita.correo_confirmacion_enviado = True
+        cita.fecha_envio_confirmacion = timezone.now()
+        cita.error_envio_confirmacion = ""
+        cita.save(update_fields=[
+            "correo_confirmacion_enviado",
+            "fecha_envio_confirmacion",
+            "error_envio_confirmacion",
+        ])
+        return True
+
+    except Exception as e:
+        cita.correo_confirmacion_enviado = False
+        cita.fecha_envio_confirmacion = timezone.now()
+        cita.error_envio_confirmacion = str(e)
+        cita.save(update_fields=[
+            "correo_confirmacion_enviado",
+            "fecha_envio_confirmacion",
+            "error_envio_confirmacion",
+        ])
+        return False
