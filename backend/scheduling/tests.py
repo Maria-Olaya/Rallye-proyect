@@ -1,12 +1,17 @@
 # scheduling/tests.py
 
 from datetime import date, time
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from core.models import Local, Sede, Municipio
+from core.models import Local, Municipio, Sede
 from scheduling.models import Cita
-from scheduling.services import citas_por_dia, generar_citas_para_local
+from scheduling.services import (
+    citas_por_dia,
+    enviar_correo_cancelacion_admin,
+    generar_citas_para_local,
+)
 
 
 def make_local(hora_apertura, hora_cierre, num_mecanicos, nombre="TestLocal"):
@@ -392,3 +397,102 @@ class ConfirmacionCorreoTest(TestCase):
             self.assertTrue(cita.correo_confirmacion_enviado)
             self.assertIsNotNone(cita.fecha_envio_confirmacion)
             self.assertEqual(cita.error_envio_confirmacion, "")
+
+
+# ─────────────────────────────────────────
+# HU-06 · Recibir notificación de cancelación
+# ─────────────────────────────────────────
+
+
+class NotificacionCancelacionTest(TestCase):
+    def setUp(self):
+        self.local = make_local(time(8, 0), time(12, 0), 2, nombre="Local Rallye Motor's - Carepa")
+        self.fecha = date(2026, 4, 21)
+
+    def _cita_cancelada(self):
+        """Crea y retorna una cita cancelada con datos completos para usar en los tests."""
+        return Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(16, 0),
+            hora_fin=time(18, 0),
+            estado=Cita.Estado.CANCELADA,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Juan Pérez",
+            cliente_documento="1023456789",
+            cliente_telefono="3001234567",
+            cliente_correo="juan@test.com",
+            placa_moto="ABC123",
+            referencia_moto="FZ 150",
+            anio_moto=2022,
+        )
+
+    def _cita_asignada(self):
+        """Crea y retorna una cita asignada para probar el caso donde no hay cancelación."""
+        return Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(16, 0),
+            hora_fin=time(18, 0),
+            estado=Cita.Estado.ASIGNADA,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Juan Pérez",
+            cliente_documento="1023456789",
+            cliente_telefono="3001234567",
+            cliente_correo="juan@test.com",
+            placa_moto="ABC123",
+            referencia_moto="FZ 150",
+            anio_moto=2022,
+        )
+
+    def test_cp_hu06_01_notificacion_enviada_al_admin_tras_cancelacion(self):
+        """CP-HU06-01 · Caja negra — flujo feliz · CA-01 · CA-02
+        Notificación enviada al admin tras cancelación.
+        Resultado esperado: correo enviado con fecha, hora y categoría del servicio cancelado."""
+        cita = self._cita_cancelada()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            resultado = enviar_correo_cancelacion_admin(cita)
+
+            self.assertTrue(resultado)
+            self.assertEqual(len(mail.outbox), 1)
+
+            correo = mail.outbox[0]
+            self.assertIn("21/04/2026", correo.body)
+            self.assertIn("04:00 PM", correo.body)
+            self.assertIn("06:00 PM", correo.body)
+            self.assertIn("Mantenimiento General", correo.body)
+
+    def test_cp_hu06_02_notificacion_llega_solo_al_admin_del_local_correcto(self):
+        """CP-HU06-02 · Caja negra — restricción de negocio · CA-02
+        Notificación llega solo al admin del local correcto.
+        Resultado esperado: el destinatario es únicamente correo_admin del local asociado."""
+        cita = self._cita_cancelada()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            enviar_correo_cancelacion_admin(cita)
+
+            self.assertEqual(len(mail.outbox), 1)
+            correo = mail.outbox[0]
+            self.assertEqual(correo.to, [cita.local.correo_admin])
+
+    def test_cp_hu06_03_no_se_envia_si_no_hay_evento_de_cancelacion(self):
+        """CP-HU06-03 · Caja negra — validación · CA-01
+        No se envía si no hay evento de cancelación.
+        Resultado esperado: función retorna False y no se genera correo."""
+        cita = self._cita_asignada()
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            resultado = enviar_correo_cancelacion_admin(cita)
+
+            self.assertFalse(resultado)
+            self.assertEqual(len(mail.outbox), 0)
+            cita.refresh_from_db()
+            self.assertFalse(cita.correo_cancelacion_enviado)
+            self.assertIsNone(cita.fecha_envio_cancelacion)
+            self.assertEqual(cita.error_envio_cancelacion, "")

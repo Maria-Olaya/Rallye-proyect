@@ -58,7 +58,7 @@ def generar_citas_rango(local: Local, fecha_inicio: date, dias: int = 30) -> int
     return total
 
 
-# ── HU-03 · Enviar correo de confirmación ─────────────────────────────
+# ── Catálogos auxiliares de nombres ───────────────────────────────────
 
 _NOMBRE_SERVICIO = {
     "MANTENIMIENTO": "Mantenimiento General",
@@ -73,6 +73,9 @@ _DURACION_ESTIMADA = {
     "ALISTAMIENTO": "2 horas",
     "GARANTIA": "2 horas",
 }
+
+
+# ── HU-03 · Enviar correo de confirmación ─────────────────────────────
 
 
 def enviar_correo_confirmacion(cita: Cita) -> bool:
@@ -143,6 +146,90 @@ Equipo Rallye Motor's
                 "correo_confirmacion_enviado",
                 "fecha_envio_confirmacion",
                 "error_envio_confirmacion",
+            ]
+        )
+        return False
+
+
+# ── HU-06 · Notificación de cancelación al administrador ──────────────
+
+
+def enviar_correo_cancelacion_admin(cita: Cita) -> bool:
+    """
+    Envía un correo al administrador del local cuando una cita ha sido cancelada.
+
+    Solo envía si la cita existe y está en estado CANCELADA.
+    Registra resultado en correo_cancelacion_enviado,
+    fecha_envio_cancelacion y error_envio_cancelacion.
+
+    Retorna True si fue exitoso, False si no aplica o si falló.
+    """
+    if not cita:
+        return False
+
+    if cita.estado != Cita.Estado.CANCELADA:
+        return False
+
+    try:
+        nombre_servicio = _NOMBRE_SERVICIO.get(cita.tipo_servicio, cita.tipo_servicio or "No especificada")
+        sede_nombre = cita.local.sede.nombre if cita.local.sede else ""
+        correo_admin = cita.local.correo_admin
+
+        asunto = "Cancelación de cita — Rallye Motor's"
+
+        mensaje = f"""Hola administrador(a) de {cita.local.nombre},
+
+Se ha cancelado una cita de servicio técnico y es necesario reorganizar la agenda de atención.
+
+──────────────────────────────
+DETALLES DE LA CITA CANCELADA
+──────────────────────────────
+Categoría:         {nombre_servicio}
+Fecha:             {cita.fecha.strftime("%d/%m/%Y")}
+Hora:              {cita.hora_inicio.strftime("%I:%M %p")} – {cita.hora_fin.strftime("%I:%M %p")}
+Sede:              {sede_nombre}
+Local:             {cita.local.nombre}
+Dirección:         {cita.local.direccion}
+Cliente:           {cita.cliente_nombre or "No registrado"}
+Documento:         {cita.cliente_documento or "No registrado"}
+Teléfono:          {cita.cliente_telefono or "No registrado"}
+Correo cliente:    {cita.cliente_correo or "No registrado"}
+Placa:             {cita.placa_moto or "No registrada"}
+Referencia moto:   {cita.referencia_moto or "No registrada"}
+──────────────────────────────
+
+Este correo fue generado automáticamente por el sistema de Rallye Motor's.
+"""
+
+        send_mail(
+            subject=asunto,
+            message=mensaje,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[correo_admin],
+            fail_silently=False,
+        )
+
+        cita.correo_cancelacion_enviado = True
+        cita.fecha_envio_cancelacion = timezone.now()
+        cita.error_envio_cancelacion = ""
+        cita.save(
+            update_fields=[
+                "correo_cancelacion_enviado",
+                "fecha_envio_cancelacion",
+                "error_envio_cancelacion",
+            ]
+        )
+        return True
+
+    except Exception as e:
+        cita.correo_cancelacion_enviado = False
+        cita.fecha_envio_cancelacion = timezone.now()
+        cita.error_envio_cancelacion = str(e)
+        cita.save(
+            update_fields=[
+                "correo_cancelacion_enviado",
+                "fecha_envio_cancelacion",
+                "error_envio_cancelacion",
             ]
         )
         return False
