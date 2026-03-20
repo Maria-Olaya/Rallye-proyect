@@ -1,3 +1,5 @@
+# scheduling/models.py
+
 from django.db import models
 
 from core.models import Local
@@ -7,6 +9,7 @@ class Cita(models.Model):
     class Estado(models.TextChoices):
         LIBRE = "LIBRE", "Libre"
         ASIGNADA = "ASIGNADA", "Asignada"
+        CANCELADA = "CANCELADA", "Cancelada"
 
     class TipoServicio(models.TextChoices):
         MANTENIMIENTO = "MANTENIMIENTO", "Mantenimiento General"
@@ -40,6 +43,11 @@ class Cita(models.Model):
     correo_confirmacion_enviado = models.BooleanField(default=False)
     fecha_envio_confirmacion = models.DateTimeField(null=True, blank=True)
     error_envio_confirmacion = models.TextField(blank=True, default="")
+
+    # Registro de envío de notificación de cancelación al administrador
+    correo_cancelacion_enviado = models.BooleanField(default=False)
+    fecha_envio_cancelacion = models.DateTimeField(null=True, blank=True)
+    error_envio_cancelacion = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["fecha", "hora_inicio"]
