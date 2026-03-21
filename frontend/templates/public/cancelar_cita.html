@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}Cancelar Cita — Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+  * { box-sizing: border-box; }
+  .form-wrapper {
+    min-height: 90vh;
+    background: linear-gradient(135deg, #0a0a0a 60%, #1a0000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .card {
+    display: flex;
+    max-width: 620px;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+  .card-body {
+    background: #fff;
+    padding: 2.5rem;
+    flex: 1;
+  }
+  .card-side {
+    background: #cc0000;
+    width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    color: #cc0000;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 0.3rem 0;
+    letter-spacing: 0.05em;
+  }
+  .card-subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    margin: 0 0 1.5rem 0;
+  }
+  .lbl {
+    display: block;
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .inp {
+    width: 100%;
+    background: #f7f7f7;
+    border: 1.5px solid #e0e0e0;
+    color: #111;
+    padding: 0.65rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s, background 0.2s;
+    text-transform: uppercase;
+  }
+  .inp:focus {
+    border-color: #cc0000;
+    background: #fff;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .fields-col { display: flex; flex-direction: column; gap: 0.9rem; }
+  .btn-main {
+    width: 100%;
+    background: #111;
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.85rem;
+    border: 2px solid #111;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    margin-top: 1.5rem;
+    display: block;
+    text-align: center;
+    text-decoration: none;
+  }
+  .btn-main:hover { background: #cc0000; border-color: #cc0000; color: #fff; }
+  .btn-main:disabled { background: #555; border-color: #555; cursor: not-allowed; }
+  .btn-cancelar {
+    background: #cc0000;
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-cancelar:hover:not(:disabled) { background: #a00000; }
+  .btn-cancelar:disabled { background: #999; cursor: not-allowed; }
+  .msg-error {
+    display: none;
+    color: #cc0000;
+    font-size: 0.84rem;
+    margin-top: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff0f0;
+    border-radius: 4px;
+    border-left: 3px solid #cc0000;
+  }
+  .msg-ok {
+    display: none;
+    color: #0a6b0a;
+    font-size: 0.84rem;
+    margin-top: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    background: #f0fff0;
+    border-radius: 4px;
+    border-left: 3px solid #0a6b0a;
+  }
+  .cita-item {
+    padding: 1rem;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    background: #fafafa;
+  }
+  .cita-item dl { margin: 0; font-size: 0.92rem; }
+  .cita-item dt {
+    color: #888;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+  }
+  .cita-item dt:first-child { margin-top: 0; }
+  .cita-item dd { margin: 0.15rem 0 0 0; color: #111; font-weight: 600; }
+  .cita-actions { margin-top: 1rem; text-align: right; }
+  .aviso-plazo { font-size: 0.8rem; color: #cc0000; margin-top: 0.5rem; }
+  #lista-citas { margin-top: 1.5rem; display: none; }
+  #sin-citas { display: none; margin-top: 1rem; color: #666; text-align: center; }
+  .success-box { text-align: center; padding: 1rem 0; }
+  @media (max-width: 600px) {
+    .card { flex-direction: column; }
+    .card-side { width: 100%; height: 80px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+  <div id="form-card" class="card">
+    <div class="card-body">
+      <h2 class="card-title">Cancelar cita</h2>
+      <p class="card-subtitle">Ingresa la placa de tu motocicleta para ver la cita agendada</p>
+
+      <div class="fields-col">
+        <div class="field">
+          <label class="lbl">Placa</label>
+          <input id="placa_moto" type="text" class="inp" placeholder="Ej: ABC123" maxlength="6" autocomplete="off"
+                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+        </div>
+      </div>
+
+      <div id="msg-error" class="msg-error"></div>
+      <div id="msg-ok" class="msg-ok"></div>
+
+      {% csrf_token %}
+      <button onclick="buscarCita()" class="btn-main">Buscar cita</button>
+
+      <div id="sin-citas">No hay cita agendada con esa placa.</div>
+      <div id="lista-citas">
+        <p class="lbl" style="margin-bottom:0.5rem;">Cita encontrada</p>
+        <div id="citas-container"></div>
+      </div>
+    </div>
+    <div class="card-side">
+      <svg viewBox="0 0 100 120" width="100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="32" r="22" fill="white"/>
+        <path d="M10 110 Q10 72 50 72 Q90 72 90 110" fill="white"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="success-card" style="display:none;" class="card">
+    <div class="card-body success-box">
+      <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+      <h2 class="card-title">Cita cancelada</h2>
+      <p style="color:#666;margin:1rem 0 1.5rem;">Se notificó al administrador del local.</p>
+      <button onclick="volver()" class="btn-main">Buscar otra cita</button>
+    </div>
+    <div class="card-side">
+      <svg viewBox="0 0 100 120" width="100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="32" r="22" fill="white"/>
+        <path d="M10 110 Q10 72 50 72 Q90 72 90 110" fill="white"/>
+      </svg>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const SERVICIOS = {
+    MANTENIMIENTO: "Mantenimiento general",
+    REVISION: "Revisión general",
+    ALISTAMIENTO: "Alistamiento",
+    GARANTIA: "Revisión por garantía"
+  };
+
+  function fmtHora(s) {
+    if (!s) return "";
+    return String(s).slice(0, 5);
+  }
+
+  function fmtFecha(s) {
+    if (!s) return "";
+    const d = new Date(s + "T12:00:00");
+    return d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  function mostrarError(msg) {
+    const el = document.getElementById("msg-error");
+    el.textContent = msg;
+    el.style.display = "block";
+    document.getElementById("msg-ok").style.display = "none";
+  }
+
+  function ocultarMsg() {
+    document.getElementById("msg-error").style.display = "none";
+    document.getElementById("msg-ok").style.display = "none";
+  }
+
+  function getPlaca() {
+    return document.getElementById("placa_moto").value.trim().toUpperCase();
+  }
+
+  function buscarCita() {
+    const placa = getPlaca();
+    const placaRe = /^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$/;
+    if (!placa) return mostrarError("Ingresa la placa.");
+    if (!placaRe.test(placa)) return mostrarError("Formato inválido: ABC123 o AB123C.");
+    ocultarMsg();
+
+    fetch(`/api/scheduling/cita-por-placa/?placa=${encodeURIComponent(placa)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          mostrarError(data.error);
+          document.getElementById("sin-citas").style.display = "none";
+          document.getElementById("lista-citas").style.display = "none";
+          return;
+        }
+        const citas = Array.isArray(data) ? data : [];
+        document.getElementById("sin-citas").style.display = citas.length ? "none" : "block";
+        document.getElementById("lista-citas").style.display = citas.length ? "block" : "none";
+        const container = document.getElementById("citas-container");
+        container.innerHTML = "";
+        citas.forEach(c => {
+          const div = document.createElement("div");
+          div.className = "cita-item";
+          const cat = SERVICIOS[c.tipo_servicio] || c.tipo_servicio;
+          const puede = c.puede_cancelar !== false;
+          div.innerHTML = `
+            <dl>
+              <dt>Categoría</dt><dd>${cat}</dd>
+              <dt>Fecha</dt><dd>${fmtFecha(c.fecha)}</dd>
+              <dt>Hora</dt><dd>${fmtHora(c.hora_inicio)} – ${fmtHora(c.hora_fin)}</dd>
+              <dt>Sede</dt><dd>${c.sede_nombre || "—"}</dd>
+            </dl>
+            <div class="cita-actions">
+              ${puede ? "" : '<p class="aviso-plazo">Solo puedes cancelar hasta un día antes de la cita.</p>'}
+              <button class="btn-cancelar" ${puede ? "" : "disabled"}>Cancelar cita</button>
+            </div>
+          `;
+          const btn = div.querySelector("button");
+          if (puede) btn.onclick = () => cancelarCita(c.id, placa, div);
+          container.appendChild(div);
+        });
+      })
+      .catch(() => mostrarError("Error al buscar. Intenta de nuevo."));
+  }
+
+  function cancelarCita(id, placa, rowEl) {
+    const btn = rowEl.querySelector("button");
+    btn.disabled = true;
+    btn.textContent = "Cancelando...";
+    fetch(`/api/scheduling/cancelar/${id}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")?.value || getCookie("csrftoken"),
+      },
+      body: JSON.stringify({ placa_moto: placa }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.mensaje) {
+          document.getElementById("form-card").style.display = "none";
+          document.getElementById("success-card").style.display = "flex";
+        } else {
+          btn.disabled = false;
+          btn.textContent = "Cancelar cita";
+          mostrarError(data.error || "No se pudo cancelar.");
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.textContent = "Cancelar cita";
+        mostrarError("Error de conexión. Intenta de nuevo.");
+      });
+  }
+
+  function getCookie(name) {
+    const v = document.cookie.match("(^|;) ?" + name + "=([^;]*)(;|$)");
+    return v ? v[2] : "";
+  }
+
+  function volver() {
+    document.getElementById("success-card").style.display = "none";
+    document.getElementById("form-card").style.display = "flex";
+    document.getElementById("lista-citas").style.display = "none";
+    document.getElementById("sin-citas").style.display = "none";
+    ocultarMsg();
+  }
+</script>
+{% endblock %}
