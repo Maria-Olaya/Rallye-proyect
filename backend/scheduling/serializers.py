@@ -93,8 +93,8 @@ class AgendarCitaSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Este campo es obligatorio.")
         placa = value.strip().upper()
-        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
-            raise serializers.ValidationError("Formato de placa inválido. Use ABC123 o AB123C.")
+        if not re.match(r"^[A-Z]{3}\d{2}[A-Z]$", placa):
+            raise serializers.ValidationError("Formato de placa inválido. Ejemplo: IGK80F")
         return placa
 
     def validate_referencia_moto(self, value):

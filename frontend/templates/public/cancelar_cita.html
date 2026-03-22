@@ -173,7 +173,7 @@
       <div class="fields-col">
         <div class="field">
           <label class="lbl">Placa</label>
-          <input id="placa_moto" type="text" class="inp" placeholder="Ej: ABC123" maxlength="6" autocomplete="off"
+          <input id="placa_moto" type="text" class="inp" placeholder="Ej: IGK80F" maxlength="6" autocomplete="off"
                  oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
         </div>
       </div>
@@ -253,9 +253,9 @@
 
   function buscarCita() {
     const placa = getPlaca();
-    const placaRe = /^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$/;
+    const placaRe = /^[A-Z]{3}\d{2}[A-Z]$/;
     if (!placa) return mostrarError("Ingresa la placa.");
-    if (!placaRe.test(placa)) return mostrarError("Formato inválido: ABC123 o AB123C.");
+    if (!placaRe.test(placa)) return mostrarError("Formato inválido. Ejemplo: IGK80F");
     ocultarMsg();
 
     fetch(`/api/scheduling/cita-por-placa/?placa=${encodeURIComponent(placa)}`)
