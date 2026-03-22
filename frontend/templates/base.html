@@ -288,7 +288,7 @@
 
     <!-- Navbar dinámico según token JWT -->
     <script>
-        const access = sessionStorage.getItem('access');
+        const access = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
         const navAuth = document.getElementById('nav-auth');
         if (access) {
             navAuth.innerHTML = `
@@ -297,7 +297,7 @@
             `;
             document.getElementById('btn-salir').addEventListener('click', function(e) {
                 e.preventDefault();
-                const refresh = sessionStorage.getItem('refresh');
+                const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
                 fetch('/api/users/logout/', {
                     method: 'POST',
                     headers: {
