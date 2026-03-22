@@ -207,7 +207,6 @@ class AgendarCitaAPITest(TestCase):
         self.fecha = date(2026, 4, 20)
 
     def _cita_libre(self):
-        """Crea y retorna una cita en estado LIBRE para usar en los tests."""
         return Cita.objects.create(
             local=self.local,
             fecha=self.fecha,
@@ -217,7 +216,6 @@ class AgendarCitaAPITest(TestCase):
         )
 
     def _payload_valido(self):
-        """Payload completo con todos los datos válidos para agendar."""
         return {
             "tipo_servicio": "MANTENIMIENTO",
             "tipo_documento": "CC",
@@ -225,15 +223,13 @@ class AgendarCitaAPITest(TestCase):
             "cliente_documento": "1023456789",
             "cliente_telefono": "3001234567",
             "cliente_correo": "juan@test.com",
-            "placa_moto": "ABC123",
+            "placa_moto": "ABC12C",
             "referencia_moto": "FZ 150",
             "anio_moto": 2022,
         }
 
     def test_cp_hu01_01_agendamiento_completo_datos_validos(self):
-        """CP-HU01-01 · Caja negra — flujo feliz · CA-01 · CA-03
-        Agendamiento completo con todos los datos válidos.
-        Resultado esperado: cita registrada en BD · estado cambia a ASIGNADA · HTTP 200."""
+        """CP-HU01-01 · Caja negra — flujo feliz · CA-01 · CA-03"""
         cita = self._cita_libre()
         response = self.client.patch(
             f"/api/scheduling/agendar/{cita.id}/",
@@ -246,9 +242,7 @@ class AgendarCitaAPITest(TestCase):
         self.assertIn("cita_id", response.data)
 
     def test_cp_hu01_02_campo_nombre_vacio_retorna_error(self):
-        """CP-HU01-02 · Caja negra — validación · CA-01
-        Campo obligatorio vacío (nombre).
-        Resultado esperado: HTTP 400 · cita permanece en estado LIBRE."""
+        """CP-HU01-02 · Caja negra — validación · CA-01"""
         cita = self._cita_libre()
         payload = self._payload_valido()
         payload["cliente_nombre"] = ""
@@ -262,9 +256,7 @@ class AgendarCitaAPITest(TestCase):
         self.assertEqual(cita.estado, Cita.Estado.LIBRE)
 
     def test_cp_hu01_03_solo_se_muestran_horarios_disponibles(self):
-        """CP-HU01-03 · Caja negra — restricción de negocio · CA-02
-        Local con slots parcialmente ocupados.
-        Resultado esperado: endpoint retorna solo citas en estado LIBRE."""
+        """CP-HU01-03 · Caja negra — restricción de negocio · CA-02"""
         Cita.objects.create(
             local=self.local,
             fecha=self.fecha,
@@ -288,9 +280,7 @@ class AgendarCitaAPITest(TestCase):
         self.assertEqual(response.data[0]["hora_inicio"], "08:00:00")
 
     def test_cp_hu01_04_cita_persistida_correctamente_en_bd(self):
-        """CP-HU01-04 · Integración · CA-01 · CA-03
-        Cita queda persistida en BD con todos los campos correctos.
-        Resultado esperado: registro visible en BD con datos del cliente y moto."""
+        """CP-HU01-04 · Integración · CA-01 · CA-03"""
         cita = self._cita_libre()
         self.client.patch(
             f"/api/scheduling/agendar/{cita.id}/",
@@ -303,7 +293,7 @@ class AgendarCitaAPITest(TestCase):
         self.assertEqual(cita.cliente_documento, "1023456789")
         self.assertEqual(cita.cliente_telefono, "3001234567")
         self.assertEqual(cita.cliente_correo, "juan@test.com")
-        self.assertEqual(cita.placa_moto, "ABC123")
+        self.assertEqual(cita.placa_moto, "ABC12C")
         self.assertEqual(cita.referencia_moto, "FZ 150")
         self.assertEqual(cita.anio_moto, 2022)
         self.assertEqual(cita.tipo_servicio, "MANTENIMIENTO")
@@ -322,7 +312,6 @@ class ConfirmacionCorreoTest(TestCase):
         self.fecha = date(2026, 4, 20)
 
     def _cita_libre(self):
-        """Crea y retorna una cita en estado LIBRE para usar en los tests."""
         return Cita.objects.create(
             local=self.local,
             fecha=self.fecha,
@@ -332,7 +321,6 @@ class ConfirmacionCorreoTest(TestCase):
         )
 
     def _payload_valido(self):
-        """Payload completo con todos los datos válidos para agendar."""
         return {
             "tipo_servicio": "MANTENIMIENTO",
             "tipo_documento": "CC",
@@ -340,15 +328,13 @@ class ConfirmacionCorreoTest(TestCase):
             "cliente_documento": "1023456789",
             "cliente_telefono": "3001234567",
             "cliente_correo": "juan@test.com",
-            "placa_moto": "ABC123",
+            "placa_moto": "ABC12C",
             "referencia_moto": "FZ 150",
             "anio_moto": 2022,
         }
 
     def test_cp_hu03_01_correo_enviado_automaticamente_tras_agendamiento(self):
-        """CP-HU03-01 · Caja negra — flujo feliz · CA-01
-        Correo enviado automáticamente tras agendamiento válido.
-        Resultado esperado: correo enviado con fecha, hora, sede y categoría correctas."""
+        """CP-HU03-01 · Caja negra — flujo feliz · CA-01"""
         cita = self._cita_libre()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
@@ -367,9 +353,7 @@ class ConfirmacionCorreoTest(TestCase):
             self.assertEqual(correo.to, ["juan@test.com"])
 
     def test_cp_hu03_02_correo_no_se_envia_si_agendamiento_falla(self):
-        """CP-HU03-02 · Caja negra — validación · CA-01
-        Correo no se envía si los datos del agendamiento son inválidos.
-        Resultado esperado: no se envía correo · error mostrado al usuario."""
+        """CP-HU03-02 · Caja negra — validación · CA-01"""
         cita = self._cita_libre()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
@@ -384,9 +368,7 @@ class ConfirmacionCorreoTest(TestCase):
             self.assertEqual(len(mail.outbox), 0)
 
     def test_cp_hu03_03_estado_envio_queda_registrado(self):
-        """CP-HU03-03 · Integración · CA-02
-        El estado de envío del correo queda registrado correctamente en BD.
-        Resultado esperado: correo_confirmacion_enviado = True tras agendamiento exitoso."""
+        """CP-HU03-03 · Integración · CA-02"""
         cita = self._cita_libre()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             self.client.patch(
@@ -411,7 +393,6 @@ class NotificacionCancelacionTest(TestCase):
         self.fecha = date(2026, 4, 21)
 
     def _cita_cancelada(self):
-        """Crea y retorna una cita cancelada con datos completos para usar en los tests."""
         return Cita.objects.create(
             local=self.local,
             fecha=self.fecha,
@@ -424,13 +405,12 @@ class NotificacionCancelacionTest(TestCase):
             cliente_documento="1023456789",
             cliente_telefono="3001234567",
             cliente_correo="juan@test.com",
-            placa_moto="ABC123",
+            placa_moto="ABC12C",
             referencia_moto="FZ 150",
             anio_moto=2022,
         )
 
     def _cita_asignada(self):
-        """Crea y retorna una cita asignada para probar el caso donde no hay cancelación."""
         return Cita.objects.create(
             local=self.local,
             fecha=self.fecha,
@@ -443,15 +423,13 @@ class NotificacionCancelacionTest(TestCase):
             cliente_documento="1023456789",
             cliente_telefono="3001234567",
             cliente_correo="juan@test.com",
-            placa_moto="ABC123",
+            placa_moto="ABC12C",
             referencia_moto="FZ 150",
             anio_moto=2022,
         )
 
     def test_cp_hu06_01_notificacion_enviada_al_admin_tras_cancelacion(self):
-        """CP-HU06-01 · Caja negra — flujo feliz · CA-01 · CA-02
-        Notificación enviada al admin tras cancelación.
-        Resultado esperado: correo enviado con fecha, hora y categoría del servicio cancelado."""
+        """CP-HU06-01 · Caja negra — flujo feliz · CA-01 · CA-02"""
         cita = self._cita_cancelada()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
@@ -468,9 +446,7 @@ class NotificacionCancelacionTest(TestCase):
             self.assertIn("Mantenimiento General", correo.body)
 
     def test_cp_hu06_02_notificacion_llega_solo_al_admin_del_local_correcto(self):
-        """CP-HU06-02 · Caja negra — restricción de negocio · CA-02
-        Notificación llega solo al admin del local correcto.
-        Resultado esperado: el destinatario es únicamente correo_admin del local asociado."""
+        """CP-HU06-02 · Caja negra — restricción de negocio · CA-02"""
         cita = self._cita_cancelada()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
@@ -482,9 +458,7 @@ class NotificacionCancelacionTest(TestCase):
             self.assertEqual(correo.to, [cita.local.correo_admin])
 
     def test_cp_hu06_03_no_se_envia_si_no_hay_evento_de_cancelacion(self):
-        """CP-HU06-03 · Caja negra — validación · CA-01
-        No se envía si no hay evento de cancelación.
-        Resultado esperado: función retorna False y no se genera correo."""
+        """CP-HU06-03 · Caja negra — validación · CA-01"""
         cita = self._cita_asignada()
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             from django.core import mail
@@ -509,7 +483,6 @@ class MarcarCitasAtendidasTest(TestCase):
         self.local = make_local(time(6, 0), time(18, 0), 1)
 
     def _cita_asignada(self, fecha, hora_inicio, hora_fin):
-        """Crea una cita ASIGNADA con fecha y hora específicas."""
         return Cita.objects.create(
             local=self.local,
             fecha=fecha,
@@ -522,7 +495,7 @@ class MarcarCitasAtendidasTest(TestCase):
             cliente_documento="1023456789",
             cliente_telefono="3001234567",
             cliente_correo="juan@test.com",
-            placa_moto="ABC123",
+            placa_moto="ABC12C",
             referencia_moto="FZ 150",
             anio_moto=2022,
         )

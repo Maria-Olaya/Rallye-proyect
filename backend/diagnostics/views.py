@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from diagnostics.serializers import CitaAtendidaLookupSerializer, DiagnosticoCreateSerializer
-from diagnostics.services import generar_radicado
+from diagnostics.services import enviar_radicado_por_correo, generar_radicado
 from scheduling.models import Cita
 from scheduling.services import marcar_citas_atendidas
 
@@ -22,8 +22,8 @@ class DiagnosticoLookupByPlacaView(APIView):
         if not placa:
             return Response({"error": "El parámetro placa es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
-            return Response({"error": "Formato de placa inválido."}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.match(r"^[A-Z]{3}\d{2}[A-Z]$", placa):
+            return Response({"error": "Formato de placa inválido. Ejemplo: AXA39C"}, status=status.HTTP_400_BAD_REQUEST)
 
         citas = Cita.objects.select_related("local").filter(
             placa_moto=placa,
@@ -51,13 +51,19 @@ class DiagnosticoCreateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # HU-04: guarda el diagnóstico y genera el radicado
         diagnostico = serializer.save(radicado=generar_radicado())
+
+        # HU-05: envía el PDF del radicado al correo del cliente
+        correo_enviado = enviar_radicado_por_correo(diagnostico)
+
         return Response(
             {
                 "id": diagnostico.id,
                 "radicado": diagnostico.radicado,
                 "fecha_registro": diagnostico.fecha_registro,
                 "cita_id": diagnostico.cita_id,
+                "correo_radicado_enviado": correo_enviado,
             },
             status=status.HTTP_201_CREATED,
         )
