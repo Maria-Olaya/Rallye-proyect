@@ -1,6 +1,5 @@
-# scheduling/views.py
-
-from datetime import date
+import re
+from datetime import date, timedelta
 
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -9,8 +8,16 @@ from rest_framework.views import APIView
 
 from core.models import Local
 from scheduling.models import Cita
-from scheduling.serializers import AgendarCitaSerializer, CitaDisponibleSerializer
-from scheduling.services import enviar_correo_confirmacion, generar_citas_para_local, marcar_citas_atendidas
+from scheduling.serializers import (
+    AgendarCitaSerializer,
+    CitaDisponibleSerializer,
+    CitaParaCancelarSerializer,
+)
+from scheduling.services import (
+    enviar_correo_confirmacion,
+    enviar_correo_cancelacion_admin,
+    generar_citas_para_local,
+)
 
 
 class CitasDisponiblesView(APIView):
@@ -33,9 +40,6 @@ class CitasDisponiblesView(APIView):
             local = Local.objects.get(pk=local_id, activo=True)
         except (ValueError, Local.DoesNotExist):
             return Response({"error": "Local o fecha inválidos."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Actualiza citas vencidas a ATENDIDO antes de mostrar disponibles
-        marcar_citas_atendidas()
 
         # Genera los slots del día si aún no existen
         generar_citas_para_local(local, fecha)
@@ -92,3 +96,85 @@ class AgendarCitaView(APIView):
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _normalizar_placa(valor: str) -> str:
+    p = (valor or "").strip().upper()
+    return p
+
+
+class CitaPorPlacaView(APIView):
+    """GET /api/scheduling/cita-por-placa/?placa=ABC123"""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        placa = _normalizar_placa(request.query_params.get("placa", ""))
+        if not placa:
+            return Response(
+                {"error": "La placa es requerida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
+            return Response(
+                {"error": "Formato de placa inválido. Use ABC123 o AB123C."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        citas = (
+            Cita.objects.filter(
+                placa_moto=placa,
+                estado=Cita.Estado.ASIGNADA,
+                fecha__gte=date.today(),
+            )
+            .select_related("local", "local__sede")
+            .order_by("fecha", "hora_inicio")
+        )
+        serializer = CitaParaCancelarSerializer(citas, many=True)
+        return Response(serializer.data)
+
+
+class CancelarCitaView(APIView):
+    """POST /api/scheduling/cancelar/<cita_id>/"""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, cita_id):
+        try:
+            cita = Cita.objects.select_related("local").get(pk=cita_id)
+        except Cita.DoesNotExist:
+            return Response({"error": "Cita no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        placa = _normalizar_placa(request.data.get("placa_moto", ""))
+        if not placa:
+            return Response(
+                {"error": "La placa es requerida para cancelar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if cita.estado != Cita.Estado.ASIGNADA:
+            return Response(
+                {"error": "Esta cita no está agendada o ya fue cancelada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if cita.placa_moto != placa:
+            return Response(
+                {"error": "La placa no coincide con la cita."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        limite = date.today() + timedelta(days=1)
+        if cita.fecha < limite:
+            return Response(
+                {"error": "Solo se puede cancelar hasta un día antes de la cita."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cita.estado = Cita.Estado.CANCELADA
+        cita.save(update_fields=["estado"])
+        enviar_correo_cancelacion_admin(cita)
+
+        return Response(
+            {"mensaje": "Cita cancelada. Se notificó al administrador."},
+            status=status.HTTP_200_OK,
+        )

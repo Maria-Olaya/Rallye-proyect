@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from rest_framework import serializers
 
@@ -10,6 +10,29 @@ class CitaDisponibleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cita
         fields = ["id", "fecha", "hora_inicio", "hora_fin"]
+
+
+class CitaParaCancelarSerializer(serializers.ModelSerializer):
+    local_nombre = serializers.CharField(source="local.nombre", read_only=True)
+    sede_nombre = serializers.CharField(source="local.sede.nombre", read_only=True)
+    puede_cancelar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cita
+        fields = [
+            "id",
+            "fecha",
+            "hora_inicio",
+            "hora_fin",
+            "tipo_servicio",
+            "local_nombre",
+            "sede_nombre",
+            "puede_cancelar",
+        ]
+
+    def get_puede_cancelar(self, obj):
+        limite = date.today() + timedelta(days=1)
+        return obj.fecha >= limite
 
 
 class AgendarCitaSerializer(serializers.ModelSerializer):
@@ -70,8 +93,8 @@ class AgendarCitaSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Este campo es obligatorio.")
         placa = value.strip().upper()
-        if not re.match(r"^[A-Z]{3}\d{2}[A-Z]$", placa):
-            raise serializers.ValidationError("Formato de placa inválido. Ejemplo: AXA39C")
+        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
+            raise serializers.ValidationError("Formato de placa inválido. Use ABC123 o AB123C.")
         return placa
 
     def validate_referencia_moto(self, value):
