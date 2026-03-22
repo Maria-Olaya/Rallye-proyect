@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% block title %}Diagnóstico | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    .diag-page {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(135deg, #111 0%, #0b0b0b 50%, #170606 100%);
+        padding: 1rem;
+    }
+
+    .diag-shell {
+        width: min(100%, 900px);
+        margin: 0 auto;
+        background: #f7f7f7;
+        border-radius: 24px;
+        padding: 1.15rem;
+        color: #111;
+    }
+
+    .diag-topbar {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+
+    .diag-back {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        text-decoration: none;
+        background: #151515;
+        color: #fff;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.88rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .diag-title,
+    .diag-subtitle,
+    .diag-label,
+    .diag-button,
+    .diag-card-title {
+        font-family: 'Barlow Condensed', sans-serif;
+    }
+
+    .diag-title {
+        font-size: 2.2rem;
+        color: var(--red);
+        text-align: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .diag-subtitle {
+        text-align: center;
+        color: #5e6671;
+        font-size: 0.84rem;
+        margin-bottom: 1rem;
+    }
+
+    .diag-grid {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 0.9rem;
+    }
+
+    .diag-panel,
+    .diag-result {
+        background: #fff;
+        border: 1px solid #e4e4e4;
+        border-radius: 18px;
+        padding: 0.85rem;
+    }
+
+    .diag-label {
+        display: block;
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #616975;
+        margin-bottom: 0.35rem;
+    }
+
+    .diag-input,
+    .diag-textarea {
+        width: 100%;
+        border: 1px solid #d9dde3;
+        border-radius: 10px;
+        padding: 0.72rem 0.85rem;
+        font-size: 0.85rem;
+        font-family: 'DM Sans', sans-serif;
+        background: #fff;
+    }
+
+    .diag-textarea {
+        min-height: 110px;
+        resize: vertical;
+    }
+
+    .diag-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 42px;
+        border: none;
+        border-radius: 12px;
+        background: #151515;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 0.84rem;
+        cursor: pointer;
+    }
+
+    .diag-button.red {
+        background: var(--red);
+    }
+
+    .diag-stack {
+        display: grid;
+        gap: 0.7rem;
+    }
+
+    .diag-info {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .diag-field {
+        background: #f7f7f7;
+        border-radius: 12px;
+        padding: 0.68rem 0.8rem;
+    }
+
+    .diag-field span {
+        display: block;
+        color: #6b7280;
+        font-size: 0.68rem;
+        margin-bottom: 0.18rem;
+        text-transform: uppercase;
+    }
+
+    .diag-field strong {
+        font-size: 0.9rem;
+    }
+
+    .diag-message {
+        display: none;
+        padding: 0.7rem 0.85rem;
+        border-radius: 12px;
+        font-size: 0.82rem;
+    }
+
+    .diag-message.visible { display: block; }
+    .diag-message.error { background: #ffe5e5; color: #9f1111; }
+    .diag-message.success { background: #e8fff1; color: #0a7c3a; }
+
+    @media (max-width: 900px) {
+        .diag-page { padding: 1rem; }
+        .diag-shell { padding: 1.2rem; }
+        .diag-grid { grid-template-columns: 1fr; }
+        .diag-info { grid-template-columns: 1fr; }
+        .diag-title { font-size: 2.2rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="diag-page">
+    <div class="diag-shell">
+        <div class="diag-topbar">
+            <a class="diag-back" href="/panel/">&larr; Volver</a>
+        </div>
+        <h1 class="diag-title">Registrar diagnóstico</h1>
+        <p class="diag-subtitle">Busca la cita por placa y registra el diagnóstico solo cuando el servicio esté atendido.</p>
+
+        <div class="diag-grid">
+            <aside class="diag-panel diag-stack">
+                <div>
+                    <label class="diag-label" for="placa">Placa</label>
+                    <input id="placa" class="diag-input" type="text" placeholder="ABC123" maxlength="10">
+                </div>
+                <button id="btnBuscar" class="diag-button" type="button">Buscar cita</button>
+                <div id="searchMessage" class="diag-message"></div>
+            </aside>
+
+            <section class="diag-result diag-stack">
+                <div class="diag-card-title">Datos de la cita</div>
+                <div class="diag-info">
+                    <div class="diag-field"><span>Cliente</span><strong id="clienteNombre">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Documento</span><strong id="clienteDocumento">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Teléfono</span><strong id="clienteTelefono">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Correo</span><strong id="clienteCorreo">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Moto</span><strong id="motoInfo">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Servicio</span><strong id="tipoServicio">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Fecha</span><strong id="fechaCita">Sin seleccionar</strong></div>
+                    <div class="diag-field"><span>Hora</span><strong id="horaCita">Sin seleccionar</strong></div>
+                </div>
+
+                <div>
+                    <label class="diag-label" for="descripcion">Descripción del diagnóstico</label>
+                    <textarea id="descripcion" class="diag-textarea" placeholder="Describe el trabajo realizado, hallazgos y recomendaciones."></textarea>
+                </div>
+
+                <button id="btnGuardar" class="diag-button red" type="button" disabled>Guardar diagnóstico</button>
+                <div id="saveMessage" class="diag-message"></div>
+            </section>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    if (!accessToken) {
+        window.location.replace('/login/');
+    }
+
+    const placaInput = document.getElementById('placa');
+    const descripcionInput = document.getElementById('descripcion');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const searchMessage = document.getElementById('searchMessage');
+    const saveMessage = document.getElementById('saveMessage');
+    let citaSeleccionadaId = null;
+
+    function showMessage(el, text, type) {
+        el.textContent = text;
+        el.className = `diag-message visible ${type}`;
+    }
+
+    function clearMessage(el) {
+        el.textContent = '';
+        el.className = 'diag-message';
+    }
+
+    function clearCita() {
+        citaSeleccionadaId = null;
+        btnGuardar.disabled = true;
+        document.getElementById('clienteNombre').textContent = 'Sin seleccionar';
+        document.getElementById('clienteDocumento').textContent = 'Sin seleccionar';
+        document.getElementById('clienteTelefono').textContent = 'Sin seleccionar';
+        document.getElementById('clienteCorreo').textContent = 'Sin seleccionar';
+        document.getElementById('motoInfo').textContent = 'Sin seleccionar';
+        document.getElementById('tipoServicio').textContent = 'Sin seleccionar';
+        document.getElementById('fechaCita').textContent = 'Sin seleccionar';
+        document.getElementById('horaCita').textContent = 'Sin seleccionar';
+    }
+
+    async function buscarCita() {
+        clearMessage(searchMessage);
+        clearMessage(saveMessage);
+        clearCita();
+
+        const placa = placaInput.value.trim().toUpperCase();
+        placaInput.value = placa;
+
+        if (!placa) {
+            showMessage(searchMessage, 'Ingresa una placa.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/diagnostics/buscar-cita/?placa=${encodeURIComponent(placa)}`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                showMessage(searchMessage, data.error || 'No se pudo buscar la cita.', 'error');
+                return;
+            }
+
+            citaSeleccionadaId = data.id;
+            btnGuardar.disabled = false;
+            document.getElementById('clienteNombre').textContent = data.cliente_nombre || 'Sin dato';
+            document.getElementById('clienteDocumento').textContent = data.cliente_documento || 'Sin dato';
+            document.getElementById('clienteTelefono').textContent = data.cliente_telefono || 'Sin dato';
+            document.getElementById('clienteCorreo').textContent = data.cliente_correo || 'Sin dato';
+            document.getElementById('motoInfo').textContent = `${data.placa_moto || ''} · ${data.referencia_moto || ''} ${data.anio_moto || ''}`.trim();
+            document.getElementById('tipoServicio').textContent = data.tipo_servicio || 'Sin dato';
+            document.getElementById('fechaCita').textContent = data.fecha || 'Sin dato';
+            document.getElementById('horaCita').textContent = `${(data.hora_inicio || '').slice(0, 5)} - ${(data.hora_fin || '').slice(0, 5)}`;
+            showMessage(searchMessage, 'Cita atendida encontrada. Ya puedes registrar el diagnóstico.', 'success');
+        } catch (error) {
+            showMessage(searchMessage, 'Error de conexión al buscar la cita.', 'error');
+        }
+    }
+
+    async function guardarDiagnostico() {
+        clearMessage(saveMessage);
+
+        if (!citaSeleccionadaId) {
+            showMessage(saveMessage, 'Primero debes buscar una cita válida.', 'error');
+            return;
+        }
+
+        const descripcion = descripcionInput.value.trim();
+        if (descripcion.length < 10) {
+            showMessage(saveMessage, 'La descripción debe tener al menos 10 caracteres.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/diagnostics/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    cita_id: citaSeleccionadaId,
+                    descripcion,
+                }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                const error = data.cita_id?.[0] || data.descripcion?.[0] || data.error || 'No se pudo guardar el diagnóstico.';
+                showMessage(saveMessage, error, 'error');
+                return;
+            }
+
+            showMessage(saveMessage, `Diagnóstico registrado. Radicado generado: ${data.radicado}`, 'success');
+            btnGuardar.disabled = true;
+        } catch (error) {
+            showMessage(saveMessage, 'Error de conexión al guardar el diagnóstico.', 'error');
+        }
+    }
+
+    btnBuscar.addEventListener('click', buscarCita);
+    btnGuardar.addEventListener('click', guardarDiagnostico);
+    placaInput.addEventListener('input', () => {
+        placaInput.value = placaInput.value.toUpperCase();
+    });
+</script>
+{% endblock %}

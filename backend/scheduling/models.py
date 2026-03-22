@@ -9,6 +9,7 @@ class Cita(models.Model):
     class Estado(models.TextChoices):
         LIBRE = "LIBRE", "Libre"
         ASIGNADA = "ASIGNADA", "Asignada"
+        ATENDIDO = "ATENDIDO", "Atendido"
         CANCELADA = "CANCELADA", "Cancelada"
 
     class TipoServicio(models.TextChoices):

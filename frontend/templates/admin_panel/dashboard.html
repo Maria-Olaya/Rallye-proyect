@@ -1,15 +1,311 @@
 {% extends "base.html" %}
-{% block title %}Panel — Rallye Motor's{% endblock %}
+{% block title %}Panel Administrativo | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    .panel-dashboard {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .panel-brand {
+        display: none;
+    }
+
+    .brand-mark {
+        position: relative;
+        width: 146px;
+        height: 146px;
+    }
+
+    .brand-avatar,
+    .brand-gear {
+        position: absolute;
+        line-height: 1;
+        filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.16));
+    }
+
+    .brand-avatar {
+        left: 0;
+        bottom: 10px;
+        font-size: 6.9rem;
+    }
+
+    .brand-gear {
+        right: -2px;
+        bottom: 5px;
+        font-size: 3.9rem;
+    }
+
+    .panel-card {
+        width: min(100%, 1120px);
+        min-height: 640px;
+        background: #f7f7f7;
+        color: #111;
+        border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .panel-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: #df0000;
+    }
+
+    .panel-card .user-icon-body {
+        position: absolute;
+        right: 62px;
+        top: 50%;
+        width: 126px;
+        height: 168px;
+        transform: translateY(-18%);
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .panel-card .user-icon-head,
+    .panel-card .user-icon-shoulders {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+    }
+
+    .panel-card .user-icon-head {
+        top: 0;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+
+    .panel-card .user-icon-shoulders {
+        bottom: 0;
+        width: 112px;
+        height: 72px;
+        border-radius: 72px 72px 0 0;
+    }
+
+    .panel-main {
+        width: calc(100% - 240px);
+        padding: 2.6rem 3.1rem 2.2rem 2.9rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .panel-badge,
+    .panel-title,
+    .panel-subtitle,
+    .panel-meta-label,
+    .panel-module strong,
+    .panel-module span,
+    .panel-action {
+        font-family: 'Barlow Condensed', sans-serif;
+    }
+
+    .panel-badge {
+        display: none;
+    }
+
+    .panel-title {
+        max-width: none;
+        margin: 0 0 0.85rem;
+        text-align: center;
+        font-size: clamp(2.45rem, 3.2vw, 3.5rem);
+        font-weight: 700;
+        line-height: 1.02;
+        color: var(--red);
+    }
+
+    .panel-subtitle {
+        max-width: none;
+        margin: 0 0 1.8rem;
+        text-align: center;
+        color: #8b94a3;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        font-weight: 400;
+    }
+
+    .panel-meta {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.1rem;
+        margin-bottom: 1.35rem;
+    }
+
+    .panel-meta-box {
+        background: #fff;
+        border: 2px solid #dedede;
+        border-radius: 10px;
+        padding: 0.95rem 1.35rem;
+        min-height: 58px;
+    }
+
+    .panel-meta-label {
+        display: block;
+        margin-bottom: 0.55rem;
+        color: #616975;
+        font-size: 0.82rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .panel-meta-value {
+        font-size: 0.92rem;
+        color: #9aa4b4;
+        word-break: break-word;
+    }
+
+    .panel-modules {
+        display: grid;
+        gap: 0.7rem;
+        margin-bottom: 0;
+    }
+
+    .panel-module {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.15s, color 0.15s;
+    }
+
+    .panel-module-icon {
+        display: none;
+    }
+
+    .panel-module:hover {
+        color: var(--red);
+        transform: translateX(4px);
+    }
+
+    .panel-module strong {
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+
+    .panel-module span {
+        font-size: 0.88rem;
+        font-weight: 400;
+        color: #1d1d1d;
+    }
+
+    @media (max-width: 980px) {
+        .panel-dashboard {
+            padding: 1.25rem 1rem 1.8rem;
+        }
+
+        .panel-main {
+            width: 100%;
+            padding: 2rem 1.25rem 1.5rem;
+        }
+
+        .panel-card {
+            min-height: auto;
+        }
+
+        .panel-card::after,
+        .panel-card .user-icon-body {
+            display: none;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .panel-title {
+            font-size: 2.55rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Panel administrativo</h1>
-<p>Bienvenido al panel.</p>
+<section class="panel-dashboard">
+    <div class="panel-brand" aria-hidden="true">
+        <div class="brand-mark">
+            <div class="brand-avatar">&#128100;</div>
+            <div class="brand-gear">&#9881;</div>
+        </div>
+    </div>
+
+    <article class="panel-card">
+        <div class="panel-main">
+            <div class="panel-badge">Panel principal</div>
+            <h1 class="panel-title">Bienvenido al panel administrativo</h1>
+            <p class="panel-subtitle">
+                En este panel podr&aacute;s gestionar la operaci&oacute;n del taller, administrar la disponibilidad
+                de atenci&oacute;n, visualizar la agenda diaria, registrar diagn&oacute;sticos y consultar
+                informaci&oacute;n clave para la toma de decisiones.
+            </p>
+
+            <div class="panel-meta">
+                <div class="panel-meta-box">
+                    <span class="panel-meta-label">Usuario autenticado</span>
+                    <div class="panel-meta-value" id="userEmail">Sin dato</div>
+                </div>
+                <div class="panel-meta-box">
+                    <span class="panel-meta-label">Sede asociada</span>
+                    <div class="panel-meta-value" id="userLocal">Sin sede asignada</div>
+                </div>
+            </div>
+
+            <div class="panel-modules">
+                <a class="panel-module" href="/panel/disponibilidad/">
+                    <div class="panel-module-icon">&#128197;</div>
+                    <div><strong>Disponibilidad:</strong> <span>Configura los horarios de atenci&oacute;n</span></div>
+                </a>
+                <a class="panel-module" href="/panel/agenda/">
+                    <div class="panel-module-icon">&#9881;</div>
+                    <div><strong>Agenda del taller:</strong> <span>Consulta revisiones y servicios t&eacute;cnicos</span></div>
+                </a>
+                <a class="panel-module" href="/panel/diagnostico/">
+                    <div class="panel-module-icon">&#128203;</div>
+                    <div><strong>Diagn&oacute;stico:</strong> <span>Registra y gestiona diagn&oacute;sticos</span></div>
+                </a>
+                <a class="panel-module" href="/panel/graficos/">
+                    <div class="panel-module-icon">&#128202;</div>
+                    <div><strong>Gr&aacute;ficos:</strong> <span>Visualiza indicadores y consultas</span></div>
+                </a>
+                <a class="panel-module" href="/panel/motocicletas/">
+                    <div class="panel-module-icon">&#127949;</div>
+                    <div><strong>Motocicletas:</strong> <span>Administra el cat&aacute;logo</span></div>
+                </a>
+            </div>
+
+        </div>
+        <div class="user-icon-body" aria-hidden="true">
+            <div class="user-icon-head"></div>
+            <div class="user-icon-shoulders"></div>
+        </div>
+    </article>
+</section>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-  // Verificar autenticación — si no hay token redirigir al login
-  if (!sessionStorage.getItem('access')) {
-    window.location.href = '/login/';
-  }
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    if (!accessToken) {
+        window.location.replace('/login/');
+    }
+
+    const email = sessionStorage.getItem('email');
+    const localNombre = sessionStorage.getItem('local_nombre');
+    const localValida = localNombre && localNombre !== 'null' && localNombre !== 'undefined';
+
+    document.getElementById('userEmail').textContent = email || 'No disponible';
+    document.getElementById('userLocal').textContent = localValida ? localNombre : 'Sin sede asignada';
 </script>
 {% endblock %}
