@@ -1,9 +1,10 @@
 # scheduling/services.py
 
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import models as db_models
 from django.utils import timezone
 
 from core.models import Local
@@ -233,3 +234,23 @@ Este correo fue generado automáticamente por el sistema de Rallye Motor's.
             ]
         )
         return False
+
+
+# ── Actualización automática de estado ATENDIDO ───────────────────────
+
+
+def marcar_citas_atendidas() -> int:
+    """
+    Marca como ATENDIDO todas las citas ASIGNADAS cuya fecha y hora_fin
+    ya hayan pasado en hora colombiana.
+    Retorna el número de citas actualizadas.
+    """
+    ahora = timezone.localtime()
+    fecha_hoy = ahora.date()
+    hora_ahora = ahora.time()
+
+    citas = Cita.objects.filter(estado=Cita.Estado.ASIGNADA).filter(
+        db_models.Q(fecha__lt=fecha_hoy) | db_models.Q(fecha=fecha_hoy, hora_fin__lte=hora_ahora)
+    )
+    total = citas.update(estado=Cita.Estado.ATENDIDO)
+    return total

@@ -8,12 +8,16 @@ from rest_framework.views import APIView
 from diagnostics.serializers import CitaAtendidaLookupSerializer, DiagnosticoCreateSerializer
 from diagnostics.services import generar_radicado
 from scheduling.models import Cita
+from scheduling.services import marcar_citas_atendidas
 
 
 class DiagnosticoLookupByPlacaView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        # Actualiza citas vencidas a ATENDIDO antes de buscar
+        marcar_citas_atendidas()
+
         placa = (request.query_params.get("placa") or "").strip().upper()
         if not placa:
             return Response({"error": "El parámetro placa es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
