@@ -14,9 +14,10 @@ from scheduling.serializers import (
     CitaParaCancelarSerializer,
 )
 from scheduling.services import (
-    enviar_correo_confirmacion,
     enviar_correo_cancelacion_admin,
+    enviar_correo_confirmacion,
     generar_citas_para_local,
+    marcar_citas_atendidas,
 )
 
 
@@ -40,6 +41,9 @@ class CitasDisponiblesView(APIView):
             local = Local.objects.get(pk=local_id, activo=True)
         except (ValueError, Local.DoesNotExist):
             return Response({"error": "Local o fecha inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Actualiza citas vencidas a ATENDIDO antes de mostrar disponibles
+        marcar_citas_atendidas()
 
         # Genera los slots del día si aún no existen
         generar_citas_para_local(local, fecha)
@@ -104,7 +108,7 @@ def _normalizar_placa(valor: str) -> str:
 
 
 class CitaPorPlacaView(APIView):
-    """GET /api/scheduling/cita-por-placa/?placa=ABC123"""
+    """GET /api/scheduling/cita-por-placa/?placa=IGK80F"""
 
     permission_classes = [AllowAny]
 
@@ -115,9 +119,9 @@ class CitaPorPlacaView(APIView):
                 {"error": "La placa es requerida."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
+        if not re.match(r"^[A-Z]{3}\d{2}[A-Z]$", placa):
             return Response(
-                {"error": "Formato de placa inválido. Use ABC123 o AB123C."},
+                {"error": "Formato de placa inválido. Ejemplo: IGK80F"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         citas = (
