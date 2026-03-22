@@ -103,8 +103,16 @@ def _normalizar_placa(valor: str) -> str:
     return p
 
 
+# Placa moto Colombia: 3 letras + 2 dígitos + 1 letra (ej. AXA44D), siempre mayúsculas.
+_PLACA_MOTO_RE = re.compile(r"^[A-Z]{3}\d{2}[A-Z]$")
+
+
+def _placa_moto_valida(placa: str) -> bool:
+    return bool(placa and _PLACA_MOTO_RE.fullmatch(placa))
+
+
 class CitaPorPlacaView(APIView):
-    """GET /api/scheduling/cita-por-placa/?placa=ABC123"""
+    """GET /api/scheduling/cita-por-placa/?placa=AXA44D"""
 
     permission_classes = [AllowAny]
 
@@ -115,9 +123,9 @@ class CitaPorPlacaView(APIView):
                 {"error": "La placa es requerida."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not re.match(r"^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$", placa):
+        if not _placa_moto_valida(placa):
             return Response(
-                {"error": "Formato de placa inválido. Use ABC123 o AB123C."},
+                {"error": "Formato de placa inválido. Use 3 letras, 2 números y 1 letra (ej. AXA44D)."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         citas = (
@@ -148,6 +156,11 @@ class CancelarCitaView(APIView):
         if not placa:
             return Response(
                 {"error": "La placa es requerida para cancelar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not _placa_moto_valida(placa):
+            return Response(
+                {"error": "Formato de placa inválido. Use 3 letras, 2 números y 1 letra (ej. AXA44D)."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
