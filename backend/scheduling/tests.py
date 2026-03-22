@@ -11,6 +11,7 @@ from scheduling.services import (
     citas_por_dia,
     enviar_correo_cancelacion_admin,
     generar_citas_para_local,
+    marcar_citas_atendidas,
 )
 
 
@@ -496,3 +497,75 @@ class NotificacionCancelacionTest(TestCase):
             self.assertFalse(cita.correo_cancelacion_enviado)
             self.assertIsNone(cita.fecha_envio_cancelacion)
             self.assertEqual(cita.error_envio_cancelacion, "")
+
+
+# ─────────────────────────────────────────
+# Marcar citas atendidas (lazy update)
+# ─────────────────────────────────────────
+
+
+class MarcarCitasAtendidasTest(TestCase):
+    def setUp(self):
+        self.local = make_local(time(6, 0), time(18, 0), 1)
+
+    def _cita_asignada(self, fecha, hora_inicio, hora_fin):
+        """Crea una cita ASIGNADA con fecha y hora específicas."""
+        return Cita.objects.create(
+            local=self.local,
+            fecha=fecha,
+            hora_inicio=hora_inicio,
+            hora_fin=hora_fin,
+            estado=Cita.Estado.ASIGNADA,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Juan Pérez",
+            cliente_documento="1023456789",
+            cliente_telefono="3001234567",
+            cliente_correo="juan@test.com",
+            placa_moto="ABC123",
+            referencia_moto="FZ 150",
+            anio_moto=2022,
+        )
+
+    def test_cita_de_fecha_pasada_queda_atendida(self):
+        """Cita ASIGNADA con fecha anterior a hoy → pasa a ATENDIDO."""
+        cita = self._cita_asignada(date(2025, 1, 1), time(8, 0), time(10, 0))
+        total = marcar_citas_atendidas()
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.ATENDIDO)
+        self.assertEqual(total, 1)
+
+    def test_cita_futura_no_se_toca(self):
+        """Cita ASIGNADA con fecha futura → permanece ASIGNADA."""
+        cita = self._cita_asignada(date(2030, 1, 1), time(8, 0), time(10, 0))
+        marcar_citas_atendidas()
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.ASIGNADA)
+
+    def test_cita_libre_no_se_toca(self):
+        """Cita LIBRE con fecha pasada → permanece LIBRE, no se marca ATENDIDO."""
+        cita = Cita.objects.create(
+            local=self.local,
+            fecha=date(2025, 1, 1),
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.LIBRE,
+        )
+        marcar_citas_atendidas()
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.LIBRE)
+
+    def test_multiples_citas_vencidas_todas_se_marcan(self):
+        """Varias citas ASIGNADAS con fecha pasada → todas pasan a ATENDIDO."""
+        self._cita_asignada(date(2025, 1, 1), time(8, 0), time(10, 0))
+        self._cita_asignada(date(2025, 1, 2), time(10, 0), time(12, 0))
+        self._cita_asignada(date(2025, 1, 3), time(14, 0), time(16, 0))
+        total = marcar_citas_atendidas()
+        self.assertEqual(total, 3)
+        self.assertEqual(Cita.objects.filter(estado=Cita.Estado.ATENDIDO).count(), 3)
+
+    def test_retorna_cero_si_no_hay_citas_vencidas(self):
+        """Sin citas vencidas → retorna 0."""
+        self._cita_asignada(date(2030, 1, 1), time(8, 0), time(10, 0))
+        total = marcar_citas_atendidas()
+        self.assertEqual(total, 0)

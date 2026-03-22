@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from core.models import Local
 from scheduling.models import Cita
 from scheduling.serializers import AgendarCitaSerializer, CitaDisponibleSerializer
-from scheduling.services import enviar_correo_confirmacion, generar_citas_para_local
+from scheduling.services import enviar_correo_confirmacion, generar_citas_para_local, marcar_citas_atendidas
 
 
 class CitasDisponiblesView(APIView):
@@ -33,6 +33,9 @@ class CitasDisponiblesView(APIView):
             local = Local.objects.get(pk=local_id, activo=True)
         except (ValueError, Local.DoesNotExist):
             return Response({"error": "Local o fecha inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Actualiza citas vencidas a ATENDIDO antes de mostrar disponibles
+        marcar_citas_atendidas()
 
         # Genera los slots del día si aún no existen
         generar_citas_para_local(local, fecha)
