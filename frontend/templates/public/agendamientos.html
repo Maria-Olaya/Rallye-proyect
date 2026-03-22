@@ -276,7 +276,7 @@
         </div>
         <div class="field">
           <label class="lbl">Placa</label>
-          <input id="placa_moto" type="text" class="inp" placeholder="Ej: ABC123" oninput="this.value=this.value.toUpperCase()">
+          <input id="placa_moto" type="text" class="inp" placeholder="Ej: AXA39C" oninput="this.value=this.value.toUpperCase()">
         </div>
         <div class="field">
           <label class="lbl">Fecha del servicio</label>
@@ -346,7 +346,6 @@
       document.getElementById("local_id").innerHTML = '<option value="">Error al cargar locales</option>';
     });
 
-  // Fecha mínima: mañana en hora local colombiana (evita problema de UTC)
   const hoy = new Date();
   const manana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
   const yyyy = manana.getFullYear();
@@ -447,9 +446,9 @@
     if (anio < 1900 || anio > anioActual) return mostrarError("msg-error-2", `El año debe estar entre 1900 y ${anioActual}.`);
 
     const placa = document.getElementById("placa_moto").value.trim().toUpperCase();
-    const placaRegex = /^[A-Z]{3}\d{3}$|^[A-Z]{2}\d{3}[A-Z]$/;
+    const placaRegex = /^[A-Z]{3}\d{2}[A-Z]$/;
     if (!placa) return mostrarError("msg-error-2", "Ingresa la placa.");
-    if (!placaRegex.test(placa)) return mostrarError("msg-error-2", "Formato de placa inválido. Use ABC123 o AB123C.");
+    if (!placaRegex.test(placa)) return mostrarError("msg-error-2", "Formato de placa inválido. Ejemplo: AXA39C");
 
     if (!document.getElementById("local_id").value) return mostrarError("msg-error-2", "Selecciona un local.");
     if (!document.getElementById("fecha").value) return mostrarError("msg-error-2", "Selecciona una fecha.");
