@@ -5,7 +5,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from diagnostics.models import Diagnostico
 from diagnostics.serializers import CitaAtendidaLookupSerializer, DiagnosticoCreateSerializer
 from diagnostics.services import generar_radicado
 from scheduling.models import Cita
