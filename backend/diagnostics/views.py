@@ -32,9 +32,7 @@ class DiagnosticoLookupByPlacaView(APIView):
         cita = citas.exclude(diagnostico__isnull=False).order_by("-fecha", "-hora_inicio").first()
         if not cita:
             return Response(
-                {
-                    "error": "No existe una cita atendida pendiente de diagnóstico para esa placa."
-                },
+                {"error": "No existe una cita atendida pendiente de diagnóstico para esa placa."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
