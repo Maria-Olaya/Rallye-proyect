@@ -3,60 +3,331 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Rallye Motors{% endblock %}</title>
+    <title>{% block title %}Rallye Motor's{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Fuente opcional -->
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --red: #cc0000;
+            --red-hover: #e60000;
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --border: #222;
+            --text: #f5f5f5;
+            --muted: #888;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Oswald', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3, h4, .display {
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        main { flex: 1; }
+
+        /* NAVBAR */
+        .navbar {
+            background: #fff;
+            border-bottom: 3px solid var(--red);
+            padding: 0 3rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-logo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #111;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-decoration: none;
+        }
+
+        .navbar-logo span {
+            color: var(--red);
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .navbar-menu a {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #111;
+            text-decoration: none;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .navbar-menu a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--red);
+            transition: width 0.2s;
+        }
+
+        .navbar-menu a:hover { color: var(--red); }
+        .navbar-menu a:hover::after { width: 100%; }
+
+        .navbar-menu .btn-login {
+            background: var(--red);
+            color: #fff !important;
+            padding: 0.4rem 1.2rem;
+            border-radius: 2px;
+            transition: background 0.2s !important;
+        }
+
+        .navbar-menu .btn-login:hover {
+            background: var(--red-hover) !important;
+        }
+
+        .navbar-menu .btn-login::after { display: none; }
+
+        /* DROPDOWN */
+        .dropdown-wrapper {
+            position: relative;
+        }
+
+        .dropdown-trigger {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 16px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border-top: 3px solid var(--red);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            list-style: none;
+            min-width: 200px;
+            z-index: 200;
+            padding: 0.4rem 0;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-menu li a {
+            display: block;
+            padding: 0.65rem 1.3rem;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #111;
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .dropdown-menu li a::after { display: none; }
+
+        .dropdown-menu li a:hover {
+            background: #f5f5f5;
+            color: var(--red);
+        }
+
+        .dropdown-menu li + li {
+            border-top: 1px solid #f0f0f0;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #fff;
+            border-top: 3px solid var(--red);
+            padding: 1rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        footer .footer-email {
+            font-family: 'Barlow Condensed', sans-serif;
+            color: var(--red);
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+        }
+
+        footer .footer-slogan {
+            font-family: 'Barlow Condensed', sans-serif;
+            color: var(--red);
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* UTILS */
+        .btn-red {
+            display: inline-block;
+            background: var(--red);
+            color: #fff;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-red:hover {
+            background: var(--red-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            display: inline-block;
+            background: transparent;
+            color: #fff;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.73rem 2rem;
+            border: 2px solid #fff;
+            border-radius: 2px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn-outline:hover {
+            background: #fff;
+            color: #111;
         }
     </style>
+
+    {% block extra_head %}{% endblock %}
 </head>
 
-<body class="bg-black text-white">
+<body>
 
     <!-- NAVBAR -->
-    <nav class="bg-white text-black shadow-lg px-12 py-4 flex justify-between items-center">
-        
-        <!-- Logo -->
-        <div class="text-2xl font-bold tracking-widest">
-            RALLYE <span class="italic font-light">MOTORS</span>
-        </div>
+    <nav class="navbar">
+        <a href="/" class="navbar-logo">RALLYE <span>MOTOR'S</span></a>
+        <ul class="navbar-menu">
+            <li><a href="/">HOME</a></li>
+            <li><a href="/sedes/">SEDES</a></li>
+            <li><a href="/motos/">MOTOS</a></li>
+            <li><a href="/repuestos/">REPUESTOS</a></li>
 
-        <!-- Menu -->
-        <ul class="flex gap-10 font-semibold text-lg">
-            <li><a href="/" class="hover:text-red-600 transition">HOME</a></li>
-            <li><a href="/sedes/" class="hover:text-red-600 transition">SEDES</a></li>
-            <li><a href="/motos/" class="hover:text-red-600 transition">MOTOS</a></li>
-            <li><a href="/repuestos/" class="hover:text-red-600 transition">REPUESTOS</a></li>
-            <li><a href="/login/" class="hover:text-red-600 transition">AGENDAMIENTOS</a></li>
+            <!-- DROPDOWN AGENDAMIENTOS -->
+            <li class="dropdown-wrapper">
+                <a href="#" class="dropdown-trigger" id="btn-agendamientos" onclick="toggleDropdown(event)">
+                    AGENDAMIENTOS ▾
+                </a>
+                <ul class="dropdown-menu" id="dropdown-agendamientos">
+                    <li><a href="/agendamientos/">Servicio técnico</a></li>
+                    <li><a href="/cancelar-cita/">Cancelar cita</a></li>
+                </ul>
+            </li>
+
+            <li id="nav-auth">
+                <a href="/login/" class="btn-login">INICIAR SESIÓN</a>
+            </li>
         </ul>
-
     </nav>
 
-
-    <!-- CONTENIDO DINÁMICO -->
+    <!-- CONTENIDO -->
     <main>
         {% block content %}{% endblock %}
     </main>
 
-
     <!-- FOOTER -->
-    <footer class="bg-white text-black py-4 px-12 flex justify-between items-center text-sm">
-        <div class="flex items-center gap-2 text-red-600 font-semibold">
-            ✉ sistemas@rallyemotors.com.co
-        </div>
-
-        <div class="text-red-600 font-semibold">
-            Cuatro ruedas mueven el cuerpo, dos ruedas mueven el alma
-        </div>
+    <footer>
+        <div class="footer-email">✉ sistemas@rallyemotors.com.co</div>
+        <div class="footer-slogan">Cuatro ruedas mueven el cuerpo, dos ruedas mueven el alma</div>
     </footer>
+
+    <!-- Navbar dinámico según token JWT -->
+    <script>
+        const access = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+        const navAuth = document.getElementById('nav-auth');
+        if (access) {
+            navAuth.innerHTML = `
+                <a href="/panel/" class="btn-login" style="margin-right:0.5rem">PANEL</a>
+                <a href="#" class="btn-login" id="btn-salir" style="background:#555;margin-left:0.5rem">SALIR</a>
+            `;
+            document.getElementById('btn-salir').addEventListener('click', function(e) {
+                e.preventDefault();
+                const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+                fetch('/api/users/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + access
+                    },
+                    body: JSON.stringify({ refresh })
+                }).finally(() => {
+                    sessionStorage.clear();
+                    window.location.href = '/login/';
+                });
+            });
+        }
+
+        // Dropdown agendamientos
+        function toggleDropdown(e) {
+            e.preventDefault();
+            document.getElementById('dropdown-agendamientos').classList.toggle('open');
+        }
+
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            const wrapper = document.querySelector('.dropdown-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('dropdown-agendamientos').classList.remove('open');
+            }
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
 
 </body>
 </html>

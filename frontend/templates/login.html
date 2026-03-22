@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión — Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── LAYOUT ─────────────────────────────────────────── */
+    .login-page {
+        min-height: calc(100vh - 64px - 56px);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── PANEL VISUAL IZQUIERDO ─────────────────────────── */
+    .login-visual {
+        background: #0a0a0a;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 4rem;
+        overflow: hidden;
+    }
+
+    /* Círculos decorativos */
+    .login-visual::before,
+    .login-visual::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid rgba(204,0,0,0.12);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+    .login-visual::before { width: 560px; height: 560px; }
+    .login-visual::after  { width: 360px; height: 360px; }
+
+    /* Línea diagonal decorativa */
+    .login-visual-deco {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: linear-gradient(135deg, transparent 45%, rgba(204,0,0,0.04) 45%, rgba(204,0,0,0.04) 55%, transparent 55%);
+        pointer-events: none;
+    }
+
+    .login-visual-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+    }
+
+    .login-brand {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 3.8rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #fff;
+        line-height: 1;
+    }
+
+    .login-brand span {
+        color: #cc0000;
+        font-style: italic;
+        font-weight: 400;
+    }
+
+    .login-tagline {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.85rem;
+        color: #444;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        margin-top: 0.4rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .login-deco-line {
+        width: 48px;
+        height: 3px;
+        background: #cc0000;
+        margin: 0 auto 2rem;
+    }
+
+    .login-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(204,0,0,0.08);
+        border: 1px solid rgba(204,0,0,0.25);
+        color: #cc0000;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.8rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0.5rem 1.2rem;
+        border-radius: 2px;
+    }
+
+    /* ── PANEL FORMULARIO DERECHO ───────────────────────── */
+    .login-form-panel {
+        background: #111;
+        border-left: 1px solid #1a1a1a;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 4rem;
+    }
+
+    .login-form-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 2.4rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #fff;
+        margin-bottom: 0.3rem;
+    }
+
+    .login-form-subtitle {
+        font-size: 0.875rem;
+        color: #555;
+        margin-bottom: 2.5rem;
+    }
+
+    /* ── FORM ELEMENTS ──────────────────────────────────── */
+    .form-group {
+        margin-bottom: 1.4rem;
+    }
+
+    .form-label {
+        display: block;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #555;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+        width: 100%;
+        background: #1a1a1a;
+        border: 1px solid #252525;
+        border-radius: 2px;
+        color: #f5f5f5;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.95rem;
+        padding: 0.85rem 1rem;
+        outline: none;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .form-input:focus {
+        border-color: #cc0000;
+        background: #1e1e1e;
+    }
+
+    .form-input::placeholder { color: #333; }
+
+    /* ── BOTÓN SUBMIT ───────────────────────────────────── */
+    .form-submit {
+        width: 100%;
+        background: #cc0000;
+        color: #fff;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 0.95rem;
+        border: none;
+        border-radius: 2px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s, opacity 0.2s;
+        margin-top: 0.5rem;
+    }
+
+    .form-submit:hover:not(:disabled) {
+        background: #e60000;
+        transform: translateY(-1px);
+    }
+
+    .form-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* ── MENSAJES DE ERROR Y ÉXITO ──────────────────────── */
+    .alert {
+        font-size: 0.875rem;
+        padding: 0.75rem 1rem;
+        border-radius: 2px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        display: none; /* oculto por defecto, JS lo muestra */
+    }
+
+    .alert-error {
+        background: rgba(204,0,0,0.08);
+        border: 1px solid rgba(204,0,0,0.35);
+        border-left: 3px solid #cc0000;
+        color: #ff6b6b;
+    }
+
+    .alert-success {
+        background: rgba(0,180,80,0.08);
+        border: 1px solid rgba(0,180,80,0.35);
+        border-left: 3px solid #00b450;
+        color: #4dff91;
+    }
+
+    .alert.visible { display: flex; }
+
+    /* ── LOADING SPINNER ────────────────────────────────── */
+    .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .form-submit.loading .spinner { display: inline-block; }
+    .form-submit.loading .btn-text { display: none; }
+
+    /* ── BACK LINK ──────────────────────────────────────── */
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #444;
+        font-size: 0.85rem;
+        text-decoration: none;
+        margin-top: 1.5rem;
+        transition: color 0.2s;
+    }
+    .back-link:hover { color: #cc0000; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 768px) {
+        .login-page { grid-template-columns: 1fr; }
+        .login-visual { display: none; }
+        .login-form-panel { padding: 2rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-page">
+
+    <!-- Panel visual izquierdo -->
+    <div class="login-visual">
+        <div class="login-visual-deco"></div>
+        <div class="login-visual-content">
+            <div class="login-brand">RALLYE <span>MOTOR'S</span></div>
+            <div class="login-tagline">Grupo Lizcano · Yamaha</div>
+            <div class="login-deco-line"></div>
+            <div class="login-badge">
+                <svg width="13" height="13" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                </svg>
+                Acceso exclusivo · Personal administrativo
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel formulario derecho -->
+    <div class="login-form-panel">
+
+        <div class="login-form-title">Iniciar sesión</div>
+        <div class="login-form-subtitle">Ingresa tus credenciales para acceder al panel</div>
+
+        <!-- Alerta de error (oculta por defecto) -->
+        <div class="alert alert-error" id="alertError" role="alert">
+            <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <span id="alertErrorMsg"></span>
+        </div>
+
+        <!-- Alerta de éxito (oculta por defecto) -->
+        <div class="alert alert-success" id="alertSuccess" role="alert">
+            <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span>Acceso concedido. Redirigiendo al panel...</span>
+        </div>
+
+        <!-- Formulario -->
+        <div class="form-group">
+            <label class="form-label" for="email">Correo corporativo</label>
+            <input
+                class="form-input"
+                type="email"
+                id="email"
+                name="email"
+                placeholder="correo@rallyemotors.com.co"
+                autocomplete="email"
+            >
+            
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="password">Contraseña</label>
+            <input
+                class="form-input"
+                type="password"
+                id="password"
+                name="password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+            >
+        </div>
+
+        <button class="form-submit" id="btnLogin" type="button">
+            <span class="btn-text">Ingresar al panel →</span>
+            <span class="spinner"></span>
+        </button>
+
+        <a href="/" class="back-link">← Volver al sitio</a>
+
+    </div>
+</div>
+
+<script>
+    // ── Elementos del DOM ──────────────────────────────────────
+    const btnLogin     = document.getElementById('btnLogin');
+    const inputUser    = document.getElementById('email');
+    const inputPass    = document.getElementById('password');
+    const alertError   = document.getElementById('alertError');
+    const alertErrorMsg= document.getElementById('alertErrorMsg');
+    const alertSuccess = document.getElementById('alertSuccess');
+
+    // ── Helpers ────────────────────────────────────────────────
+    function showError(msg) {
+        alertSuccess.classList.remove('visible');
+        alertErrorMsg.textContent = msg;
+        alertError.classList.add('visible');
+    }
+
+    function showSuccess() {
+        alertError.classList.remove('visible');
+        alertSuccess.classList.add('visible');
+    }
+
+    function setLoading(loading) {
+        btnLogin.disabled = loading;
+        btnLogin.classList.toggle('loading', loading);
+    }
+
+    function clearAlerts() {
+        alertError.classList.remove('visible');
+        alertSuccess.classList.remove('visible');
+    }
+
+    // ── Login handler ──────────────────────────────────────────
+    async function handleLogin() {
+        clearAlerts();
+
+        const username = inputUser.value.trim();
+        const password = inputPass.value.trim();
+
+        // Validación client-side básica
+        if (!username || !password) {
+            showError('Por favor ingresa correo y contraseña.');    
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const response = await fetch('/api/users/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: username, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Guardar tokens en sessionStorage
+                sessionStorage.setItem('access_token', data.access);
+                sessionStorage.setItem('refresh_token', data.refresh);
+                sessionStorage.setItem('access', data.access);
+                sessionStorage.setItem('refresh', data.refresh);
+                sessionStorage.setItem('email', data.email);
+                sessionStorage.setItem('local_id', data.local_id);
+                sessionStorage.setItem('local_nombre', data.local_nombre);
+
+                showSuccess();
+
+                // Redirigir al panel tras breve pausa (UX feedback)
+                setTimeout(() => {
+                    window.location.href = '/panel/';
+                }, 900);
+
+            } else {
+                showError(data.error || 'Credenciales incorrectas. Intenta de nuevo.');
+            }
+
+        } catch (err) {
+            showError('Error de conexión. Verifica tu red e intenta de nuevo.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // ── Event listeners ────────────────────────────────────────
+    btnLogin.addEventListener('click', handleLogin);
+
+    // Enter en cualquier campo dispara el login
+    [inputUser, inputPass].forEach(input => {
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') handleLogin();
+        });
+    });
+</script>
+{% endblock %}

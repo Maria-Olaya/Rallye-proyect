@@ -1,2 +1,5 @@
+# scheduling/admin.py
+from django.contrib import admin
+from scheduling.models import Cita
 
-# Register your models here.
+admin.site.register(Cita)
