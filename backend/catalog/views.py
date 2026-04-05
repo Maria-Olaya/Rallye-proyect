@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.models import Motocicleta
-from catalog.serializers import MotocicletaSerializer, MotocicletaListSerializer
+from catalog.serializers import MotocicletaListSerializer, MotocicletaSerializer
 
 
 class AgregarMotocicletaView(APIView):
@@ -31,11 +31,39 @@ class AgregarMotocicletaView(APIView):
 
 
 class CatalogoMotocicletasView(APIView):
-    """GET /api/catalog/motocicletas/ — HU-11"""
+    """GET /api/catalog/motocicletas/ — HU-11 + HU-12
+
+    Filtros opcionales (query params):
+        ?referencia=FZ        → búsqueda parcial, insensible a mayúsculas
+        ?tipo=DEPORTIVA       → filtro exacto por tipo
+        ?cilindraje_min=150   → cilindraje mayor o igual
+        ?cilindraje_max=650   → cilindraje menor o igual
+    """
 
     permission_classes = [AllowAny]
 
     def get(self, request):
         motos = Motocicleta.objects.filter(activa=True).order_by("id")
+
+        referencia = request.query_params.get("referencia", "").strip()
+        tipo = request.query_params.get("tipo", "").strip().upper()
+        cilindraje_min = request.query_params.get("cilindraje_min", "").strip()
+        cilindraje_max = request.query_params.get("cilindraje_max", "").strip()
+
+        if referencia:
+            motos = motos.filter(referencia__icontains=referencia)
+
+        if tipo:
+            tipos_validos = [t[0] for t in Motocicleta.TipoMotocicleta.choices]
+            if tipo not in tipos_validos:
+                return Response([], status=status.HTTP_200_OK)
+            motos = motos.filter(tipo=tipo)
+
+        if cilindraje_min.isdigit():
+            motos = motos.filter(cilindraje__gte=int(cilindraje_min))
+
+        if cilindraje_max.isdigit():
+            motos = motos.filter(cilindraje__lte=int(cilindraje_max))
+
         serializer = MotocicletaListSerializer(motos, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)

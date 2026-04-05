@@ -1,4 +1,4 @@
-# catalog/tests.py  — agrega estas clases al archivo existente
+# catalog/tests.py
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -260,3 +260,231 @@ class VisualizarCatalogoTest(TestCase):
         self.assertIn("Deportiva", tipos)
         self.assertIn("Todoterreno", tipos)
         self.assertNotIn("Urbana", tipos)  # la moto urbana está inactiva
+
+
+# ── HU-12 · Filtrar catálogo ─────────────────────────────────────────────────
+
+
+class FiltrarCatalogoTest(TestCase):
+    """
+    Cubre los criterios de aceptación de HU-12:
+      CA-01  Filtrar por referencia (búsqueda parcial, insensible a mayúsculas).
+      CA-02  Filtrar por cilindraje (mín, máx o rango).
+      CA-03  Filtrar por tipo de motocicleta.
+      CA-04  Resultados se actualizan dinámicamente (combinación de filtros).
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/catalog/motocicletas/"
+
+        # Catálogo base de prueba
+        self.fz25 = Motocicleta.objects.create(
+            referencia="FZ 25",
+            anio=2023,
+            tipo="DEPORTIVA",
+            cilindraje=250,
+            precio="12500000.00",
+            caracteristicas="Motor monocilíndrico 250 cc.",
+            activa=True,
+        )
+        self.mt07 = Motocicleta.objects.create(
+            referencia="MT-07",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=689,
+            precio="28000000.00",
+            caracteristicas="Motor bicilíndrico 700 cc.",
+            activa=True,
+        )
+        self.xtz125 = Motocicleta.objects.create(
+            referencia="XTZ 125",
+            anio=2022,
+            tipo="TODOTERRENO",
+            cilindraje=125,
+            precio="9000000.00",
+            caracteristicas="Moto todoterreno ligera.",
+            activa=True,
+        )
+        self.nmax = Motocicleta.objects.create(
+            referencia="NMAX 155",
+            anio=2023,
+            tipo="AUTOMATICA",
+            cilindraje=155,
+            precio="12000000.00",
+            caracteristicas="Scooter automático.",
+            activa=True,
+        )
+        # Moto inactiva — nunca debe aparecer en ningún resultado
+        self.inactiva = Motocicleta.objects.create(
+            referencia="FZ inactiva",
+            anio=2021,
+            tipo="DEPORTIVA",
+            cilindraje=250,
+            precio="10000000.00",
+            caracteristicas="Fuera de catálogo.",
+            activa=False,
+        )
+
+    # ── CA-01 · Filtro por referencia ────────────────────────────────────────
+
+    def test_cp_hu12_01_filtro_referencia_retorna_coincidencias(self):
+        """CP-HU12-01 · Unitaria — happy path · CA-01
+        Buscar 'FZ' debe retornar todas las motos activas cuya referencia
+        contenga esa cadena, sin importar mayúsculas.
+        Resultado esperado: HTTP 200 · solo la FZ 25 en la lista."""
+        response = self.client.get(self.url, {"referencia": "FZ"})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("FZ 25", referencias)
+        self.assertNotIn("MT-07", referencias)
+        self.assertNotIn("XTZ 125", referencias)
+
+    def test_cp_hu12_02_filtro_referencia_insensible_mayusculas(self):
+        """CP-HU12-02 · Unitaria — flujo alternativo · CA-01
+        La búsqueda 'fz' en minúsculas debe encontrar 'FZ 25' igual que en
+        mayúsculas, porque el filtro usa icontains.
+        Resultado esperado: HTTP 200 · FZ 25 presente en la respuesta."""
+        response = self.client.get(self.url, {"referencia": "fz"})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("FZ 25", referencias)
+
+    def test_cp_hu12_03_filtro_referencia_sin_coincidencias_retorna_lista_vacia(self):
+        """CP-HU12-03 · Unitaria — flujo alternativo · CA-01
+        Una referencia que no existe en el catálogo debe retornar lista vacía,
+        no un error.
+        Resultado esperado: HTTP 200 · lista vacía []."""
+        response = self.client.get(self.url, {"referencia": "INEXISTENTE"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_cp_hu12_04_filtro_referencia_excluye_motos_inactivas(self):
+        """CP-HU12-04 · Integración · CA-01
+        Aunque 'FZ inactiva' contiene 'FZ', no debe aparecer porque está
+        inactiva en el catálogo.
+        Resultado esperado: HTTP 200 · 'FZ inactiva' ausente en la respuesta."""
+        response = self.client.get(self.url, {"referencia": "FZ"})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertNotIn("FZ inactiva", referencias)
+
+    # ── CA-02 · Filtro por cilindraje ────────────────────────────────────────
+
+    def test_cp_hu12_05_filtro_cilindraje_min_retorna_desde_ese_valor(self):
+        """CP-HU12-05 · Unitaria — happy path · CA-02
+        Con solo cilindraje_min=300 deben aparecer las motos con 300 cc o más;
+        las de 125, 155 y 250 cc quedan fuera.
+        Resultado esperado: HTTP 200 · solo MT-07 (689 cc)."""
+        response = self.client.get(self.url, {"cilindraje_min": 300})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("MT-07", referencias)
+        self.assertNotIn("FZ 25", referencias)
+        self.assertNotIn("XTZ 125", referencias)
+        self.assertNotIn("NMAX 155", referencias)
+
+    def test_cp_hu12_06_filtro_cilindraje_max_retorna_hasta_ese_valor(self):
+        """CP-HU12-06 · Unitaria — happy path · CA-02
+        Con solo cilindraje_max=150 deben aparecer las motos con 150 cc o menos;
+        las de 250 cc y 689 cc quedan fuera.
+        Resultado esperado: HTTP 200 · solo XTZ 125 (125 cc)."""
+        response = self.client.get(self.url, {"cilindraje_max": 150})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("XTZ 125", referencias)
+        self.assertNotIn("FZ 25", referencias)
+        self.assertNotIn("MT-07", referencias)
+        self.assertNotIn("NMAX 155", referencias)
+
+    def test_cp_hu12_07_filtro_cilindraje_rango_min_y_max(self):
+        """CP-HU12-07 · Unitaria — happy path · CA-02
+        Con cilindraje_min=150 y cilindraje_max=300 deben aparecer las motos
+        dentro de ese rango: FZ 25 (250 cc) y NMAX 155 (155 cc).
+        Resultado esperado: HTTP 200 · FZ 25 y NMAX 155 presentes."""
+        response = self.client.get(self.url, {"cilindraje_min": 150, "cilindraje_max": 300})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("FZ 25", referencias)
+        self.assertIn("NMAX 155", referencias)
+        self.assertNotIn("XTZ 125", referencias)
+        self.assertNotIn("MT-07", referencias)
+
+    def test_cp_hu12_08_filtro_cilindraje_sin_coincidencias_retorna_lista_vacia(self):
+        """CP-HU12-08 · Unitaria — flujo alternativo · CA-02
+        Un rango de cilindraje donde no hay ninguna moto debe devolver lista vacía.
+        Resultado esperado: HTTP 200 · lista vacía []."""
+        response = self.client.get(self.url, {"cilindraje_min": 1000, "cilindraje_max": 2000})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    # ── CA-03 · Filtro por tipo ───────────────────────────────────────────────
+
+    def test_cp_hu12_09_filtro_tipo_retorna_solo_ese_tipo(self):
+        """CP-HU12-09 · Unitaria — happy path · CA-03
+        Filtrar por tipo DEPORTIVA debe retornar FZ 25 y MT-07 solamente,
+        excluyendo TODOTERRENO y AUTOMATICA.
+        Resultado esperado: HTTP 200 · solo motos de tipo DEPORTIVA."""
+        response = self.client.get(self.url, {"tipo": "DEPORTIVA"})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("FZ 25", referencias)
+        self.assertIn("MT-07", referencias)
+        self.assertNotIn("XTZ 125", referencias)
+        self.assertNotIn("NMAX 155", referencias)
+
+    def test_cp_hu12_10_filtro_tipo_invalido_retorna_lista_vacia(self):
+        """CP-HU12-10 · Unitaria — flujo alternativo · CA-03
+        Un tipo que no existe en las opciones válidas no debe causar error;
+        el backend lo ignora y retorna lista vacía.
+        Resultado esperado: HTTP 200 · lista vacía []."""
+        response = self.client.get(self.url, {"tipo": "VOLADORA"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    # ── CA-04 · Combinación de filtros (actualización dinámica) ──────────────
+
+    def test_cp_hu12_11_combinacion_referencia_y_tipo(self):
+        """CP-HU12-11 · Integración — happy path · CA-04
+        Combinar referencia='MT' y tipo='DEPORTIVA' debe retornar solo la MT-07,
+        validando que los filtros múltiples se aplican simultáneamente.
+        Resultado esperado: HTTP 200 · solo MT-07."""
+        response = self.client.get(self.url, {"referencia": "MT", "tipo": "DEPORTIVA"})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("MT-07", referencias)
+        self.assertNotIn("FZ 25", referencias)
+
+    def test_cp_hu12_12_combinacion_tipo_y_cilindraje_min(self):
+        """CP-HU12-12 · Integración — happy path · CA-04
+        Combinar tipo='DEPORTIVA' y cilindraje_min=500 debe retornar solo
+        la MT-07 (689 cc), ya que FZ 25 (250 cc) no supera el mínimo.
+        Resultado esperado: HTTP 200 · solo MT-07."""
+        response = self.client.get(self.url, {"tipo": "DEPORTIVA", "cilindraje_min": 500})
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("MT-07", referencias)
+        self.assertNotIn("FZ 25", referencias)
+
+    def test_cp_hu12_13_combinacion_tres_filtros_sin_resultado(self):
+        """CP-HU12-13 · Integración — flujo alternativo · CA-04
+        Aplicar referencia='XTZ', tipo='DEPORTIVA' y cilindraje_max=200
+        no debe coincidir con ninguna moto (XTZ 125 es TODOTERRENO, no DEPORTIVA).
+        Resultado esperado: HTTP 200 · lista vacía []."""
+        response = self.client.get(
+            self.url,
+            {"referencia": "XTZ", "tipo": "DEPORTIVA", "cilindraje_max": 200},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_cp_hu12_14_sin_filtros_retorna_todo_el_catalogo_activo(self):
+        """CP-HU12-14 · Unitaria — happy path · CA-04
+        Sin parámetros de filtro el endpoint retorna todas las motos activas,
+        confirmando que los filtros son completamente opcionales.
+        Resultado esperado: HTTP 200 · las 4 motos activas del setUp."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertNotIn("FZ inactiva", referencias)
