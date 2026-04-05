@@ -1,13 +1,33 @@
-from django.db import models
+# catalog/models.py
+
 from django.conf import settings
+from django.db import models
 
 
 class Motocicleta(models.Model):
-    marca = models.CharField(max_length=80)
-    modelo = models.CharField(max_length=80)
+    class TipoMotocicleta(models.TextChoices):
+        DEPORTIVA = "DEPORTIVA", "Deportiva"
+        URBANA = "URBANA", "Urbana"
+        TODOTERRENO = "TODOTERRENO", "Todoterreno"
+        CUATRIMOTOS = "CUATRIMOTOS", "Cuatrimotos"
+        AUTOMATICA = "AUTOMATICA", "Automáticas y Semiautomáticas"
+
+    marca = models.CharField(max_length=80, default="Yamaha", editable=False)
+    referencia = models.CharField(max_length=80)
     anio = models.IntegerField()
-    precio = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoMotocicleta.choices,
+        default=TipoMotocicleta.URBANA,
+    )
+    cilindraje = models.PositiveIntegerField()
+    precio = models.DecimalField(max_digits=12, decimal_places=2)
+    caracteristicas = models.TextField(blank=True, default="")
+    imagen = models.ImageField(upload_to="motocicletas/", null=True, blank=True)
     activa = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Yamaha {self.referencia} ({self.anio})"
 
 
 class Repuesto(models.Model):
@@ -17,11 +37,17 @@ class Repuesto(models.Model):
     stock = models.IntegerField(default=0)
     activo = models.BooleanField(default=True)
 
+    def __str__(self):
+        return f"{self.nombre} ({self.referencia})"
+
 
 class InteresRepuesto(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     repuesto = models.ForeignKey(Repuesto, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.usuario} — {self.repuesto} ({self.created_at.date()})"
 
 
 class CotizacionMotocicleta(models.Model):
@@ -29,3 +55,6 @@ class CotizacionMotocicleta(models.Model):
     motocicleta = models.ForeignKey(Motocicleta, on_delete=models.PROTECT)
     comentario = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cotización {self.motocicleta} — {self.usuario} ({self.created_at.date()})"

@@ -3,216 +3,355 @@
 
 {% block extra_head %}
 <style>
+    /* ── Navbar admin ── */
+    .navbar-menu { display: none !important; }
+    .admin-nav-menu {
+        display: flex; gap: 1.8rem; list-style: none; align-items: center;
+    }
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: color 0.2s;
+    }
+    .admin-nav-menu a:hover { color: var(--red); }
+    .admin-dropdown { position: relative; }
+    .admin-dropdown-trigger {
+        cursor: pointer; user-select: none; -webkit-user-select: none;
+        display: flex; align-items: center; gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        background: none; border: none; padding: 0; transition: color 0.2s;
+    }
+    .admin-dropdown-trigger:hover { color: var(--red); }
+    .admin-dropdown-trigger svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .admin-dropdown-trigger.open svg { transform: rotate(180deg); }
+    .admin-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 14px); left: 50%;
+        transform: translateX(-50%); background: #fff; border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15); list-style: none; min-width: 190px;
+        z-index: 200; padding: 0.4rem 0; border-radius: 0 0 4px 4px;
+    }
+    .admin-dropdown-menu.open { display: block; }
+    .admin-dropdown-menu li a {
+        display: block; padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .admin-dropdown-menu li a:hover { background: #f5f5f5; color: var(--red); }
+    .admin-dropdown-menu li a.active { color: var(--red); background: #fff5f5; }
+    .admin-dropdown-menu li + li { border-top: 1px solid #f0f0f0; }
+    .admin-btn-salir {
+        background: #333; color: #fff !important; padding: 0.4rem 1.1rem; border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: none; transition: background 0.2s;
+    }
+    .admin-btn-salir:hover { background: #111; }
+
+    /* ── Página ── */
     .diag-page {
         min-height: calc(100vh - 64px - 59px);
-        background: linear-gradient(135deg, #111 0%, #0b0b0b 50%, #170606 100%);
-        padding: 1rem;
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
     }
 
     .diag-shell {
-        width: min(100%, 900px);
-        margin: 0 auto;
+        width: min(100%, 1120px);
         background: #f7f7f7;
-        border-radius: 24px;
-        padding: 1.15rem;
-        color: #111;
+        border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
+        overflow: hidden;
+        margin: 0 auto;
     }
 
+    /* ── Topbar ── */
     .diag-topbar {
-        display: flex;
-        justify-content: flex-start;
-        margin-bottom: 0.5rem;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.4rem 2.2rem 0;
     }
-
+    .diag-breadcrumb {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+    }
+    .diag-breadcrumb a { color: #aaa; text-decoration: none; transition: color 0.15s; }
+    .diag-breadcrumb a:hover { color: var(--red); }
+    .diag-breadcrumb-sep { color: #ccc; }
+    .diag-breadcrumb-current { color: var(--red); }
     .diag-back {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 36px;
-        padding: 0.5rem 0.9rem;
-        border-radius: 999px;
-        text-decoration: none;
-        background: #151515;
-        color: #fff;
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.88rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.38rem 1rem; border: 1.5px solid #ccc; border-radius: 999px;
+        text-decoration: none; color: #555; background: transparent;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        letter-spacing: 0.1em; text-transform: uppercase; transition: border-color 0.2s, color 0.2s;
     }
+    .diag-back:hover { border-color: var(--red); color: var(--red); }
+    .diag-back svg { width: 12px; height: 12px; }
 
-    .diag-title,
-    .diag-subtitle,
-    .diag-label,
-    .diag-button,
-    .diag-card-title {
-        font-family: 'Barlow Condensed', sans-serif;
+    /* ── Header ── */
+    .diag-header {
+        padding: 1rem 2.2rem 1.4rem;
+        border-bottom: 1px solid #e8e8e8;
     }
-
     .diag-title {
-        font-size: 2.2rem;
-        color: var(--red);
-        text-align: center;
-        margin-bottom: 0.35rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700; color: var(--red);
+        margin: 0 0 0.2rem; line-height: 1;
+    }
+    .diag-subtitle {
+        font-family: 'Barlow Condensed', sans-serif;
+        color: #8b94a3; font-size: 0.88rem;
     }
 
-    .diag-subtitle {
-        text-align: center;
-        color: #5e6671;
-        font-size: 0.84rem;
-        margin-bottom: 1rem;
+    /* ── Cuerpo ── */
+    .diag-body {
+        padding: 1.6rem 2.2rem 2rem;
     }
 
     .diag-grid {
         display: grid;
-        grid-template-columns: 250px 1fr;
-        gap: 0.9rem;
+        grid-template-columns: 260px 1fr;
+        gap: 1.2rem;
     }
 
-    .diag-panel,
+    /* ── Panel búsqueda ── */
+    .diag-panel {
+        background: #fff;
+        border: 2px solid #dedede;
+        border-radius: 14px;
+        padding: 1.2rem;
+        display: grid;
+        gap: 0.9rem;
+        align-content: start;
+    }
+
     .diag-result {
         background: #fff;
-        border: 1px solid #e4e4e4;
-        border-radius: 18px;
-        padding: 0.85rem;
+        border: 2px solid #dedede;
+        border-radius: 14px;
+        padding: 1.2rem;
+        display: grid;
+        gap: 0.9rem;
+        align-content: start;
+    }
+
+    .diag-card-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.75rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: #9ca3af;
+        padding-bottom: 0.7rem;
+        border-bottom: 1px solid #e8e8e8;
+        display: flex; align-items: center; gap: 0.6rem;
+    }
+    .diag-card-num {
+        width: 22px; height: 22px; border-radius: 50%;
+        background: var(--red); color: #fff;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.75rem; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
 
     .diag-label {
-        display: block;
-        font-size: 0.76rem;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #616975;
+        font-family: 'Barlow Condensed', sans-serif;
+        display: block; font-size: 0.76rem; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #616975;
         margin-bottom: 0.35rem;
     }
 
-    .diag-input,
-    .diag-textarea {
-        width: 100%;
-        border: 1px solid #d9dde3;
-        border-radius: 10px;
-        padding: 0.72rem 0.85rem;
-        font-size: 0.85rem;
-        font-family: 'DM Sans', sans-serif;
-        background: #fff;
+    .diag-input, .diag-textarea {
+        width: 100%; border: 2px solid #dedede; border-radius: 10px;
+        padding: 0.72rem 0.9rem; font-size: 0.875rem;
+        font-family: 'DM Sans', sans-serif; background: #fff; color: #111;
+        outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+        box-sizing: border-box;
     }
-
-    .diag-textarea {
-        min-height: 110px;
-        resize: vertical;
+    .diag-input::placeholder, .diag-textarea::placeholder { color: #bbb; }
+    .diag-input:focus, .diag-textarea:focus {
+        border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08);
     }
+    .diag-textarea { min-height: 110px; resize: vertical; line-height: 1.55; }
 
-    .diag-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        min-height: 42px;
-        border: none;
-        border-radius: 12px;
-        background: #151515;
-        color: #fff;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 0.84rem;
-        cursor: pointer;
-    }
-
-    .diag-button.red {
-        background: var(--red);
-    }
-
-    .diag-stack {
-        display: grid;
-        gap: 0.7rem;
-    }
-
+    /* Info fields */
     .diag-info {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.7rem;
-        margin-bottom: 0.55rem;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 0.6rem;
     }
-
     .diag-field {
         background: #f7f7f7;
-        border-radius: 12px;
-        padding: 0.68rem 0.8rem;
+        border: 1px solid #e8e8e8;
+        border-radius: 10px;
+        padding: 0.65rem 0.85rem;
     }
-
     .diag-field span {
-        display: block;
-        color: #6b7280;
-        font-size: 0.68rem;
-        margin-bottom: 0.18rem;
-        text-transform: uppercase;
+        display: block; color: #9ca3af;
+        font-size: 0.67rem; font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        margin-bottom: 0.25rem;
     }
-
     .diag-field strong {
-        font-size: 0.9rem;
+        font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: #111;
     }
 
+    /* Botones */
+    .diag-button {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 100%; min-height: 44px; border: none; border-radius: 10px;
+        background: #333; color: #fff; text-transform: uppercase;
+        letter-spacing: 0.14em; font-size: 0.88rem; font-weight: 700;
+        font-family: 'Barlow Condensed', sans-serif;
+        cursor: pointer; transition: background 0.15s, transform 0.1s;
+    }
+    .diag-button:hover { background: #111; }
+    .diag-button:active { transform: scale(0.98); }
+    .diag-button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .diag-button.red { background: var(--red); }
+    .diag-button.red:hover { background: #b30000; }
+
+    /* Mensajes */
     .diag-message {
-        display: none;
-        padding: 0.7rem 0.85rem;
-        border-radius: 12px;
-        font-size: 0.82rem;
+        display: none; padding: 0.65rem 0.9rem; border-radius: 10px;
+        font-size: 0.8rem; font-family: 'Barlow Condensed', sans-serif;
+        letter-spacing: 0.03em;
     }
-
     .diag-message.visible { display: block; }
-    .diag-message.error { background: #ffe5e5; color: #9f1111; }
-    .diag-message.success { background: #e8fff1; color: #0a7c3a; }
+    .diag-message.error { background: #ffe5e5; color: #9f1111; border: 1px solid #ffd0d0; }
+    .diag-message.success { background: #e8fff1; color: #0a7c3a; border: 1px solid #c6f6d5; }
 
-    @media (max-width: 900px) {
-        .diag-page { padding: 1rem; }
-        .diag-shell { padding: 1.2rem; }
+    @media (max-width: 720px) {
+        .diag-page { padding: 0.5rem; }
+        .diag-topbar, .diag-header, .diag-body { padding-left: 1rem; padding-right: 1rem; }
         .diag-grid { grid-template-columns: 1fr; }
         .diag-info { grid-template-columns: 1fr; }
-        .diag-title { font-size: 2.2rem; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        navbar.querySelector('.navbar-menu').style.display = 'none';
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/disponibilidad/">LOCAL</a></li>
+            <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/" style="color:var(--red)">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    CRUD MOTOCICLETA
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Editar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
+                </ul>
+            </li>
+            <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+        `;
+        navbar.appendChild(adminMenu);
+
+        document.getElementById('crudTrigger').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('crudTrigger').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('crudTrigger')?.classList.remove('open');
+        });
+        document.getElementById('btnSalirAdmin').addEventListener('click', () => {
+            const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+            const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+            fetch('/api/users/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + access },
+                body: JSON.stringify({ refresh })
+            }).finally(() => { sessionStorage.clear(); window.location.href = '/login/'; });
+        });
+    });
+</script>
+
 <section class="diag-page">
     <div class="diag-shell">
+
+        <!-- Topbar -->
         <div class="diag-topbar">
-            <a class="diag-back" href="/panel/">&larr; Volver</a>
+            <div class="diag-breadcrumb">
+                <a href="/panel/">Panel</a>
+                <span class="diag-breadcrumb-sep">›</span>
+                <span class="diag-breadcrumb-current">Diagnóstico</span>
+            </div>
+            <a class="diag-back" href="/panel/">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Volver al panel
+            </a>
         </div>
-        <h1 class="diag-title">Registrar diagnóstico</h1>
-        <p class="diag-subtitle">Busca la cita por placa y registra el diagnóstico solo cuando el servicio esté atendido.</p>
 
-        <div class="diag-grid">
-            <aside class="diag-panel diag-stack">
-                <div>
-                    <label class="diag-label" for="placa">Placa</label>
-                    <input id="placa" class="diag-input" type="text" placeholder="ABC123" maxlength="10">
-                </div>
-                <button id="btnBuscar" class="diag-button" type="button">Buscar cita</button>
-                <div id="searchMessage" class="diag-message"></div>
-            </aside>
-
-            <section class="diag-result diag-stack">
-                <div class="diag-card-title">Datos de la cita</div>
-                <div class="diag-info">
-                    <div class="diag-field"><span>Cliente</span><strong id="clienteNombre">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Documento</span><strong id="clienteDocumento">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Teléfono</span><strong id="clienteTelefono">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Correo</span><strong id="clienteCorreo">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Moto</span><strong id="motoInfo">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Servicio</span><strong id="tipoServicio">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Fecha</span><strong id="fechaCita">Sin seleccionar</strong></div>
-                    <div class="diag-field"><span>Hora</span><strong id="horaCita">Sin seleccionar</strong></div>
-                </div>
-
-                <div>
-                    <label class="diag-label" for="descripcion">Descripción del diagnóstico</label>
-                    <textarea id="descripcion" class="diag-textarea" placeholder="Describe el trabajo realizado, hallazgos y recomendaciones."></textarea>
-                </div>
-
-                <button id="btnGuardar" class="diag-button red" type="button" disabled>Guardar diagnóstico</button>
-                <div id="saveMessage" class="diag-message"></div>
-            </section>
+        <!-- Header -->
+        <div class="diag-header">
+            <h1 class="diag-title">Registrar diagnóstico</h1>
+            <p class="diag-subtitle">Busca la cita por placa y registra el diagnóstico cuando el servicio esté atendido.</p>
         </div>
+
+        <!-- Body -->
+        <div class="diag-body">
+            <div class="diag-grid">
+
+                <!-- Panel búsqueda -->
+                <aside class="diag-panel">
+                    <div class="diag-card-title">
+                        <span class="diag-card-num">1</span>
+                        Buscar cita
+                    </div>
+                    <div>
+                        <label class="diag-label" for="placa">Placa</label>
+                        <input id="placa" class="diag-input" type="text" placeholder="TQT68G" maxlength="10">
+                    </div>
+                    <button id="btnBuscar" class="diag-button" type="button">Buscar cita</button>
+                    <div id="searchMessage" class="diag-message"></div>
+                </aside>
+
+                <!-- Panel datos + diagnóstico -->
+                <section class="diag-result">
+                    <div class="diag-card-title">
+                        <span class="diag-card-num">2</span>
+                        Datos de la cita
+                    </div>
+                    <div class="diag-info">
+                        <div class="diag-field"><span>Cliente</span><strong id="clienteNombre">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Documento</span><strong id="clienteDocumento">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Teléfono</span><strong id="clienteTelefono">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Correo</span><strong id="clienteCorreo">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Moto</span><strong id="motoInfo">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Servicio</span><strong id="tipoServicio">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Fecha</span><strong id="fechaCita">Sin seleccionar</strong></div>
+                        <div class="diag-field"><span>Hora</span><strong id="horaCita">Sin seleccionar</strong></div>
+                    </div>
+                    <div>
+                        <label class="diag-label" for="descripcion">Descripción del diagnóstico</label>
+                        <textarea id="descripcion" class="diag-textarea" placeholder="Describe el trabajo realizado, hallazgos y recomendaciones."></textarea>
+                    </div>
+                    <button id="btnGuardar" class="diag-button red" type="button" disabled>Guardar diagnóstico</button>
+                    <div id="saveMessage" class="diag-message"></div>
+                </section>
+
+            </div>
+        </div>
+
     </div>
 </section>
 {% endblock %}
@@ -220,39 +359,35 @@
 {% block extra_scripts %}
 <script>
     const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
-    if (!accessToken) {
-        window.location.replace('/login/');
-    }
+    if (!accessToken) window.location.replace('/login/');
 
-    const placaInput = document.getElementById('placa');
+    const placaInput       = document.getElementById('placa');
     const descripcionInput = document.getElementById('descripcion');
-    const btnBuscar = document.getElementById('btnBuscar');
-    const btnGuardar = document.getElementById('btnGuardar');
-    const searchMessage = document.getElementById('searchMessage');
-    const saveMessage = document.getElementById('saveMessage');
+    const btnBuscar        = document.getElementById('btnBuscar');
+    const btnGuardar       = document.getElementById('btnGuardar');
+    const searchMessage    = document.getElementById('searchMessage');
+    const saveMessage      = document.getElementById('saveMessage');
     let citaSeleccionadaId = null;
 
     function showMessage(el, text, type) {
         el.textContent = text;
         el.className = `diag-message visible ${type}`;
     }
-
     function clearMessage(el) {
         el.textContent = '';
         el.className = 'diag-message';
     }
-
     function clearCita() {
         citaSeleccionadaId = null;
         btnGuardar.disabled = true;
-        document.getElementById('clienteNombre').textContent = 'Sin seleccionar';
+        document.getElementById('clienteNombre').textContent    = 'Sin seleccionar';
         document.getElementById('clienteDocumento').textContent = 'Sin seleccionar';
-        document.getElementById('clienteTelefono').textContent = 'Sin seleccionar';
-        document.getElementById('clienteCorreo').textContent = 'Sin seleccionar';
-        document.getElementById('motoInfo').textContent = 'Sin seleccionar';
-        document.getElementById('tipoServicio').textContent = 'Sin seleccionar';
-        document.getElementById('fechaCita').textContent = 'Sin seleccionar';
-        document.getElementById('horaCita').textContent = 'Sin seleccionar';
+        document.getElementById('clienteTelefono').textContent  = 'Sin seleccionar';
+        document.getElementById('clienteCorreo').textContent    = 'Sin seleccionar';
+        document.getElementById('motoInfo').textContent         = 'Sin seleccionar';
+        document.getElementById('tipoServicio').textContent     = 'Sin seleccionar';
+        document.getElementById('fechaCita').textContent        = 'Sin seleccionar';
+        document.getElementById('horaCita').textContent         = 'Sin seleccionar';
     }
 
     async function buscarCita() {
@@ -281,14 +416,14 @@
 
             citaSeleccionadaId = data.id;
             btnGuardar.disabled = false;
-            document.getElementById('clienteNombre').textContent = data.cliente_nombre || 'Sin dato';
+            document.getElementById('clienteNombre').textContent    = data.cliente_nombre    || 'Sin dato';
             document.getElementById('clienteDocumento').textContent = data.cliente_documento || 'Sin dato';
-            document.getElementById('clienteTelefono').textContent = data.cliente_telefono || 'Sin dato';
-            document.getElementById('clienteCorreo').textContent = data.cliente_correo || 'Sin dato';
-            document.getElementById('motoInfo').textContent = `${data.placa_moto || ''} · ${data.referencia_moto || ''} ${data.anio_moto || ''}`.trim();
-            document.getElementById('tipoServicio').textContent = data.tipo_servicio || 'Sin dato';
-            document.getElementById('fechaCita').textContent = data.fecha || 'Sin dato';
-            document.getElementById('horaCita').textContent = `${(data.hora_inicio || '').slice(0, 5)} - ${(data.hora_fin || '').slice(0, 5)}`;
+            document.getElementById('clienteTelefono').textContent  = data.cliente_telefono  || 'Sin dato';
+            document.getElementById('clienteCorreo').textContent    = data.cliente_correo    || 'Sin dato';
+            document.getElementById('motoInfo').textContent         = `${data.placa_moto || ''} · ${data.referencia_moto || ''} ${data.anio_moto || ''}`.trim();
+            document.getElementById('tipoServicio').textContent     = data.tipo_servicio || 'Sin dato';
+            document.getElementById('fechaCita').textContent        = data.fecha || 'Sin dato';
+            document.getElementById('horaCita').textContent         = `${(data.hora_inicio || '').slice(0,5)} - ${(data.hora_fin || '').slice(0,5)}`;
             showMessage(searchMessage, 'Cita atendida encontrada. Ya puedes registrar el diagnóstico.', 'success');
         } catch (error) {
             showMessage(searchMessage, 'Error de conexión al buscar la cita.', 'error');
@@ -316,10 +451,7 @@
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${accessToken}`,
                 },
-                body: JSON.stringify({
-                    cita_id: citaSeleccionadaId,
-                    descripcion,
-                }),
+                body: JSON.stringify({ cita_id: citaSeleccionadaId, descripcion }),
             });
             const data = await response.json();
 
@@ -329,7 +461,7 @@
                 return;
             }
 
-            showMessage(saveMessage, `Diagnóstico registrado. Radicado generado: ${data.radicado}`, 'success');
+            showMessage(saveMessage, `Diagnóstico registrado. Radicado: ${data.radicado}`, 'success');
             btnGuardar.disabled = true;
         } catch (error) {
             showMessage(saveMessage, 'Error de conexión al guardar el diagnóstico.', 'error');

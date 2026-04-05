@@ -3,6 +3,103 @@
 
 {% block extra_head %}
 <style>
+    .navbar-menu { display: none !important; }
+
+    .admin-nav-menu {
+        display: flex;
+        gap: 1.8rem;
+        list-style: none;
+        align-items: center;
+    }
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: color 0.2s;
+        position: relative;
+    }
+    .admin-nav-menu a:hover { color: var(--red); }
+    .admin-nav-menu a.active { color: var(--red); }
+
+    .admin-dropdown { position: relative; }
+    .admin-dropdown-trigger {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        background: none;
+        border: none;
+        padding: 0;
+        transition: color 0.2s;
+    }
+    .admin-dropdown-trigger:hover { color: var(--red); }
+    .admin-dropdown-trigger svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s;
+    }
+    .admin-dropdown-trigger.open svg { transform: rotate(180deg); }
+
+    .admin-dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 14px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        list-style: none;
+        min-width: 190px;
+        z-index: 200;
+        padding: 0.4rem 0;
+        border-radius: 0 0 4px 4px;
+    }
+    .admin-dropdown-menu.open { display: block; }
+    .admin-dropdown-menu li a {
+        display: block;
+        padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+    .admin-dropdown-menu li a:hover { background: #f5f5f5; color: var(--red); }
+    .admin-dropdown-menu li + li { border-top: 1px solid #f0f0f0; }
+
+    .admin-btn-salir {
+        background: #333;
+        color: #fff !important;
+        padding: 0.4rem 1.1rem;
+        border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+    }
+    .admin-btn-salir:hover { background: #111; }
+
     .panel-dashboard {
         min-height: calc(100vh - 64px - 59px);
         background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
@@ -11,68 +108,33 @@
         align-items: center;
         justify-content: center;
     }
-
-    .panel-brand {
-        display: none;
-    }
-
-    .brand-mark {
-        position: relative;
-        width: 146px;
-        height: 146px;
-    }
-
-    .brand-avatar,
-    .brand-gear {
-        position: absolute;
-        line-height: 1;
-        filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.16));
-    }
-
-    .brand-avatar {
-        left: 0;
-        bottom: 10px;
-        font-size: 6.9rem;
-    }
-
-    .brand-gear {
-        right: -2px;
-        bottom: 5px;
-        font-size: 3.9rem;
-    }
-
     .panel-card {
         width: min(100%, 1120px);
         min-height: 640px;
         background: #f7f7f7;
         color: #111;
         border-radius: 22px;
-        box-shadow: 0 26px 54px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
         position: relative;
         overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
     }
-
     .panel-card::after {
         content: "";
         position: absolute;
-        top: 0;
-        right: 0;
-        width: 240px;
-        height: 100%;
+        top: 0; right: 0;
+        width: 240px; height: 100%;
         background: #df0000;
     }
-
     .panel-card .user-icon-body {
         position: absolute;
-        right: 62px;
-        top: 50%;
-        width: 126px;
-        height: 168px;
+        right: 62px; top: 50%;
+        width: 126px; height: 168px;
         transform: translateY(-18%);
         z-index: 2;
         pointer-events: none;
     }
-
     .panel-card .user-icon-head,
     .panel-card .user-icon-shoulders {
         position: absolute;
@@ -80,69 +142,41 @@
         transform: translateX(-50%);
         background: #fff;
     }
-
     .panel-card .user-icon-head {
-        top: 0;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
+        top: 0; width: 50px; height: 50px; border-radius: 50%;
     }
-
     .panel-card .user-icon-shoulders {
-        bottom: 0;
-        width: 112px;
-        height: 72px;
-        border-radius: 72px 72px 0 0;
+        bottom: 0; width: 112px; height: 72px; border-radius: 72px 72px 0 0;
     }
-
     .panel-main {
         width: calc(100% - 240px);
         padding: 2.6rem 3.1rem 2.2rem 2.9rem;
         position: relative;
         z-index: 2;
     }
-
-    .panel-badge,
-    .panel-title,
-    .panel-subtitle,
-    .panel-meta-label,
-    .panel-module strong,
-    .panel-module span,
-    .panel-action {
-        font-family: 'Barlow Condensed', sans-serif;
-    }
-
-    .panel-badge {
-        display: none;
-    }
-
     .panel-title {
-        max-width: none;
-        margin: 0 0 0.85rem;
-        text-align: center;
+        font-family: 'Barlow Condensed', sans-serif;
         font-size: clamp(2.45rem, 3.2vw, 3.5rem);
         font-weight: 700;
         line-height: 1.02;
         color: var(--red);
+        text-align: center;
+        margin: 0 0 0.85rem;
     }
-
     .panel-subtitle {
-        max-width: none;
-        margin: 0 0 1.8rem;
+        font-family: 'Barlow Condensed', sans-serif;
         text-align: center;
         color: #8b94a3;
         font-size: 0.88rem;
         line-height: 1.45;
-        font-weight: 400;
+        margin: 0 0 1.8rem;
     }
-
     .panel-meta {
         display: grid;
         grid-template-columns: 1fr;
         gap: 1.1rem;
         margin-bottom: 1.35rem;
     }
-
     .panel-meta-box {
         background: #fff;
         border: 2px solid #dedede;
@@ -150,8 +184,8 @@
         padding: 0.95rem 1.35rem;
         min-height: 58px;
     }
-
     .panel-meta-label {
+        font-family: 'Barlow Condensed', sans-serif;
         display: block;
         margin-bottom: 0.55rem;
         color: #616975;
@@ -159,98 +193,97 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
     }
-
     .panel-meta-value {
         font-size: 0.92rem;
         color: #9aa4b4;
         word-break: break-word;
     }
-
     .panel-modules {
         display: grid;
         gap: 0.7rem;
-        margin-bottom: 0;
     }
-
     .panel-module {
-        display: flex;
-        align-items: center;
-        gap: 0.9rem;
-        padding: 0;
-        background: transparent;
-        border-radius: 0;
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.15s, color 0.15s;
-    }
-
-    .panel-module-icon {
-        display: none;
-    }
-
-    .panel-module:hover {
-        color: var(--red);
-        transform: translateX(4px);
-    }
-
-    .panel-module strong {
+        font-family: 'Barlow Condensed', sans-serif;
         font-size: 0.88rem;
-        font-weight: 700;
-    }
-
-    .panel-module span {
-        font-size: 0.88rem;
-        font-weight: 400;
         color: #1d1d1d;
+    }
+    .panel-module strong {
+        color: #111;
     }
 
     @media (max-width: 980px) {
-        .panel-dashboard {
-            padding: 1.25rem 1rem 1.8rem;
-        }
-
-        .panel-main {
-            width: 100%;
-            padding: 2rem 1.25rem 1.5rem;
-        }
-
-        .panel-card {
-            min-height: auto;
-        }
-
-        .panel-card::after,
-        .panel-card .user-icon-body {
-            display: none;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .panel-title {
-            font-size: 2.55rem;
-        }
+        .panel-main { width: 100%; padding: 2rem 1.25rem 1.5rem; }
+        .panel-card { min-height: auto; }
+        .panel-card::after, .panel-card .user-icon-body { display: none; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="panel-dashboard">
-    <div class="panel-brand" aria-hidden="true">
-        <div class="brand-mark">
-            <div class="brand-avatar">&#128100;</div>
-            <div class="brand-gear">&#9881;</div>
-        </div>
-    </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        navbar.querySelector('.navbar-menu').style.display = 'none';
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/disponibilidad/">LOCAL</a></li>
+            <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    CRUD MOTOCICLETA
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Editar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
+                </ul>
+            </li>
+            <li>
+                <button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button>
+            </li>
+        `;
+        navbar.appendChild(adminMenu);
+
+        document.getElementById('crudTrigger').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('crudTrigger').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('crudTrigger')?.classList.remove('open');
+        });
+
+        document.getElementById('btnSalirAdmin').addEventListener('click', () => {
+            const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+            const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+            fetch('/api/users/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + access },
+                body: JSON.stringify({ refresh })
+            }).finally(() => { sessionStorage.clear(); window.location.href = '/login/'; });
+        });
+    });
+</script>
+
+<section class="panel-dashboard">
     <article class="panel-card">
         <div class="panel-main">
-            <div class="panel-badge">Panel principal</div>
             <h1 class="panel-title">Bienvenido al panel administrativo</h1>
             <p class="panel-subtitle">
-                En este panel podr&aacute;s gestionar la operaci&oacute;n del taller, administrar la disponibilidad
-                de atenci&oacute;n, visualizar la agenda diaria, registrar diagn&oacute;sticos y consultar
-                informaci&oacute;n clave para la toma de decisiones.
+                En este panel podrás gestionar la operación del taller, administrar la disponibilidad
+                de atención, visualizar la agenda diaria, registrar diagnósticos y consultar
+                información clave para la toma de decisiones.
             </p>
-
             <div class="panel-meta">
                 <div class="panel-meta-box">
                     <span class="panel-meta-label">Usuario autenticado</span>
@@ -261,30 +294,13 @@
                     <div class="panel-meta-value" id="userLocal">Sin sede asignada</div>
                 </div>
             </div>
-
             <div class="panel-modules">
-                <a class="panel-module" href="/panel/disponibilidad/">
-                    <div class="panel-module-icon">&#128197;</div>
-                    <div><strong>Disponibilidad:</strong> <span>Configura los horarios de atenci&oacute;n</span></div>
-                </a>
-                <a class="panel-module" href="/panel/agenda/">
-                    <div class="panel-module-icon">&#9881;</div>
-                    <div><strong>Agenda del taller:</strong> <span>Consulta revisiones y servicios t&eacute;cnicos</span></div>
-                </a>
-                <a class="panel-module" href="/panel/diagnostico/">
-                    <div class="panel-module-icon">&#128203;</div>
-                    <div><strong>Diagn&oacute;stico:</strong> <span>Registra y gestiona diagn&oacute;sticos</span></div>
-                </a>
-                <a class="panel-module" href="/panel/graficos/">
-                    <div class="panel-module-icon">&#128202;</div>
-                    <div><strong>Gr&aacute;ficos:</strong> <span>Visualiza indicadores y consultas</span></div>
-                </a>
-                <a class="panel-module" href="/panel/motocicletas/">
-                    <div class="panel-module-icon">&#127949;</div>
-                    <div><strong>Motocicletas:</strong> <span>Administra el cat&aacute;logo</span></div>
-                </a>
+                <p class="panel-module"><strong>Local:</strong> Editar la información del local</p>
+                <p class="panel-module"><strong>Agenda del taller:</strong> Consulta revisiones y servicios técnicos</p>
+                <p class="panel-module"><strong>Diagnóstico:</strong> Registra y gestiona diagnósticos</p>
+                <p class="panel-module"><strong>Gráficos:</strong> Visualiza indicadores y consultas</p>
+                <p class="panel-module"><strong>Motocicletas:</strong> Administra el catálogo</p>
             </div>
-
         </div>
         <div class="user-icon-body" aria-hidden="true">
             <div class="user-icon-head"></div>
@@ -297,14 +313,11 @@
 {% block extra_scripts %}
 <script>
     const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
-    if (!accessToken) {
-        window.location.replace('/login/');
-    }
+    if (!accessToken) window.location.replace('/login/');
 
     const email = sessionStorage.getItem('email');
     const localNombre = sessionStorage.getItem('local_nombre');
     const localValida = localNombre && localNombre !== 'null' && localNombre !== 'undefined';
-
     document.getElementById('userEmail').textContent = email || 'No disponible';
     document.getElementById('userLocal').textContent = localValida ? localNombre : 'Sin sede asignada';
 </script>
