@@ -18,7 +18,6 @@ class MotocicletaSerializer(serializers.ModelSerializer):
             "blank": "La referencia no puede estar vacía.",
         }
     )
-
     cilindraje = serializers.IntegerField(
         min_value=1,
         error_messages={
@@ -63,10 +62,48 @@ class MotocicletaSerializer(serializers.ModelSerializer):
     def validate_anio(self, value):
         anio_actual = date.today().year
         if value < 1900 or value > anio_actual + 1:
-            raise serializers.ValidationError(f"Ingrese un año válido entre 1900 y {anio_actual + 1}.")
+            raise serializers.ValidationError(
+                f"Ingrese un año válido entre 1900 y {anio_actual + 1}."
+            )
         return value
 
     def validate_precio(self, value):
         if value < 0:
             raise serializers.ValidationError("El precio no puede ser negativo.")
         return value
+
+
+class MotocicletaListSerializer(serializers.ModelSerializer):
+    """Serializer de solo lectura para el catálogo público — HU-11"""
+
+    imagen_url = serializers.SerializerMethodField()
+    precio_display = serializers.SerializerMethodField()
+    tipo_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Motocicleta
+        fields = [
+            "id",
+            "marca",
+            "referencia",
+            "anio",
+            "tipo",
+            "tipo_display",
+            "cilindraje",
+            "precio",
+            "precio_display",
+            "caracteristicas",
+            "imagen_url",
+        ]
+
+    def get_imagen_url(self, obj):
+        request = self.context.get("request")
+        if obj.imagen and request:
+            return request.build_absolute_uri(obj.imagen.url)
+        return None
+
+    def get_precio_display(self, obj):
+        return f"$ {int(obj.precio):,}".replace(",", ".")
+
+    def get_tipo_display(self, obj):
+        return obj.get_tipo_display()

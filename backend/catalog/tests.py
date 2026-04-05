@@ -1,4 +1,4 @@
-# catalog/tests.py
+# catalog/tests.py  — agrega estas clases al archivo existente
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -147,3 +147,109 @@ class AgregarMotocicletaTest(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Motocicleta.objects.exists())
+
+
+# ── HU-11 · Visualizar catálogo ──────────────────────────────────────────────
+
+
+class VisualizarCatalogoTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.moto_activa = Motocicleta.objects.create(
+            referencia="MT-07",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=689,
+            precio="28000000.00",
+            caracteristicas="Motor bicilíndrico, frenos ABS, pantalla TFT.",
+            activa=True,
+        )
+        self.moto_inactiva = Motocicleta.objects.create(
+            referencia="YBR 125",
+            anio=2020,
+            tipo="URBANA",
+            cilindraje=125,
+            precio="8000000.00",
+            caracteristicas="Moto básica de ciudad.",
+            activa=False,
+        )
+
+    def test_cp_hu11_01_catalogo_retorna_solo_motos_activas(self):
+        """CP-HU11-01 · Unitaria — flujo feliz · CA-01"""
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("MT-07", referencias)
+        self.assertNotIn("YBR 125", referencias)
+
+    def test_cp_hu11_02_catalogo_retorna_campos_requeridos(self):
+        """CP-HU11-02 · Unitaria — campos · CA-02"""
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+        moto = response.data[0]
+        for campo in ["id", "marca", "referencia", "anio", "tipo_display",
+                      "cilindraje", "precio_display", "caracteristicas"]:
+            self.assertIn(campo, moto)
+
+    def test_cp_hu11_03_catalogo_vacio_retorna_lista_vacia(self):
+        """CP-HU11-03 · Unitaria — flujo alternativo · CA-01"""
+        Motocicleta.objects.filter(activa=True).update(activa=False)
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_cp_hu11_04_catalogo_no_requiere_autenticacion(self):
+        """CP-HU11-04 · Control de acceso — endpoint público · CA-01"""
+        self.client.credentials()
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_cp_hu11_05_integracion_datos_correctos_desde_bd(self):
+        """CP-HU11-05 · Integración · CA-03"""
+        response = self.client.get("/api/catalog/motocicletas/")
+        moto = next(m for m in response.data if m["referencia"] == "MT-07")
+        self.assertEqual(moto["anio"], 2024)
+        self.assertEqual(moto["cilindraje"], 689)
+        self.assertEqual(moto["marca"], "Yamaha")
+        self.assertEqual(moto["tipo_display"], "Deportiva")
+
+    def test_cp_hu11_06_multiples_motos_activas_todas_aparecen(self):
+        """CP-HU11-06 · Unitaria — flujo feliz · CA-01
+        Con varias motos activas, el catálogo las retorna todas.
+        Resultado esperado: HTTP 200 · lista con todas las motos activas."""
+        Motocicleta.objects.create(
+            referencia="NMAX 155",
+            anio=2023,
+            tipo="AUTOMATICA",
+            cilindraje=155,
+            precio="12000000.00",
+            caracteristicas="Scooter automático con frenos ABS.",
+            activa=True,
+        )
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+        referencias = [m["referencia"] for m in response.data]
+        self.assertIn("MT-07", referencias)
+        self.assertIn("NMAX 155", referencias)
+        self.assertEqual(len(referencias), 2)
+
+
+    def test_cp_hu11_07_motos_de_diferentes_tipos_coexisten_en_catalogo(self):
+        """CP-HU11-07 · Unitaria — flujo alternativo · CA-02
+        Motos activas de distintos tipos aparecen todas en el catálogo.
+        Resultado esperado: HTTP 200 · cada tipo está representado en la respuesta."""
+        Motocicleta.objects.create(
+            referencia="XTZ 125",
+            anio=2022,
+            tipo="TODOTERRENO",
+            cilindraje=125,
+            precio="11000000.00",
+            caracteristicas="Moto todoterreno ligera.",
+            activa=True,
+        )
+        response = self.client.get("/api/catalog/motocicletas/")
+        self.assertEqual(response.status_code, 200)
+        tipos = [m["tipo_display"] for m in response.data]
+        self.assertIn("Deportiva", tipos)
+        self.assertIn("Todoterreno", tipos)
+        self.assertNotIn("Urbana", tipos)  # la moto urbana está inactiva   
