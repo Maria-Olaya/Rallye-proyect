@@ -187,8 +187,16 @@ class VisualizarCatalogoTest(TestCase):
         response = self.client.get("/api/catalog/motocicletas/")
         self.assertEqual(response.status_code, 200)
         moto = response.data[0]
-        for campo in ["id", "marca", "referencia", "anio", "tipo_display",
-                      "cilindraje", "precio_display", "caracteristicas"]:
+        for campo in [
+            "id",
+            "marca",
+            "referencia",
+            "anio",
+            "tipo_display",
+            "cilindraje",
+            "precio_display",
+            "caracteristicas",
+        ]:
             self.assertIn(campo, moto)
 
     def test_cp_hu11_03_catalogo_vacio_retorna_lista_vacia(self):
@@ -233,7 +241,6 @@ class VisualizarCatalogoTest(TestCase):
         self.assertIn("NMAX 155", referencias)
         self.assertEqual(len(referencias), 2)
 
-
     def test_cp_hu11_07_motos_de_diferentes_tipos_coexisten_en_catalogo(self):
         """CP-HU11-07 · Unitaria — flujo alternativo · CA-02
         Motos activas de distintos tipos aparecen todas en el catálogo.
@@ -252,4 +259,4 @@ class VisualizarCatalogoTest(TestCase):
         tipos = [m["tipo_display"] for m in response.data]
         self.assertIn("Deportiva", tipos)
         self.assertIn("Todoterreno", tipos)
-        self.assertNotIn("Urbana", tipos)  # la moto urbana está inactiva   
+        self.assertNotIn("Urbana", tipos)  # la moto urbana está inactiva

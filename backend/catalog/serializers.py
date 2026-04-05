@@ -62,9 +62,7 @@ class MotocicletaSerializer(serializers.ModelSerializer):
     def validate_anio(self, value):
         anio_actual = date.today().year
         if value < 1900 or value > anio_actual + 1:
-            raise serializers.ValidationError(
-                f"Ingrese un año válido entre 1900 y {anio_actual + 1}."
-            )
+            raise serializers.ValidationError(f"Ingrese un año válido entre 1900 y {anio_actual + 1}.")
         return value
 
     def validate_precio(self, value):

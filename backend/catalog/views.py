@@ -37,7 +37,5 @@ class CatalogoMotocicletasView(APIView):
 
     def get(self, request):
         motos = Motocicleta.objects.filter(activa=True).order_by("id")
-        serializer = MotocicletaListSerializer(
-            motos, many=True, context={"request": request}
-        )
+        serializer = MotocicletaListSerializer(motos, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
