@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
@@ -48,10 +50,15 @@ urlpatterns = [
         TemplateView.as_view(template_name="admin_panel/crud_motocicleta.html"),
         name="panel_motos_crud",
     ),
+    path(
+        "panel/motocicletas/agregar/",
+        TemplateView.as_view(template_name="admin_panel/agregar_motocicleta.html"),
+        name="panel_agregar_moto",
+    ),
     path("admin/", admin.site.urls),
     path("api/core/", include("core.urls")),
     path("api/users/", include("users.urls")),
     path("api/scheduling/", include("scheduling.urls")),
     path("api/diagnostics/", include("diagnostics.urls")),
     path("api/catalog/", include("catalog.urls")),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
