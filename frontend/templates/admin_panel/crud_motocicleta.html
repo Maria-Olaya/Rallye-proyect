@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Catálogo Motocicletas | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Navbar admin ── */
+    .navbar-menu { display: none !important; }
+    .admin-nav-menu {
+        display: flex; gap: 1.8rem; list-style: none; align-items: center;
+    }
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: color 0.2s;
+    }
+    .admin-nav-menu a:hover { color: var(--red); }
+    .admin-dropdown { position: relative; }
+    .admin-dropdown-trigger {
+        cursor: pointer; user-select: none; -webkit-user-select: none;
+        display: flex; align-items: center; gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--red);
+        background: none; border: none; padding: 0; transition: color 0.2s;
+    }
+    .admin-dropdown-trigger svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .admin-dropdown-trigger.open svg { transform: rotate(180deg); }
+    .admin-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 14px); left: 50%;
+        transform: translateX(-50%); background: #fff; border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15); list-style: none; min-width: 190px;
+        z-index: 200; padding: 0.4rem 0; border-radius: 0 0 4px 4px;
+    }
+    .admin-dropdown-menu.open { display: block; }
+    .admin-dropdown-menu li a {
+        display: block; padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .admin-dropdown-menu li a:hover { background: #f5f5f5; color: var(--red); }
+    .admin-dropdown-menu li a.active { color: var(--red); background: #fff5f5; }
+    .admin-dropdown-menu li + li { border-top: 1px solid #f0f0f0; }
+    .admin-btn-salir {
+        background: #333; color: #fff !important; padding: 0.4rem 1.1rem; border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: none; transition: background 0.2s;
+    }
+    .admin-btn-salir:hover { background: #111; }
+
+    /* ── Página ── */
+    .moto-page {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+        display: flex; align-items: flex-start; justify-content: center;
+    }
+    .moto-shell {
+        width: min(100%, 1120px);
+        background: #f7f7f7; border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
+        overflow: hidden; margin: 0 auto;
+    }
+
+    /* ── Topbar ── */
+    .moto-topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.4rem 2.2rem 0;
+    }
+    .moto-breadcrumb {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+    }
+    .moto-breadcrumb a { color: #aaa; text-decoration: none; transition: color 0.15s; }
+    .moto-breadcrumb a:hover { color: var(--red); }
+    .moto-breadcrumb-sep { color: #ccc; }
+    .moto-breadcrumb-current { color: var(--red); }
+    .moto-back {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.38rem 1rem; border: 1.5px solid #ccc; border-radius: 999px;
+        text-decoration: none; color: #555; background: transparent;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        letter-spacing: 0.1em; text-transform: uppercase; transition: border-color 0.2s, color 0.2s;
+    }
+    .moto-back:hover { border-color: var(--red); color: var(--red); }
+    .moto-back svg { width: 12px; height: 12px; }
+
+    /* ── Header ── */
+    .moto-header {
+        padding: 1rem 2.2rem 1.4rem; border-bottom: 1px solid #e8e8e8;
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    .moto-header-text { flex: 1; }
+    .moto-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700; color: var(--red); margin: 0 0 0.2rem; line-height: 1;
+    }
+    .moto-subtitle { font-family: 'Barlow Condensed', sans-serif; color: #8b94a3; font-size: 0.88rem; }
+    .moto-header-img {
+        flex-shrink: 0; width: 200px;
+        display: flex; align-items: center; justify-content: flex-end;
+    }
+    .moto-header-img img {
+        width: 100%; height: auto; object-fit: contain;
+        mix-blend-mode: multiply; opacity: 0.82;
+        pointer-events: none; user-select: none; -webkit-user-select: none;
+    }
+
+    /* ── Barra de acciones ── */
+    .moto-actions {
+        padding: 1.2rem 2.2rem;
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+        border-bottom: 1px solid #e8e8e8;
+    }
+    .moto-search {
+        position: relative; flex: 1; max-width: 320px;
+    }
+    .moto-search input {
+        width: 100%; border: 2px solid #dedede; border-radius: 10px;
+        padding: 0.6rem 0.9rem 0.6rem 2.4rem; font-size: 0.875rem;
+        font-family: 'DM Sans', sans-serif; background: #fff; color: #111;
+        outline: none; transition: border-color 0.15s; box-sizing: border-box;
+    }
+    .moto-search input:focus { border-color: var(--red); }
+    .moto-search svg {
+        position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+        width: 15px; height: 15px; stroke: #aaa; fill: none; pointer-events: none;
+    }
+
+    /* ── Cuerpo ── */
+    .moto-body { padding: 1.4rem 2.2rem 2rem; }
+
+    /* Loading */
+    .moto-loading {
+        display: flex; align-items: center; justify-content: center;
+        padding: 4rem; gap: 0.6rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem;
+        color: #aaa; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .moto-loading svg { width: 20px; height: 20px; stroke: #ccc; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty state */
+    .moto-empty {
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        padding: 4rem 2rem; text-align: center;
+    }
+    .moto-empty svg { width: 48px; height: 48px; stroke: #ccc; fill: none; margin-bottom: 1rem; }
+    .moto-empty-title {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1.2rem; font-weight: 700;
+        color: #bbb; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.3rem;
+    }
+    .moto-empty-sub { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #ccc; }
+
+    /* ── Tabla ── */
+    .moto-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #e8e8e8; }
+    table.moto-table {
+        width: 100%; border-collapse: collapse; background: #fff;
+        font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+    }
+    .moto-table thead tr {
+        background: #f0f0f0; border-bottom: 2px solid #e0e0e0;
+    }
+    .moto-table thead th {
+        padding: 0.75rem 1rem; text-align: left;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #888;
+        white-space: nowrap;
+    }
+    .moto-table tbody tr {
+        border-bottom: 1px solid #f0f0f0; transition: background 0.1s;
+    }
+    .moto-table tbody tr:last-child { border-bottom: none; }
+    .moto-table tbody tr:hover { background: #fafafa; }
+    .moto-table td { padding: 0.85rem 1rem; color: #333; vertical-align: middle; }
+
+    .moto-table-img {
+        width: 52px; height: 40px; object-fit: cover;
+        border-radius: 6px; border: 1px solid #e8e8e8; background: #f5f5f5;
+    }
+    .moto-table-img-placeholder {
+        width: 52px; height: 40px; border-radius: 6px;
+        background: #f0f0f0; display: flex; align-items: center; justify-content: center;
+    }
+    .moto-table-img-placeholder svg { width: 18px; height: 18px; stroke: #ccc; fill: none; }
+
+    .moto-badge {
+        display: inline-block; padding: 0.2rem 0.65rem; border-radius: 999px;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .moto-badge.DEPORTIVA  { background: #fff0f0; color: #c53030; }
+    .moto-badge.URBANA     { background: #f0f4ff; color: #2b5ce6; }
+    .moto-badge.TODOTERRENO{ background: #f0fff4; color: #276749; }
+    .moto-badge.CUATRIMOTOS{ background: #fffbf0; color: #b7791f; }
+    .moto-badge.AUTOMATICA { background: #f5f0ff; color: #6b46c1; }
+
+    .moto-btn-edit {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.38rem 1rem; border: 1.5px solid #dedede; border-radius: 8px;
+        background: #fff; color: #555; text-decoration: none;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        transition: border-color 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .moto-btn-edit:hover { border-color: var(--red); color: var(--red); }
+    .moto-btn-edit svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
+
+    /* Contador */
+    .moto-count {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        color: #aaa; letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 0.8rem 2.2rem; border-top: 1px solid #e8e8e8;
+        background: #fafafa;
+    }
+
+    @media (max-width: 700px) {
+        .moto-page { padding: 0.5rem; }
+        .moto-topbar, .moto-header, .moto-actions, .moto-body { padding-left: 1rem; padding-right: 1rem; }
+        .moto-header-img { display: none; }
+        .moto-search { max-width: 100%; }
+        .moto-table thead th:nth-child(4),
+        .moto-table td:nth-child(4) { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="moto-page">
+    <div class="moto-shell">
+
+        <!-- Topbar -->
+        <div class="moto-topbar">
+            <div class="moto-breadcrumb">
+                <a href="/panel/">Panel</a>
+                <span class="moto-breadcrumb-sep">›</span>
+                <span class="moto-breadcrumb-current">Catálogo de motos</span>
+            </div>
+            <a class="moto-back" href="/panel/">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Volver al panel
+            </a>
+        </div>
+
+        <!-- Header -->
+        <div class="moto-header">
+            <div class="moto-header-text">
+                <h1 class="moto-title">Catálogo de motocicletas</h1>
+                <p class="moto-subtitle">Gestiona las motos registradas. Selecciona una para editar su información.</p>
+            </div>
+            <div class="moto-header-img">
+                <img src="{% static 'img/moto.jpg' %}" alt="Motocicleta" draggable="false">
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="moto-actions">
+            <div class="moto-search">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Buscar por referencia...">
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="moto-body">
+
+            <!-- Loading -->
+            <div class="moto-loading" id="loadingState">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                Cargando catálogo...
+            </div>
+
+            <!-- Empty -->
+            <div class="moto-empty" id="emptyState">
+                <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <div class="moto-empty-title">Sin resultados</div>
+                <div class="moto-empty-sub">No se encontraron motos con ese criterio.</div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="moto-table-wrap" id="tableWrap" style="display:none;">
+                <table class="moto-table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Referencia</th>
+                            <th>Tipo</th>
+                            <th>Cilindraje</th>
+                            <th>Año</th>
+                            <th>Precio</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="motoTableBody"></tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- Contador -->
+        <div class="moto-count" id="motoCount" style="display:none;"></div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    if (!accessToken) window.location.replace('/login/');
+
+    /* ── Navbar admin ── */
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        navbar.querySelector('.navbar-menu').style.display = 'none';
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/disponibilidad/">LOCAL</a></li>
+            <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    CRUD MOTOCICLETA
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/" class="active">Editar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
+                </ul>
+            </li>
+            <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+        `;
+        navbar.appendChild(adminMenu);
+
+        document.getElementById('crudTrigger').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('crudTrigger').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('crudTrigger')?.classList.remove('open');
+        });
+        document.getElementById('btnSalirAdmin').addEventListener('click', () => {
+            const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+            const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+            fetch('/api/users/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + access },
+                body: JSON.stringify({ refresh })
+            }).finally(() => { sessionStorage.clear(); window.location.href = '/login/'; });
+        });
+
+        cargarMotos();
+    });
+
+    /* ── Datos ── */
+    let todasLasMotos = [];
+
+    async function cargarMotos() {
+        try {
+            const response = await fetch('/api/catalog/motocicletas/', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            if (response.status === 401) { sessionStorage.clear(); window.location.replace('/login/'); return; }
+            todasLasMotos = await response.json();
+            renderTabla(todasLasMotos);
+        } catch {
+            document.getElementById('loadingState').innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2" style="width:20px;height:20px;">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Error al cargar el catálogo.`;
+        }
+    }
+
+    function renderTabla(motos) {
+        const tbody     = document.getElementById('motoTableBody');
+        const loading   = document.getElementById('loadingState');
+        const empty     = document.getElementById('emptyState');
+        const tableWrap = document.getElementById('tableWrap');
+        const count     = document.getElementById('motoCount');
+
+        loading.style.display = 'none';
+
+        if (!motos.length) {
+            empty.style.display     = 'flex';
+            tableWrap.style.display = 'none';
+            count.style.display     = 'none';
+            return;
+        }
+
+        empty.style.display     = 'none';
+        tableWrap.style.display = 'block';
+        count.style.display     = 'block';
+        count.textContent       = `${motos.length} motocicleta${motos.length !== 1 ? 's' : ''} encontrada${motos.length !== 1 ? 's' : ''}`;
+
+        tbody.innerHTML = motos.map(m => `
+            <tr>
+                <td>
+                    ${m.imagen_url
+                        ? `<img class="moto-table-img" src="${m.imagen_url}" alt="${m.referencia}">`
+                        : `<div class="moto-table-img-placeholder">
+                                <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                           </div>`
+                    }
+                </td>
+                <td><strong>${m.referencia}</strong></td>
+                <td><span class="moto-badge ${m.tipo}">${m.tipo_display}</span></td>
+                <td>${m.cilindraje} cc</td>
+                <td>${m.anio}</td>
+                <td>${m.precio_display}</td>
+                <td>
+                    <a href="/panel/motocicletas/${m.id}/editar/" class="moto-btn-edit">
+                        <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Editar
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    /* ── Búsqueda en tiempo real ── */
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        const filtradas = q
+            ? todasLasMotos.filter(m => m.referencia.toLowerCase().includes(q))
+            : todasLasMotos;
+        renderTabla(filtradas);
+    });
+</script>
+{% endblock %}

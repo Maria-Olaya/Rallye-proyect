@@ -1,5 +1,6 @@
 # catalog/serializers.py
 
+import os
 from datetime import date
 
 from rest_framework import serializers
@@ -54,6 +55,21 @@ class MotocicletaSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "marca", "activa"]
 
+    def to_internal_value(self, data):
+        """Trunca el nombre del archivo ANTES de que DRF valide max_length del campo imagen."""
+        imagen = data.get("imagen")
+        if hasattr(imagen, "name") and len(imagen.name) > 100:
+            extension = os.path.splitext(imagen.name)[1]  # ej. '.png'
+            max_base = 99 - len(extension)
+            imagen.name = imagen.name[:max_base] + extension  # resultado ≤ 100 chars
+        return super().to_internal_value(data)
+
+    def validate_imagen(self, value):
+        """Valida tamaño máximo: 5 MB."""
+        if value and hasattr(value, "size") and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("La imagen no puede superar los 5 MB.")
+        return value
+
     def validate_cilindraje(self, value):
         if value <= 0:
             raise serializers.ValidationError("El cilindraje debe ser mayor a 0.")
@@ -92,6 +108,7 @@ class MotocicletaListSerializer(serializers.ModelSerializer):
             "precio_display",
             "caracteristicas",
             "imagen_url",
+            "activa",
         ]
 
     def get_imagen_url(self, obj):
