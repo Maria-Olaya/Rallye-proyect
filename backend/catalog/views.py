@@ -30,15 +30,86 @@ class AgregarMotocicletaView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CatalogoMotocicletasView(APIView):
-    """GET /api/catalog/motocicletas/ — HU-11 + HU-12
-
-    Filtros opcionales (query params):
-        ?referencia=FZ        → búsqueda parcial, insensible a mayúsculas
-        ?tipo=DEPORTIVA       → filtro exacto por tipo
-        ?cilindraje_min=150   → cilindraje mayor o igual
-        ?cilindraje_max=650   → cilindraje menor o igual
+# ── HU-14 ─────────────────────────────────────────────────────────────────────
+class EditarMotocicletaView(APIView):
     """
+    GET   /api/catalog/motocicletas/<pk>/editar/  — Carga datos actuales
+    PUT   /api/catalog/motocicletas/<pk>/editar/  — Actualiza todos los campos
+    PATCH /api/catalog/motocicletas/<pk>/editar/  — Actualiza campos parcialmente
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def _get_motocicleta(self, pk):
+        try:
+            return Motocicleta.objects.get(pk=pk)
+        except Motocicleta.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        moto = self._get_motocicleta(pk)
+        if moto is None:
+            return Response(
+                {"error": "Motocicleta no encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = MotocicletaSerializer(moto, context={"request": request})
+        data = dict(serializer.data)
+        if moto.imagen:
+            data["imagen"] = request.build_absolute_uri(moto.imagen.url)
+        return Response(data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        moto = self._get_motocicleta(pk)
+        if moto is None:
+            return Response(
+                {"error": "Motocicleta no encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        tiene_imagen_nueva = "imagen" in request.FILES
+        serializer = MotocicletaSerializer(
+            moto,
+            data=request.data,
+            partial=not tiene_imagen_nueva,
+            context={"request": request},
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "mensaje": "Motocicleta actualizada correctamente.",
+                    "motocicleta": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk):
+        moto = self._get_motocicleta(pk)
+        if moto is None:
+            return Response(
+                {"error": "Motocicleta no encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = MotocicletaSerializer(moto, data=request.data, partial=True, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "mensaje": "Motocicleta actualizada correctamente.",
+                    "motocicleta": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class CatalogoMotocicletasView(APIView):
+    """GET /api/catalog/motocicletas/ — HU-11 + HU-12"""
 
     permission_classes = [AllowAny]
 

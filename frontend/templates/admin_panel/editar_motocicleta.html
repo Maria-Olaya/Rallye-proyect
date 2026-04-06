@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Editar Motocicleta | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Navbar admin ── */
+    .navbar-menu { display: none !important; }
+    .admin-nav-menu {
+        display: flex; gap: 1.8rem; list-style: none; align-items: center;
+    }
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: color 0.2s;
+    }
+    .admin-nav-menu a:hover { color: var(--red); }
+    .admin-dropdown { position: relative; }
+    .admin-dropdown-trigger {
+        cursor: pointer; user-select: none; -webkit-user-select: none;
+        display: flex; align-items: center; gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--red);
+        background: none; border: none; padding: 0; transition: color 0.2s;
+    }
+    .admin-dropdown-trigger svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .admin-dropdown-trigger.open svg { transform: rotate(180deg); }
+    .admin-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 14px); left: 50%;
+        transform: translateX(-50%); background: #fff; border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15); list-style: none; min-width: 190px;
+        z-index: 200; padding: 0.4rem 0; border-radius: 0 0 4px 4px;
+    }
+    .admin-dropdown-menu.open { display: block; }
+    .admin-dropdown-menu li a {
+        display: block; padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .admin-dropdown-menu li a:hover { background: #f5f5f5; color: var(--red); }
+    .admin-dropdown-menu li a.active { color: var(--red); background: #fff5f5; }
+    .admin-dropdown-menu li + li { border-top: 1px solid #f0f0f0; }
+    .admin-btn-salir {
+        background: #333; color: #fff !important; padding: 0.4rem 1.1rem; border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: none; transition: background 0.2s;
+    }
+    .admin-btn-salir:hover { background: #111; }
+
+    /* ── Página ── */
+    .moto-page {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+        display: flex; align-items: flex-start; justify-content: center;
+    }
+    .moto-shell {
+        width: min(100%, 1120px);
+        background: #f7f7f7; border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
+        overflow: hidden; margin: 0 auto;
+    }
+
+    /* ── Topbar ── */
+    .moto-topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.4rem 2.2rem 0;
+    }
+    .moto-breadcrumb {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+    }
+    .moto-breadcrumb a { color: #aaa; text-decoration: none; transition: color 0.15s; }
+    .moto-breadcrumb a:hover { color: var(--red); }
+    .moto-breadcrumb-sep { color: #ccc; }
+    .moto-breadcrumb-current { color: var(--red); }
+    .moto-back {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.38rem 1rem; border: 1.5px solid #ccc; border-radius: 999px;
+        text-decoration: none; color: #555; background: transparent;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        letter-spacing: 0.1em; text-transform: uppercase; transition: border-color 0.2s, color 0.2s;
+    }
+    .moto-back:hover { border-color: var(--red); color: var(--red); }
+    .moto-back svg { width: 12px; height: 12px; }
+
+    /* ── Header ── */
+    .moto-header {
+        padding: 1rem 2.2rem 1.4rem; border-bottom: 1px solid #e8e8e8;
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    .moto-header-text { flex: 1; }
+    .moto-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700; color: var(--red); margin: 0 0 0.2rem; line-height: 1;
+    }
+    .moto-subtitle { font-family: 'Barlow Condensed', sans-serif; color: #8b94a3; font-size: 0.88rem; }
+    .moto-header-img {
+        flex-shrink: 0; width: 200px;
+        display: flex; align-items: center; justify-content: flex-end;
+    }
+    .moto-header-img img {
+        width: 100%; height: auto; object-fit: contain;
+        mix-blend-mode: multiply; opacity: 0.82;
+        pointer-events: none; user-select: none; -webkit-user-select: none;
+    }
+
+    /* ── Cuerpo ── */
+    .moto-body { padding: 1.6rem 2.2rem 2rem; }
+    .moto-section { margin-bottom: 1.8rem; }
+    .moto-section-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.75rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: #9ca3af; margin-bottom: 1rem;
+        display: flex; align-items: center; gap: 0.6rem;
+    }
+    .moto-section-title::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+    .moto-section-num {
+        width: 22px; height: 22px; border-radius: 50%;
+        background: var(--red); color: #fff;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.75rem; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .moto-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+    .moto-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .moto-field.full { grid-column: 1 / -1; }
+    .moto-label {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.76rem; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #616975;
+    }
+    .moto-label .req { color: var(--red); margin-left: 2px; }
+    .moto-input, .moto-textarea {
+        width: 100%; border: 2px solid #dedede; border-radius: 10px;
+        padding: 0.72rem 0.9rem; font-size: 0.875rem;
+        font-family: 'DM Sans', sans-serif; background: #fff; color: #111;
+        outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+        box-sizing: border-box;
+    }
+    .moto-input::placeholder, .moto-textarea::placeholder { color: #bbb; }
+    .moto-input:focus, .moto-textarea:focus {
+        border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08);
+    }
+    .moto-input.error, .moto-textarea.error { border-color: #e53e3e; background: #fff8f8; }
+    .moto-textarea { min-height: 100px; resize: vertical; line-height: 1.55; }
+    .moto-input-hint { font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; color: #b0b8c4; letter-spacing: 0.03em; }
+    .moto-error-msg { font-size: 0.72rem; color: #c53030; display: none; font-family: 'DM Sans', sans-serif; }
+    .moto-error-msg.visible { display: block; }
+
+    /* Chips tipo */
+    .tipo-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tipo-chip {
+        padding: 0.38rem 0.9rem; border-radius: 999px;
+        border: 2px solid #dedede; background: #fff;
+        color: #777; font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem;
+        font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+        cursor: pointer; transition: all 0.15s; user-select: none; -webkit-user-select: none;
+    }
+    .tipo-chip:hover { border-color: #aaa; color: #333; }
+    .tipo-chip.selected { border-color: var(--red); background: #fff5f5; color: var(--red); }
+
+    /* Upload */
+    .moto-upload-zone {
+        border: 2px dashed #dedede; border-radius: 10px; padding: 1.4rem 1rem;
+        text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+        position: relative; background: #fff; min-height: 120px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .moto-upload-zone:hover { border-color: var(--red); background: #fff9f9; }
+    .moto-upload-zone.has-file { border-color: #38a169; background: #f0fff4; }
+    .moto-upload-zone input[type="file"] {
+        position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon-wrap {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: #f0f0f0; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;
+    }
+    .upload-icon-wrap svg { width: 18px; height: 18px; stroke: #888; fill: none; }
+    .moto-upload-text { font-family: 'Barlow Condensed', sans-serif; font-size: 0.82rem; color: #9aa4b4; letter-spacing: 0.05em; }
+    .moto-upload-sub { font-family: 'DM Sans', sans-serif; font-size: 0.67rem; color: #c0c8d0; margin-top: 0.2rem; }
+    .moto-upload-preview { display: none; margin-top: 0.7rem; }
+    .moto-upload-preview img { max-height: 90px; border-radius: 8px; object-fit: cover; border: 1px solid #e0e0e0; }
+
+    /* Loading skeleton */
+    .moto-loading {
+        display: flex; align-items: center; justify-content: center;
+        padding: 3rem; gap: 0.6rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem;
+        color: #aaa; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .moto-loading svg { width: 20px; height: 20px; stroke: #ccc; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Footer */
+    .moto-footer {
+        padding: 1.2rem 2.2rem; background: #f0f0f0; border-top: 1px solid #e0e0e0;
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .moto-button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        padding: 0 2rem; height: 44px; border: none; border-radius: 10px;
+        background: var(--red); color: #fff; text-transform: uppercase; letter-spacing: 0.14em;
+        font-size: 0.9rem; font-weight: 700; font-family: 'Barlow Condensed', sans-serif;
+        cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap;
+    }
+    .moto-button:hover { background: #b30000; }
+    .moto-button:active { transform: scale(0.98); }
+    .moto-button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .moto-button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; flex-shrink: 0; }
+    .moto-button.secondary {
+        background: transparent; color: #555; border: 1.5px solid #ccc;
+    }
+    .moto-button.secondary:hover { border-color: #999; color: #111; background: transparent; }
+    .moto-message {
+        display: none; padding: 0.65rem 1rem; border-radius: 10px;
+        font-size: 0.82rem; font-family: 'Barlow Condensed', sans-serif;
+        letter-spacing: 0.04em; flex: 1; min-width: 0;
+    }
+    .moto-message.visible { display: block; }
+    .moto-message.error { background: #ffe5e5; color: #9f1111; border: 1px solid #ffd0d0; }
+    .moto-message.success { background: #e8fff1; color: #0a7c3a; border: 1px solid #c6f6d5; }
+
+    @media (max-width: 700px) {
+        .moto-page { padding: 0.5rem; }
+        .moto-topbar, .moto-header, .moto-body, .moto-footer { padding-left: 1rem; padding-right: 1rem; }
+        .moto-grid-2 { grid-template-columns: 1fr; }
+        .moto-field.full { grid-column: 1; }
+        .moto-button { width: 100%; }
+        .moto-header-img { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="moto-page">
+    <div class="moto-shell">
+
+        <!-- Topbar -->
+        <div class="moto-topbar">
+            <div class="moto-breadcrumb">
+                <a href="/panel/">Panel</a>
+                <span class="moto-breadcrumb-sep">›</span>
+                <a href="/panel/motocicletas/">Catálogo</a>
+                <span class="moto-breadcrumb-sep">›</span>
+                <span class="moto-breadcrumb-current">Editar moto</span>
+            </div>
+            <a class="moto-back" href="/panel/motocicletas/">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Volver al catálogo
+            </a>
+        </div>
+
+        <!-- Header -->
+        <div class="moto-header">
+            <div class="moto-header-text">
+                <h1 class="moto-title">Editar motocicleta</h1>
+                <p class="moto-subtitle">Modifica los campos y guarda los cambios para actualizar el catálogo.</p>
+            </div>
+            <div class="moto-header-img">
+                <img src="{% static 'img/moto.jpg' %}" alt="Motocicleta" draggable="false">
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="moto-body" id="formBody">
+
+            <!-- Estado de carga -->
+            <div class="moto-loading" id="loadingState">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                Cargando datos de la motocicleta...
+            </div>
+
+            <!-- Formulario (oculto hasta que carguen los datos) -->
+            <div id="formContent" style="display:none;">
+
+                <!-- Sección 1 -->
+                <div class="moto-section">
+                    <p class="moto-section-title">
+                        <span class="moto-section-num">1</span>
+                        Identificación del modelo
+                    </p>
+                    <div class="moto-grid-2">
+                        <div class="moto-field">
+                            <label class="moto-label" for="referencia">Referencia <span class="req">*</span></label>
+                            <input id="referencia" class="moto-input" type="text" placeholder="Ej: NMAX" maxlength="80" autocomplete="off">
+                            <span id="err-referencia" class="moto-error-msg"></span>
+                        </div>
+                        <div class="moto-field">
+                            <label class="moto-label" for="anio">Año de fabricación <span class="req">*</span></label>
+                            <input id="anio" class="moto-input" type="number" placeholder="Ej: 2024" min="1900" max="2027">
+                            <span id="err-anio" class="moto-error-msg"></span>
+                        </div>
+                        <div class="moto-field">
+                            <label class="moto-label" for="cilindraje">Cilindraje (cc) <span class="req">*</span></label>
+                            <input id="cilindraje" class="moto-input" type="number" placeholder="Ej: 155" min="1">
+                            <span id="err-cilindraje" class="moto-error-msg"></span>
+                        </div>
+                        <div class="moto-field">
+                            <label class="moto-label">Tipo de moto <span class="req">*</span></label>
+                            <input type="hidden" id="tipo" value="">
+                            <div class="tipo-chips" id="tipoChips">
+                                <div class="tipo-chip" data-value="DEPORTIVA">Deportiva</div>
+                                <div class="tipo-chip" data-value="URBANA">Urbana</div>
+                                <div class="tipo-chip" data-value="TODOTERRENO">Todoterreno</div>
+                                <div class="tipo-chip" data-value="CUATRIMOTOS">Cuatrimoto</div>
+                                <div class="tipo-chip" data-value="AUTOMATICA">Automática</div>
+                            </div>
+                            <span id="err-tipo" class="moto-error-msg"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección 2 -->
+                <div class="moto-section">
+                    <p class="moto-section-title">
+                        <span class="moto-section-num">2</span>
+                        Información comercial
+                    </p>
+                    <div class="moto-grid-2">
+                        <div class="moto-field">
+                            <label class="moto-label" for="precio">Precio (COP) <span class="req">*</span></label>
+                            <input id="precio" class="moto-input" type="text" placeholder="38.000.000" maxlength="15" inputmode="numeric" autocomplete="off">
+                            <span class="moto-input-hint">El formato con puntos se aplica automáticamente</span>
+                            <span id="err-precio" class="moto-error-msg"></span>
+                        </div>
+                        <div class="moto-field">
+                            <label class="moto-label">Imagen del modelo</label>
+                            <div class="moto-upload-zone" id="uploadZone">
+                                <input type="file" id="imagen" accept="image/*">
+                                <div class="upload-icon-wrap">
+                                    <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                </div>
+                                <div class="moto-upload-text" id="uploadText">Haz clic para cambiar imagen</div>
+                                <div class="moto-upload-sub">PNG, JPG, WEBP · máx. 5 MB</div>
+                                <div class="moto-upload-preview" id="uploadPreview">
+                                    <img id="previewImg" src="" alt="Vista previa">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="moto-field full">
+                            <label class="moto-label" for="caracteristicas">Características <span class="req">*</span></label>
+                            <textarea id="caracteristicas" class="moto-textarea" placeholder="Motor, frenos, suspensión, tecnología, dimensiones..."></textarea>
+                            <span id="err-caracteristicas" class="moto-error-msg"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /formContent -->
+        </div>
+
+        <!-- Footer -->
+        <div class="moto-footer">
+            <button id="btnGuardar" class="moto-button" type="button" style="display:none;">
+                <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Guardar cambios
+            </button>
+            <a href="/panel/motocicletas/" id="btnCancelar" class="moto-button secondary" style="display:none;">
+                Cancelar
+            </a>
+            <div id="formMessage" class="moto-message"></div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    if (!accessToken) window.location.replace('/login/');
+
+    /* ── Obtener pk de la URL ── */
+    const pkMatch = window.location.pathname.match(/\/panel\/motocicletas\/(\d+)\/editar\//);
+    const motoId  = pkMatch ? pkMatch[1] : null;
+    if (!motoId) window.location.replace('/panel/motocicletas/');
+
+    /* ── CSRF ── */
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+    }
+
+    /* ── Navbar admin ── */
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        navbar.querySelector('.navbar-menu').style.display = 'none';
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/disponibilidad/">LOCAL</a></li>
+            <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    CRUD MOTOCICLETA
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/" class="active">Editar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
+                </ul>
+            </li>
+            <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+        `;
+        navbar.appendChild(adminMenu);
+
+        document.getElementById('crudTrigger').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('crudTrigger').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('crudTrigger')?.classList.remove('open');
+        });
+        document.getElementById('btnSalirAdmin').addEventListener('click', () => {
+            const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+            const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+            fetch('/api/users/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + access },
+                body: JSON.stringify({ refresh })
+            }).finally(() => { sessionStorage.clear(); window.location.href = '/login/'; });
+        });
+
+        /* ── Cargar datos actuales ── */
+        cargarMoto();
+    });
+
+    /* ── Cargar datos de la moto ── */
+    async function cargarMoto() {
+        try {
+            const response = await fetch(`/api/catalog/motocicletas/${motoId}/editar/`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+
+            if (response.status === 401) { sessionStorage.clear(); window.location.replace('/login/'); return; }
+            if (response.status === 404) { showMessage('Motocicleta no encontrada.', 'error'); return; }
+
+            const data = await response.json();
+            console.log('Error del servidor:', data);
+
+            /* Rellenar campos */
+            document.getElementById('referencia').value      = data.referencia || '';
+            document.getElementById('anio').value            = data.anio       || '';
+            document.getElementById('cilindraje').value      = data.cilindraje || '';
+            document.getElementById('caracteristicas').value = data.caracteristicas || '';
+
+            /* Precio formateado */
+            const precioNum = parseFloat(data.precio || 0);
+            document.getElementById('precio').value = precioNum
+                ? Number(Math.round(precioNum)).toLocaleString('es-CO')
+                : '';
+
+            /* Chip tipo */
+            if (data.tipo) {
+                document.getElementById('tipo').value = data.tipo;
+                document.querySelectorAll('.tipo-chip').forEach(c => {
+                    c.classList.toggle('selected', c.dataset.value === data.tipo);
+                });
+            }
+
+            /* Imagen actual */
+            if (data.imagen) {
+                const previewImg    = document.getElementById('previewImg');
+                const uploadPreview = document.getElementById('uploadPreview');
+                const uploadZone    = document.getElementById('uploadZone');
+                const uploadText    = document.getElementById('uploadText');
+                previewImg.src              = data.imagen;
+                uploadPreview.style.display = 'block';
+                uploadText.textContent      = 'Imagen actual (haz clic para cambiarla)';
+                uploadZone.classList.add('has-file');
+            }
+
+            /* Mostrar formulario */
+            document.getElementById('loadingState').style.display  = 'none';
+            document.getElementById('formContent').style.display   = 'block';
+            document.getElementById('btnGuardar').style.display    = 'inline-flex';
+            document.getElementById('btnCancelar').style.display   = 'inline-flex';
+
+        } catch (err) {
+            showMessage('Error al cargar los datos. Intenta de nuevo.', 'error');
+        }
+    }
+
+    /* ── Chips tipo ── */
+    document.querySelectorAll('.tipo-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.tipo-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            document.getElementById('tipo').value = chip.dataset.value;
+            document.getElementById('err-tipo').classList.remove('visible');
+        });
+    });
+
+    /* ── Imagen preview ── */
+    const imagenInput   = document.getElementById('imagen');
+    const uploadZone    = document.getElementById('uploadZone');
+    const uploadText    = document.getElementById('uploadText');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const previewImg    = document.getElementById('previewImg');
+
+    imagenInput.addEventListener('change', () => {
+        const file = imagenInput.files[0];
+        if (file) {
+            previewImg.src = URL.createObjectURL(file);
+            uploadPreview.style.display = 'block';
+            uploadText.textContent = file.name;
+            uploadZone.classList.add('has-file');
+        }
+    });
+
+    /* ── Formato precio ── */
+    document.getElementById('precio').addEventListener('input', (e) => {
+        let raw = e.target.value.replace(/\./g, '').replace(/\D/g, '');
+        e.target.value = raw ? Number(raw).toLocaleString('es-CO') : '';
+    });
+
+    /* ── Helpers ── */
+    function showError(fieldId, msg) {
+        const input = document.getElementById(fieldId);
+        const err   = document.getElementById('err-' + fieldId);
+        if (input) input.classList.add('error');
+        if (err)  { err.textContent = msg; err.classList.add('visible'); }
+    }
+    function clearErrors() {
+        document.querySelectorAll('.moto-input, .moto-textarea').forEach(el => el.classList.remove('error'));
+        document.querySelectorAll('.moto-error-msg').forEach(el => { el.textContent = ''; el.classList.remove('visible'); });
+    }
+    function showMessage(text, type) {
+        const el = document.getElementById('formMessage');
+        el.textContent = text;
+        el.className = `moto-message visible ${type}`;
+        if (type === 'success') setTimeout(() => { el.classList.remove('visible'); el.textContent = ''; }, 3000);
+    }
+    function clearMessage() {
+        const el = document.getElementById('formMessage');
+        el.textContent = ''; el.className = 'moto-message';
+    }
+
+    /* ── Guardar cambios ── */
+    document.getElementById('btnGuardar').addEventListener('click', async () => {
+        clearErrors();
+        clearMessage();
+
+        const referencia      = document.getElementById('referencia').value.trim();
+        const tipo            = document.getElementById('tipo').value;
+        const anio            = document.getElementById('anio').value.trim();
+        const cilindraje      = document.getElementById('cilindraje').value.trim();
+        const caracteristicas = document.getElementById('caracteristicas').value.trim();
+        const imagenFile      = imagenInput.files[0];
+        const precioRaw       = document.getElementById('precio').value.replace(/\./g, '').replace(/\D/g, '');
+
+        const anioNum    = parseInt(anio);
+        const anioActual = new Date().getFullYear();
+
+        let hasError = false;
+        if (!referencia)      { showError('referencia',      'La referencia es obligatoria.');                          hasError = true; }
+        if (!tipo)            { showError('tipo',            'Selecciona un tipo de motocicleta.');                     hasError = true; }
+        if (!anio)            { showError('anio',            'El año es obligatorio.');                                 hasError = true; }
+        else if (anio.length < 4 || anioNum < 1900 || anioNum > anioActual + 1) {
+                               showError('anio',             `Ingresa un año válido entre 1900 y ${anioActual + 1}.`); hasError = true; }
+        if (!cilindraje)      { showError('cilindraje',      'El cilindraje es obligatorio.');                          hasError = true; }
+        if (!precioRaw)       { showError('precio',          'El precio es obligatorio.');                              hasError = true; }
+        if (!caracteristicas) { showError('caracteristicas', 'Las características son obligatorias.');                  hasError = true; }
+        if (hasError) return;
+
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        const formData = new FormData();
+        formData.append('referencia',      referencia);
+        formData.append('tipo',            tipo);
+        formData.append('anio',            anio);
+        formData.append('cilindraje',      cilindraje);
+        formData.append('precio',          precioRaw);
+        formData.append('caracteristicas', caracteristicas);
+        if (imagenFile) formData.append('imagen', imagenFile);
+
+        try {
+            const response = await fetch(`/api/catalog/motocicletas/${motoId}/editar/`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+
+            if (response.status === 401) { sessionStorage.clear(); window.location.replace('/login/'); return; }
+
+            const data = await response.json();
+            console.log('Error del servidor:', data);
+
+            if (response.ok) {
+                showMessage('¡Motocicleta actualizada correctamente!', 'success');
+                setTimeout(() => window.location.replace('/panel/motocicletas/'), 1500);
+            } else {
+                const fields = ['referencia', 'tipo', 'anio', 'cilindraje', 'precio', 'caracteristicas'];
+                let handled = false;
+                for (const f of fields) {
+                    if (data[f]) { showError(f, data[f][0]); handled = true; }
+                }
+                if (!handled) showMessage(data.detail || data.error || 'No se pudieron guardar los cambios.', 'error');
+            }
+        } catch (err) {
+            showMessage('Error de conexión. Intenta de nuevo.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Guardar cambios`;
+        }
+    });
+</script>
+{% endblock %}

@@ -488,3 +488,222 @@ class FiltrarCatalogoTest(TestCase):
         self.assertEqual(len(response.data), 4)
         referencias = [m["referencia"] for m in response.data]
         self.assertNotIn("FZ inactiva", referencias)
+
+
+# ── HU-14 · Editar motocicleta ───────────────────────────────────────────────
+
+
+class EditarMotocicletaTest(TestCase):
+    """
+    Cubre los criterios de aceptación de HU-14:
+      CA-01  El administrador puede modificar los datos de la motocicleta.
+      CA-02  Los cambios se reflejan en el catálogo público.
+      CA-03  La información actualizada se guarda en la base de datos.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local()
+        self.admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(self.admin)}")
+
+        self.moto = Motocicleta.objects.create(
+            referencia="FZ 25",
+            anio=2022,
+            tipo="DEPORTIVA",
+            cilindraje=250,
+            precio="12500000.00",
+            caracteristicas="Motor monocilíndrico original.",
+            activa=True,
+        )
+        self.url_editar = f"/api/catalog/motocicletas/{self.moto.pk}/editar/"
+        self.url_catalogo = "/api/catalog/motocicletas/"
+
+    def _payload_completo(self, **overrides):
+        base = {
+            "referencia": "FZ 25",
+            "anio": 2023,
+            "tipo": "DEPORTIVA",
+            "cilindraje": 250,
+            "precio": "13000000.00",
+            "caracteristicas": "Motor monocilíndrico actualizado.",
+        }
+        base.update(overrides)
+        return base
+
+    # ── GET — cargar datos actuales ──────────────────────────────────────────
+
+    def test_cp_hu14_01_get_retorna_datos_actuales_de_la_moto(self):
+        """CP-HU14-01 · Unitaria — flujo feliz · CA-01
+        GET al endpoint de edición debe retornar los datos actuales de la moto
+        para que el formulario pueda precargarse correctamente.
+        Resultado esperado: HTTP 200 · datos coinciden con los de la BD."""
+        response = self.client.get(self.url_editar)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["referencia"], "FZ 25")
+        self.assertEqual(response.data["cilindraje"], 250)
+        self.assertEqual(response.data["tipo"], "DEPORTIVA")
+
+    def test_cp_hu14_02_get_moto_inexistente_retorna_404(self):
+        """CP-HU14-02 · Unitaria — flujo alternativo · CA-01
+        GET con un pk que no existe debe retornar 404, no un error del servidor.
+        Resultado esperado: HTTP 404."""
+        response = self.client.get("/api/catalog/motocicletas/9999/editar/")
+        self.assertEqual(response.status_code, 404)
+
+    # ── PUT — actualización completa ─────────────────────────────────────────
+
+    def test_cp_hu14_03_put_actualiza_datos_correctamente(self):
+        """CP-HU14-03 · Unitaria — flujo feliz · CA-01 · CA-03
+        PUT con datos válidos debe actualizar todos los campos de la moto
+        y retornar HTTP 200 con el mensaje de confirmación.
+        Resultado esperado: HTTP 200 · campos actualizados en BD."""
+        response = self.client.put(
+            self.url_editar,
+            self._payload_completo(anio=2024, cilindraje=300),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.anio, 2024)
+        self.assertEqual(self.moto.cilindraje, 300)
+
+    def test_cp_hu14_04_put_cambios_se_reflejan_en_catalogo_publico(self):
+        """CP-HU14-04 · Integración — flujo feliz · CA-02
+        Tras un PUT exitoso, el catálogo público debe mostrar los datos
+        actualizados sin necesidad de reiniciar el servidor.
+        Resultado esperado: HTTP 200 · catálogo retorna el nuevo precio."""
+        nuevo_precio = "15000000.00"
+        self.client.put(
+            self.url_editar,
+            self._payload_completo(precio=nuevo_precio),
+            format="json",
+        )
+        catalogo = self.client.get(self.url_catalogo)
+        moto = next(m for m in catalogo.data if m["referencia"] == "FZ 25")
+        self.assertIn("15.000.000", moto["precio_display"])
+
+    def test_cp_hu14_05_put_moto_inexistente_retorna_404(self):
+        """CP-HU14-05 · Unitaria — flujo alternativo · CA-01
+        PUT sobre un pk inexistente debe retornar 404.
+        Resultado esperado: HTTP 404."""
+        response = self.client.put(
+            "/api/catalog/motocicletas/9999/editar/",
+            self._payload_completo(),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_cp_hu14_06_put_sin_autenticacion_retorna_401(self):
+        """CP-HU14-06 · Control de acceso · CA-01
+        PUT sin token JWT debe ser rechazado con 401 y la moto no debe
+        modificarse en la base de datos.
+        Resultado esperado: HTTP 401 · datos originales intactos en BD."""
+        self.client.credentials()
+        response = self.client.put(
+            self.url_editar,
+            self._payload_completo(referencia="HACK"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.referencia, "FZ 25")
+
+    def test_cp_hu14_07_put_cilindraje_invalido_retorna_400(self):
+        """CP-HU14-07 · Caja negra — validación · CA-01
+        PUT con cilindraje = 0 debe retornar 400 y no modificar la moto.
+        Resultado esperado: HTTP 400 · cilindraje original intacto en BD."""
+        response = self.client.put(
+            self.url_editar,
+            self._payload_completo(cilindraje=0),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.cilindraje, 250)
+
+    def test_cp_hu14_08_put_precio_negativo_retorna_400(self):
+        """CP-HU14-08 · Caja negra — validación · CA-01
+        PUT con precio negativo debe retornar 400 y no modificar la moto.
+        Resultado esperado: HTTP 400 · precio original intacto en BD."""
+        response = self.client.put(
+            self.url_editar,
+            self._payload_completo(precio="-500.00"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.precio, 12500000)
+
+    def test_cp_hu14_09_put_anio_invalido_retorna_400(self):
+        """CP-HU14-09 · Caja negra — validación · CA-01
+        PUT con año fuera del rango válido debe retornar 400.
+        Resultado esperado: HTTP 400 · año original intacto en BD."""
+        response = self.client.put(
+            self.url_editar,
+            self._payload_completo(anio=1800),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.anio, 2022)
+
+    # ── PATCH — actualización parcial ────────────────────────────────────────
+
+    def test_cp_hu14_10_patch_actualiza_solo_campo_enviado(self):
+        """CP-HU14-10 · Unitaria — flujo feliz · CA-01 · CA-03
+        PATCH con un solo campo debe actualizar únicamente ese campo y dejar
+        los demás intactos en la base de datos.
+        Resultado esperado: HTTP 200 · solo las características cambian."""
+        nueva_desc = "Descripción actualizada vía PATCH."
+        response = self.client.patch(
+            self.url_editar,
+            {"caracteristicas": nueva_desc},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.caracteristicas, nueva_desc)
+        self.assertEqual(self.moto.cilindraje, 250)  # sin cambios
+
+    def test_cp_hu14_11_patch_sin_autenticacion_retorna_401(self):
+        """CP-HU14-11 · Control de acceso · CA-01
+        PATCH sin token JWT debe retornar 401 y la moto no debe modificarse.
+        Resultado esperado: HTTP 401 · datos originales intactos en BD."""
+        self.client.credentials()
+        response = self.client.patch(
+            self.url_editar,
+            {"referencia": "HACK"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.referencia, "FZ 25")
+
+    # ── Integración BD ───────────────────────────────────────────────────────
+
+    def test_cp_hu14_12_datos_persisten_correctamente_en_bd(self):
+        """CP-HU14-12 · Integración · CA-03
+        Tras un PUT exitoso, todos los campos modificados deben persistir
+        correctamente en la base de datos tras hacer refresh_from_db.
+        Resultado esperado: HTTP 200 · todos los campos nuevos en BD."""
+        self.client.put(
+            self.url_editar,
+            self._payload_completo(
+                referencia="FZ 25 Pro",
+                anio=2025,
+                tipo="URBANA",
+                cilindraje=300,
+                precio="14000000.00",
+                caracteristicas="Versión Pro actualizada.",
+            ),
+            format="json",
+        )
+        self.moto.refresh_from_db()
+        self.assertEqual(self.moto.referencia, "FZ 25 Pro")
+        self.assertEqual(self.moto.anio, 2025)
+        self.assertEqual(self.moto.tipo, "URBANA")
+        self.assertEqual(self.moto.cilindraje, 300)
+        self.assertEqual(self.moto.precio, 14000000)
+        self.assertEqual(self.moto.caracteristicas, "Versión Pro actualizada.")
+        self.assertEqual(self.moto.marca, "Yamaha")  # campo no editable, intacto

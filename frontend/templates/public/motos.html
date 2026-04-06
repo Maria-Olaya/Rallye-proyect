@@ -43,27 +43,206 @@
         max-width: 440px; margin: 0 auto; line-height: 1.6;
     }
 
-    /* ── Filtros ── */
-    .cat-filters {
-        display: flex; align-items: center; justify-content: center;
-        flex-wrap: wrap; gap: 0.5rem; padding: 1.6rem 1rem 0;
+    /* ══════════════════════════════════
+       PANEL DE FILTROS — HU-12
+    ══════════════════════════════════ */
+    .cat-filters-panel {
+        width: min(100%, 1200px);
+        margin: 1.8rem auto 0;
+        padding: 0 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Fila superior: búsqueda por referencia */
+    .cat-search-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+    }
+    .cat-search-wrap {
+        position: relative;
+        flex: 1;
+        max-width: 420px;
+    }
+    .cat-search-icon {
+        position: absolute;
+        left: 0.85rem; top: 50%;
+        transform: translateY(-50%);
+        width: 15px; height: 15px;
+        stroke: #555; fill: none;
+        pointer-events: none;
+        transition: stroke 0.15s;
+    }
+    .cat-search-input {
+        width: 100%;
+        background: #141414;
+        border: 1.5px solid #2a2a2a;
+        border-radius: 8px;
+        color: #ddd;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.88rem;
+        padding: 0.65rem 2.5rem 0.65rem 2.4rem;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .cat-search-input::placeholder { color: #444; }
+    .cat-search-input:focus { border-color: #cc0000; }
+    .cat-search-input:focus + .cat-search-icon,
+    .cat-search-wrap:focus-within .cat-search-icon { stroke: #cc0000; }
+    .cat-search-clear {
+        position: absolute;
+        right: 0.75rem; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: none;
+        color: #555; font-size: 0.9rem;
+        cursor: pointer; padding: 0.15rem;
+        line-height: 1; display: none;
+        transition: color 0.15s;
+    }
+    .cat-search-clear:hover { color: #cc0000; }
+    .cat-search-clear.visible { display: block; }
+
+    /* Fila de cilindraje */
+    .cat-cc-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .cat-cc-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: #555; white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .cat-cc-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .cat-cc-input {
+        width: 90px;
+        background: #141414;
+        border: 1.5px solid #2a2a2a;
+        border-radius: 8px;
+        color: #ddd;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.9rem; font-weight: 700;
+        padding: 0.55rem 2rem 0.55rem 0.7rem;
+        outline: none;
+        transition: border-color 0.15s;
+        -moz-appearance: textfield;
+    }
+    .cat-cc-input::-webkit-inner-spin-button,
+    .cat-cc-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .cat-cc-input::placeholder { color: #444; font-weight: 400; font-size: 0.78rem; }
+    .cat-cc-input:focus { border-color: #cc0000; }
+    .cat-cc-unit {
+        position: absolute; right: 0.5rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.6rem; font-weight: 700;
+        letter-spacing: 0.1em; color: #444;
+        pointer-events: none;
+    }
+    .cat-cc-sep {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.65rem; color: #444;
+        letter-spacing: 0.06em;
+    }
+    /* Mensaje dinámico de cilindraje */
+    .cat-cc-hint {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.72rem; color: #cc0000;
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: opacity 0.2s, transform 0.2s;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+    .cat-cc-hint.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Botón limpiar todos los filtros */
+    .cat-clear-all {
+        display: none;
+        align-items: center; gap: 0.35rem;
+        background: none; border: 1.5px solid #333;
+        border-radius: 8px; color: #666;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.7rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        padding: 0.55rem 0.9rem;
+        cursor: pointer; transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .cat-clear-all:hover { border-color: #cc0000; color: #cc0000; }
+    .cat-clear-all.visible { display: flex; }
+    .cat-clear-all svg { width: 11px; height: 11px; stroke: currentColor; fill: none; }
+
+    /* Separador visual */
+    .cat-divider {
+        width: 100%; height: 1px;
+        background: linear-gradient(90deg, transparent, #222 20%, #222 80%, transparent);
+        margin: 0.2rem 0;
+    }
+
+    /* Chips de tipo */
+    .cat-chips-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+    .cat-chips-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: #555; flex-shrink: 0; margin-right: 0.2rem;
     }
     .cat-filter-chip {
-        padding: 0.4rem 1rem; border-radius: 999px;
-        border: 1.5px solid #333; background: transparent; color: #888;
-        font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem;
+        padding: 0.38rem 0.95rem; border-radius: 999px;
+        border: 1.5px solid #2a2a2a; background: transparent; color: #666;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
         font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
         cursor: pointer; transition: all 0.15s;
     }
-    .cat-filter-chip:hover { border-color: #666; color: #ccc; }
+    .cat-filter-chip:hover { border-color: #555; color: #ccc; }
     .cat-filter-chip.active { border-color: #cc0000; background: #cc0000; color: #fff; }
 
+    /* Tags de filtros activos */
+    .cat-active-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        min-height: 0;
+    }
+    .cat-active-tag {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: rgba(204,0,0,0.1); border: 1px solid rgba(204,0,0,0.25);
+        border-radius: 999px; padding: 0.22rem 0.7rem 0.22rem 0.65rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase; color: #cc0000;
+    }
+    .cat-active-tag button {
+        background: none; border: none; color: #cc0000;
+        font-size: 0.75rem; cursor: pointer; padding: 0;
+        line-height: 1; opacity: 0.7; transition: opacity 0.15s;
+    }
+    .cat-active-tag button:hover { opacity: 1; }
+
+    /* Contador */
     .cat-count {
         text-align: center;
         font-family: 'Barlow Condensed', sans-serif;
         font-size: 0.72rem; font-weight: 600;
         letter-spacing: 0.14em; text-transform: uppercase;
-        color: #555; padding: 1.2rem 1rem 0;
+        color: #555; padding: 1rem 1rem 0;
     }
     .cat-count span { color: #cc0000; }
 
@@ -163,242 +342,77 @@
         align-items: center; justify-content: center; padding: 1rem;
     }
     .cat-modal-overlay.open { display: flex; }
-
     .cat-modal {
-        background: #1a1a1a;
-        border: 1px solid #2e2e2e;
-        border-radius: 16px;
-        width: min(100%, 820px);
-        max-height: 92vh;
-        overflow-y: auto;
-        position: relative;
-        display: flex;
-        flex-direction: column;
+        background: #1a1a1a; border: 1px solid #2e2e2e;
+        border-radius: 16px; width: min(100%, 820px);
+        max-height: 92vh; overflow-y: auto;
+        position: relative; display: flex; flex-direction: column;
     }
-
     .cat-modal-close {
         position: absolute; top: 1rem; right: 1rem;
-        width: 32px; height: 32px;
-        background: rgba(0,0,0,0.5);
+        width: 32px; height: 32px; background: rgba(0,0,0,0.5);
         border: 1px solid #444; border-radius: 50%; color: #fff;
         font-size: 0.9rem; cursor: pointer; z-index: 10;
         display: flex; align-items: center; justify-content: center;
         transition: background 0.15s, border-color 0.15s;
     }
     .cat-modal-close:hover { background: #cc0000; border-color: #cc0000; }
-
-    .cat-modal-inner {
-        display: grid;
-        grid-template-columns: 1fr 1.15fr;
-        min-height: 440px;
-    }
-
-    /* Panel izquierdo */
+    .cat-modal-inner { display: grid; grid-template-columns: 1fr 1.15fr; min-height: 440px; }
     .cat-modal-left {
-        background: #111;
-        border-radius: 16px 0 0 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2.5rem 1.5rem 1.5rem;
-        position: relative;
-        overflow: hidden;
-        gap: 1.2rem;
+        background: #111; border-radius: 16px 0 0 16px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 2.5rem 1.5rem 1.5rem; position: relative; overflow: hidden; gap: 1.2rem;
     }
     .cat-modal-left::before {
-        content: '';
-        position: absolute; inset: 0;
+        content: ''; position: absolute; inset: 0;
         background: radial-gradient(ellipse at 50% 60%, rgba(204,0,0,0.06) 0%, transparent 70%);
         pointer-events: none;
     }
-    .cat-modal-moto-img {
-        max-width: 85%;
-        max-height: 200px;
-        object-fit: contain;
-        display: block;
-        filter: drop-shadow(0 12px 24px rgba(0,0,0,0.7));
-        position: relative; z-index: 1;
-    }
+    .cat-modal-moto-img { max-width: 85%; max-height: 200px; object-fit: contain; display: block; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.7)); position: relative; z-index: 1; }
     .cat-modal-moto-placeholder { position: relative; z-index: 1; }
     .cat-modal-moto-placeholder svg { width: 140px; height: 90px; opacity: 0.15; stroke: #fff; }
-
-    .cat-modal-left-bottom {
-        position: relative; z-index: 1;
-        text-align: center;
-        border-top: 1px solid #2a2a2a;
-        padding-top: 1rem;
-        width: 100%;
-    }
-    .cat-modal-precio-label {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.62rem; font-weight: 700;
-        letter-spacing: 0.16em; text-transform: uppercase;
-        color: #555; display: block; margin-bottom: 0.15rem;
-    }
-    .cat-modal-precio-prefix {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 1.3rem; font-weight: 700; color: #cc0000;
-        margin-right: 0.1rem;
-    }
-    .cat-modal-precio-val {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 2rem; font-weight: 800; color: #fff; line-height: 1;
-    }
-    .cat-modal-precio-base {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.7rem; color: #555;
-        margin-top: 0.15rem; display: block;
-    }
-
-    /* Panel derecho */
-    .cat-modal-right {
-        padding: 1.8rem 1.8rem 1.6rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .cat-modal-tipo-badge {
-        display: inline-block;
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.65rem; font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        color: #cc0000; background: rgba(204,0,0,0.1);
-        border: 1px solid rgba(204,0,0,0.25);
-        border-radius: 999px; padding: 0.2rem 0.7rem;
-        margin-bottom: 0.5rem; align-self: flex-start;
-    }
-    .cat-modal-nombre {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 1.85rem; font-weight: 800; color: #fff;
-        text-transform: uppercase; line-height: 1; margin-bottom: 0.2rem;
-    }
-    .cat-modal-anio-cc {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.82rem; color: #666; margin-bottom: 1rem;
-    }
-
-    .cat-modal-specs-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.55rem;
-        margin-bottom: 1rem;
-    }
-    .cat-modal-spec-box {
-        background: #222; border: 1px solid #2e2e2e;
-        border-radius: 8px; padding: 0.6rem 0.7rem;
-    }
-    .cat-modal-spec-lbl {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.58rem; font-weight: 700;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        color: #555; display: block; margin-bottom: 0.12rem;
-    }
-    .cat-modal-spec-v {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.92rem; font-weight: 700; color: #ddd;
-    }
-
-    .cat-modal-desc-title {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.65rem; font-weight: 700;
-        letter-spacing: 0.16em; text-transform: uppercase;
-        color: #444; margin-bottom: 0.35rem;
-    }
-    .cat-modal-desc-text {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.92rem; color: #888;
-        line-height: 1.6; white-space: pre-line;
-        margin-bottom: 1rem;
-        max-height: 140px;
-        overflow-y: auto;
-        padding-right: 0.3rem;
-    }
+    .cat-modal-left-bottom { position: relative; z-index: 1; text-align: center; border-top: 1px solid #2a2a2a; padding-top: 1rem; width: 100%; }
+    .cat-modal-precio-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #555; display: block; margin-bottom: 0.15rem; }
+    .cat-modal-precio-prefix { font-family: 'Barlow Condensed', sans-serif; font-size: 1.3rem; font-weight: 700; color: #cc0000; margin-right: 0.1rem; }
+    .cat-modal-precio-val { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+    .cat-modal-precio-base { font-family: 'DM Sans', sans-serif; font-size: 0.7rem; color: #555; margin-top: 0.15rem; display: block; }
+    .cat-modal-right { padding: 1.8rem 1.8rem 1.6rem; display: flex; flex-direction: column; }
+    .cat-modal-tipo-badge { display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #cc0000; background: rgba(204,0,0,0.1); border: 1px solid rgba(204,0,0,0.25); border-radius: 999px; padding: 0.2rem 0.7rem; margin-bottom: 0.5rem; align-self: flex-start; }
+    .cat-modal-nombre { font-family: 'Barlow Condensed', sans-serif; font-size: 1.85rem; font-weight: 800; color: #fff; text-transform: uppercase; line-height: 1; margin-bottom: 0.2rem; }
+    .cat-modal-anio-cc { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: #666; margin-bottom: 1rem; }
+    .cat-modal-specs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; margin-bottom: 1rem; }
+    .cat-modal-spec-box { background: #222; border: 1px solid #2e2e2e; border-radius: 8px; padding: 0.6rem 0.7rem; }
+    .cat-modal-spec-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #555; display: block; margin-bottom: 0.12rem; }
+    .cat-modal-spec-v { font-family: 'Barlow Condensed', sans-serif; font-size: 0.92rem; font-weight: 700; color: #ddd; }
+    .cat-modal-desc-title { font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #444; margin-bottom: 0.35rem; }
+    .cat-modal-desc-text { font-family: 'DM Sans', sans-serif; font-size: 0.92rem; color: #888; line-height: 1.6; white-space: pre-line; margin-bottom: 1rem; max-height: 140px; overflow-y: auto; padding-right: 0.3rem; }
     .cat-modal-desc-text::-webkit-scrollbar { width: 3px; }
     .cat-modal-desc-text::-webkit-scrollbar-track { background: #1a1a1a; }
     .cat-modal-desc-text::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-
-    /* ── Selector de sede ── */
-    .cat-modal-sede-wrap {
-        margin-top: auto;
-        padding-top: 0.9rem;
-        border-top: 1px solid #2a2a2a;
-        display: flex;
-        flex-direction: column;
-        gap: 0.55rem;
-    }
-    .cat-modal-sede-label {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 0.7rem; font-weight: 700;
-        letter-spacing: 0.16em; text-transform: uppercase;
-        color: #cc0000;
-        display: flex; align-items: center; gap: 0.4rem;
-    }
-    .cat-modal-sede-label svg {
-        width: 13px; height: 13px; stroke: #cc0000; fill: none; flex-shrink: 0;
-    }
-    .cat-modal-select {
-        width: 100%;
-        background: #222;
-        border: 1.5px solid #333;
-        border-radius: 8px;
-        color: #ddd;
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.85rem;
-        padding: 0.65rem 2.2rem 0.65rem 0.85rem;
-        outline: none;
-        cursor: pointer;
-        appearance: none;
-        -webkit-appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.7rem center;
-        background-size: 14px;
-        transition: border-color 0.15s;
-    }
+    .cat-modal-sede-wrap { margin-top: auto; padding-top: 0.9rem; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 0.55rem; }
+    .cat-modal-sede-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #cc0000; display: flex; align-items: center; gap: 0.4rem; }
+    .cat-modal-sede-label svg { width: 13px; height: 13px; stroke: #cc0000; fill: none; flex-shrink: 0; }
+    .cat-modal-select { width: 100%; background: #222; border: 1.5px solid #333; border-radius: 8px; color: #ddd; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; padding: 0.65rem 2.2rem 0.65rem 0.85rem; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 14px; transition: border-color 0.15s; }
     .cat-modal-select:focus { border-color: #cc0000; }
     .cat-modal-select option { background: #1a1a1a; color: #ddd; }
     .cat-modal-select option:disabled { color: #555; }
-
-    /* Botón cotizar */
-    .cat-modal-cta {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        width: 100%;
-        padding: 0.82rem 1.5rem;
-        background: #cc0000;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 1rem; font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        cursor: pointer; text-decoration: none;
-        transition: background 0.15s, transform 0.1s, opacity 0.15s;
-    }
+    .cat-modal-cta { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.82rem 1.5rem; background: #cc0000; color: #fff; border: none; border-radius: 8px; font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; text-decoration: none; transition: background 0.15s, transform 0.1s, opacity 0.15s; }
     .cat-modal-cta:hover:not(:disabled) { background: #b30000; }
     .cat-modal-cta:active { transform: scale(0.98); }
-    .cat-modal-cta:disabled,
-    .cat-modal-cta.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .cat-modal-cta:disabled, .cat-modal-cta.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .cat-modal-cta svg { width: 16px; height: 16px; stroke: #fff; fill: none; flex-shrink: 0; }
+    .cat-modal-sede-hint { font-family: 'DM Sans', sans-serif; font-size: 0.68rem; color: #444; line-height: 1.4; }
 
-    /* Hint debajo del select */
-    .cat-modal-sede-hint {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.68rem; color: #444;
-        line-height: 1.4;
-    }
-
-    /* Responsive */
     @media (max-width: 640px) {
         .cat-modal-inner { grid-template-columns: 1fr; }
         .cat-modal-left { border-radius: 16px 16px 0 0; padding: 1.5rem 1rem 1rem; }
         .cat-modal-moto-img { max-height: 150px; }
         .cat-modal-right { padding: 1.2rem 1.1rem 1.4rem; }
         .cat-modal-nombre { font-size: 1.5rem; }
-        .cat-modal-specs-grid { grid-template-columns: repeat(3, 1fr); }
         .cat-grid { grid-template-columns: 1fr; }
+        .cat-cc-row { gap: 0.35rem; }
+        .cat-cc-input { width: 75px; }
     }
 </style>
 {% endblock %}
@@ -412,13 +426,65 @@
         <p class="cat-hero-desc">Explora todas las motocicletas disponibles. Encuentra la moto que se adapta a tu estilo.</p>
     </div>
 
-    <div class="cat-filters" id="catFilters">
-        <button class="cat-filter-chip active" data-tipo="">Todas</button>
-        <button class="cat-filter-chip" data-tipo="DEPORTIVA">Deportiva</button>
-        <button class="cat-filter-chip" data-tipo="URBANA">Urbana</button>
-        <button class="cat-filter-chip" data-tipo="TODOTERRENO">Todoterreno</button>
-        <button class="cat-filter-chip" data-tipo="CUATRIMOTOS">Cuatrimoto</button>
-        <button class="cat-filter-chip" data-tipo="AUTOMATICA">Automática</button>
+    <!-- ══════════════════════════════════
+         PANEL DE FILTROS — HU-12
+    ══════════════════════════════════ -->
+    <div class="cat-filters-panel">
+
+        <!-- Fila 1: búsqueda por referencia + botón limpiar -->
+        <div class="cat-search-row">
+            <div class="cat-search-wrap">
+                <svg class="cat-search-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                    type="text"
+                    id="inputReferencia"
+                    class="cat-search-input"
+                    placeholder="Buscar por referencia…"
+                    autocomplete="off"
+                    maxlength="80"
+                >
+                <button class="cat-search-clear" id="btnClearRef" title="Limpiar búsqueda">✕</button>
+            </div>
+            <button class="cat-clear-all" id="btnClearAll">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                Limpiar filtros
+            </button>
+        </div>
+
+        <!-- Fila 2: rango de cilindraje -->
+        <div class="cat-cc-row">
+            <span class="cat-cc-label">Cilindraje:</span>
+            <div class="cat-cc-input-wrap">
+                <input type="number" id="inputCcMin" class="cat-cc-input" placeholder="mín" min="1" max="9999">
+                <span class="cat-cc-unit">cc</span>
+            </div>
+            <span class="cat-cc-sep">—</span>
+            <div class="cat-cc-input-wrap">
+                <input type="number" id="inputCcMax" class="cat-cc-input" placeholder="máx" min="1" max="9999">
+                <span class="cat-cc-unit">cc</span>
+            </div>
+            <span class="cat-cc-hint" id="ccHint"></span>
+        </div>
+
+        <div class="cat-divider"></div>
+
+        <!-- Fila 3: chips de tipo -->
+        <div class="cat-chips-row" id="catFilters">
+            <span class="cat-chips-label">Tipo:</span>
+            <button class="cat-filter-chip active" data-tipo="">Todas</button>
+            <button class="cat-filter-chip" data-tipo="DEPORTIVA">Deportiva</button>
+            <button class="cat-filter-chip" data-tipo="URBANA">Urbana</button>
+            <button class="cat-filter-chip" data-tipo="TODOTERRENO">Todoterreno</button>
+            <button class="cat-filter-chip" data-tipo="CUATRIMOTOS">Cuatrimoto</button>
+            <button class="cat-filter-chip" data-tipo="AUTOMATICA">Automática</button>
+        </div>
+
+        <!-- Tags de filtros activos -->
+        <div class="cat-active-tags" id="catActiveTags"></div>
     </div>
 
     <p class="cat-count" id="catCount"></p>
@@ -452,19 +518,210 @@
     const API_SEDES = '/api/core/sedes/';
 
     let todasLasMotos = [];
-    let todasLasSedes = [];  // [{id, nombre, locales:[{id, nombre, direccion, telefono}]}]
-    let filtroActivo  = '';
+    let todasLasSedes = [];
 
+    /* ── Estado de filtros ── */
+    const filtros = {
+        referencia: '',
+        tipo: '',
+        ccMin: '',
+        ccMax: '',
+    };
+
+    /* ── Referencias DOM ── */
     const grid         = document.getElementById('catGrid');
     const loading      = document.getElementById('catLoading');
     const empty        = document.getElementById('catEmpty');
     const count        = document.getElementById('catCount');
     const overlay      = document.getElementById('catModalOverlay');
     const modalContent = document.getElementById('catModalContent');
+    const inputRef     = document.getElementById('inputReferencia');
+    const btnClearRef  = document.getElementById('btnClearRef');
+    const inputCcMin   = document.getElementById('inputCcMin');
+    const inputCcMax   = document.getElementById('inputCcMax');
+    const btnClearAll  = document.getElementById('btnClearAll');
+    const activeTags   = document.getElementById('catActiveTags');
 
     const placeholderCard = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
 
-    /* ── Construye las opciones del select de locales ── */
+    /* ════════════════════════════════════════
+       FILTRADO DINÁMICO — HU-12
+       Construye la URL con query params y llama
+       al backend; los resultados se actualizan
+       en tiempo real con debounce.
+    ════════════════════════════════════════ */
+    let debounceTimer = null;
+
+    function buildApiUrl() {
+        const params = new URLSearchParams();
+        if (filtros.referencia) params.set('referencia', filtros.referencia);
+        if (filtros.tipo)       params.set('tipo', filtros.tipo);
+        if (filtros.ccMin)      params.set('cilindraje_min', filtros.ccMin);
+        if (filtros.ccMax)      params.set('cilindraje_max', filtros.ccMax);
+        const qs = params.toString();
+        return qs ? `${API_MOTOS}?${qs}` : API_MOTOS;
+    }
+
+    function hayFiltrosActivos() {
+        return filtros.referencia || filtros.tipo || filtros.ccMin || filtros.ccMax;
+    }
+
+    function actualizarTagsFiltros() {
+        const tags = [];
+
+        if (filtros.referencia) {
+            tags.push({
+                label: `Ref: "${filtros.referencia}"`,
+                quitar: () => {
+                    filtros.referencia = '';
+                    inputRef.value = '';
+                    btnClearRef.classList.remove('visible');
+                    fetchMotos();
+                }
+            });
+        }
+        if (filtros.tipo) {
+            const nombre = document.querySelector(`.cat-filter-chip[data-tipo="${filtros.tipo}"]`)?.textContent || filtros.tipo;
+            tags.push({
+                label: nombre,
+                quitar: () => {
+                    filtros.tipo = '';
+                    document.querySelectorAll('.cat-filter-chip').forEach(c => c.classList.remove('active'));
+                    document.querySelector('.cat-filter-chip[data-tipo=""]').classList.add('active');
+                    fetchMotos();
+                }
+            });
+        }
+        if (filtros.ccMin || filtros.ccMax) {
+            const label = filtros.ccMin && filtros.ccMax
+                ? `${filtros.ccMin} – ${filtros.ccMax} cc`
+                : filtros.ccMin ? `≥ ${filtros.ccMin} cc` : `≤ ${filtros.ccMax} cc`;
+            tags.push({
+                label,
+                quitar: () => {
+                    filtros.ccMin = '';
+                    filtros.ccMax = '';
+                    inputCcMin.value = '';
+                    inputCcMax.value = '';
+                    fetchMotos();
+                }
+            });
+        }
+
+        activeTags.innerHTML = tags.map((t, i) =>
+            `<span class="cat-active-tag">
+                ${t.label}
+                <button onclick="quitarTag(${i})" title="Quitar filtro">✕</button>
+            </span>`
+        ).join('');
+
+        /* guardamos las funciones de quitar para poder llamarlas desde el HTML */
+        window._tagQuitarFns = tags.map(t => t.quitar);
+
+        /* botón "Limpiar filtros" */
+        btnClearAll.classList.toggle('visible', !!hayFiltrosActivos());
+    }
+
+    window.quitarTag = function(i) {
+        if (window._tagQuitarFns && window._tagQuitarFns[i]) {
+            window._tagQuitarFns[i]();
+            actualizarTagsFiltros();
+        }
+    };
+
+    async function fetchMotos() {
+        loading.style.display = 'block';
+        grid.innerHTML = '';
+        empty.style.display = 'none';
+        count.innerHTML = '';
+        actualizarTagsFiltros();
+
+        try {
+            const res = await fetch(buildApiUrl());
+            if (!res.ok) throw new Error('error');
+            const motos = await res.json();
+            todasLasMotos = motos;
+            renderGrid(motos);
+        } catch {
+            loading.style.display = 'none';
+            grid.innerHTML = `<p style="color:#555;font-family:'Barlow Condensed',sans-serif;text-align:center;padding:3rem;grid-column:1/-1;letter-spacing:0.08em;text-transform:uppercase;">No se pudo cargar el catálogo. Intenta más tarde.</p>`;
+        }
+    }
+
+    function fetchConDebounce(ms = 350) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchMotos, ms);
+    }
+
+    /* ── Listeners de filtros ── */
+
+    /* Referencia — debounce mientras escribe */
+    inputRef.addEventListener('input', () => {
+        filtros.referencia = inputRef.value.trim();
+        btnClearRef.classList.toggle('visible', !!filtros.referencia);
+        fetchConDebounce();
+    });
+
+    btnClearRef.addEventListener('click', () => {
+        filtros.referencia = '';
+        inputRef.value = '';
+        btnClearRef.classList.remove('visible');
+        fetchMotos();
+    });
+
+    /* Cilindraje — debounce al cambiar */
+    const ccHint = document.getElementById('ccHint');
+
+    function actualizarHintCc() {
+        const min = filtros.ccMin;
+        const max = filtros.ccMax;
+        if (min && max)       { ccHint.textContent = `→ motos entre ${min} y ${max} cc`; ccHint.classList.add('visible'); }
+        else if (min && !max) { ccHint.textContent = `→ motos desde ${min} cc en adelante`; ccHint.classList.add('visible'); }
+        else if (!min && max) { ccHint.textContent = `→ motos hasta ${max} cc`; ccHint.classList.add('visible'); }
+        else                  { ccHint.textContent = ''; ccHint.classList.remove('visible'); }
+    }
+
+    inputCcMin.addEventListener('input', () => {
+        const v = parseInt(inputCcMin.value, 10);
+        filtros.ccMin = (!isNaN(v) && v > 0) ? v : '';
+        actualizarHintCc();
+        fetchConDebounce();
+    });
+
+    inputCcMax.addEventListener('input', () => {
+        const v = parseInt(inputCcMax.value, 10);
+        filtros.ccMax = (!isNaN(v) && v > 0) ? v : '';
+        actualizarHintCc();
+        fetchConDebounce();
+    });
+
+    /* Tipo — chips */
+    document.getElementById('catFilters').addEventListener('click', (e) => {
+        const chip = e.target.closest('.cat-filter-chip');
+        if (!chip) return;
+        document.querySelectorAll('.cat-filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        filtros.tipo = chip.dataset.tipo;
+        fetchMotos();
+    });
+
+    /* Limpiar todo */
+    btnClearAll.addEventListener('click', () => {
+        filtros.referencia = '';
+        filtros.tipo       = '';
+        filtros.ccMin      = '';
+        filtros.ccMax      = '';
+        inputRef.value  = '';
+        inputCcMin.value = '';
+        inputCcMax.value = '';
+        btnClearRef.classList.remove('visible');
+        ccHint.textContent = ''; ccHint.classList.remove('visible');
+        document.querySelectorAll('.cat-filter-chip').forEach(c => c.classList.remove('active'));
+        document.querySelector('.cat-filter-chip[data-tipo=""]').classList.add('active');
+        fetchMotos();
+    });
+
+    /* ── Render ── */
     function buildSelectOptions() {
         if (!todasLasSedes.length) {
             return `<option value="" disabled selected>Sin sedes disponibles</option>`;
@@ -484,7 +741,6 @@
         return html;
     }
 
-    /* ── Cards ── */
     function renderCard(moto) {
         const img = moto.imagen_url
             ? `<img class="cat-card-img" src="${moto.imagen_url}" alt="${moto.referencia}" loading="lazy">`
@@ -527,20 +783,6 @@
         count.innerHTML = `Mostrando <span>${motos.length}</span> motocicleta${motos.length !== 1 ? 's' : ''}`;
     }
 
-    function aplicarFiltro(tipo) {
-        filtroActivo = tipo;
-        const filtradas = tipo ? todasLasMotos.filter(m => m.tipo === tipo) : todasLasMotos;
-        renderGrid(filtradas);
-    }
-
-    document.getElementById('catFilters').addEventListener('click', (e) => {
-        const chip = e.target.closest('.cat-filter-chip');
-        if (!chip) return;
-        document.querySelectorAll('.cat-filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        aplicarFiltro(chip.dataset.tipo);
-    });
-
     /* ── Modal ── */
     function abrirModal(id) {
         const moto = todasLasMotos.find(m => m.id === id);
@@ -564,7 +806,6 @@
         const selectOpts  = buildSelectOptions();
 
         modalContent.innerHTML = `
-            <!-- Izquierda: imagen + precio -->
             <div class="cat-modal-left">
                 ${imgHtml}
                 <div class="cat-modal-left-bottom">
@@ -576,13 +817,10 @@
                     <span class="cat-modal-precio-base">Precio de lista · IVA incluido</span>
                 </div>
             </div>
-
-            <!-- Derecha: info + sede + CTA -->
             <div class="cat-modal-right">
                 <span class="cat-modal-tipo-badge">${moto.tipo_display}</span>
                 <h2 class="cat-modal-nombre">Yamaha ${moto.referencia}</h2>
                 <p class="cat-modal-anio-cc">Modelo ${moto.anio} &nbsp;·&nbsp; ${moto.cilindraje} cc</p>
-
                 <div class="cat-modal-specs-grid">
                     <div class="cat-modal-spec-box">
                         <span class="cat-modal-spec-lbl">Cilindraje</span>
@@ -597,11 +835,8 @@
                         <span class="cat-modal-spec-v">${moto.anio}</span>
                     </div>
                 </div>
-
                 <p class="cat-modal-desc-title">Especificaciones técnicas</p>
                 <p class="cat-modal-desc-text">${moto.caracteristicas || 'Sin descripción disponible.'}</p>
-
-                <!-- Selector de sede -->
                 <div class="cat-modal-sede-wrap">
                     <span class="cat-modal-sede-label">
                         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -610,17 +845,11 @@
                         </svg>
                         ¿En qué sede te encuentras?
                     </span>
-
                     <select class="cat-modal-select" id="sedeSelect" onchange="onSedeChange()">
                         ${selectOpts}
                     </select>
-
-                    <span class="cat-modal-sede-hint">
-                        Selecciona el local más cercano a ti para continuar con la cotización.
-                    </span>
-
-                    <a id="btnCotizar" href="/agendamientos/" class="cat-modal-cta disabled"
-                       onclick="return validarSede(event)">
+                    <span class="cat-modal-sede-hint">Selecciona el local más cercano a ti para continuar con la cotización.</span>
+                    <a id="btnCotizar" href="/agendamientos/" class="cat-modal-cta disabled" onclick="return validarSede(event)">
                         <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 11l3 3L22 4"/>
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -634,15 +863,13 @@
         document.body.style.overflow = 'hidden';
     }
 
-    /* Habilitar botón cuando se elige sede y pasar local_id a la URL */
     function onSedeChange() {
         const sel = document.getElementById('sedeSelect');
         const btn = document.getElementById('btnCotizar');
         if (!sel || !btn) return;
-        const localId = sel.value;
-        if (localId) {
+        if (sel.value) {
             btn.classList.remove('disabled');
-            btn.href = `/agendamientos/?local=${localId}`;
+            btn.href = `/agendamientos/?local=${sel.value}`;
         } else {
             btn.classList.add('disabled');
             btn.href = '/agendamientos/';
@@ -669,7 +896,7 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrarModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModal(); });
 
-    /* ── Carga paralela: motos + sedes ── */
+    /* ── Carga inicial ── */
     async function cargarDatos() {
         try {
             const [resMoots, resSedes] = await Promise.all([
@@ -679,7 +906,7 @@
             if (!resMoots.ok) throw new Error('motos');
             todasLasMotos = await resMoots.json();
             if (resSedes.ok) todasLasSedes = await resSedes.json();
-            aplicarFiltro(filtroActivo);
+            renderGrid(todasLasMotos);
         } catch {
             loading.style.display = 'none';
             grid.innerHTML = `<p style="color:#555;font-family:'Barlow Condensed',sans-serif;text-align:center;padding:3rem;grid-column:1/-1;letter-spacing:0.08em;text-transform:uppercase;">No se pudo cargar el catálogo. Intenta más tarde.</p>`;
