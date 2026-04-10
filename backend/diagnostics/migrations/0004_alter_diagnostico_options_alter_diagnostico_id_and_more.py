@@ -5,34 +5,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('diagnostics', '0003_rebuild_diagnostico_fields'),
+        ("diagnostics", "0003_rebuild_diagnostico_fields"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='diagnostico',
-            options={'ordering': ['-fecha_registro']},
+            name="diagnostico",
+            options={"ordering": ["-fecha_registro"]},
         ),
         migrations.AlterField(
-            model_name='diagnostico',
-            name='id',
-            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="diagnostico",
+            name="id",
+            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
         ),
         migrations.AlterField(
-            model_name='evidencia',
-            name='id',
-            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="evidencia",
+            name="id",
+            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
         ),
         migrations.AlterField(
-            model_name='radicado',
-            name='diagnostico',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='radicado_legacy', to='diagnostics.diagnostico'),
+            model_name="radicado",
+            name="diagnostico",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="radicado_legacy",
+                to="diagnostics.diagnostico",
+            ),
         ),
         migrations.AlterField(
-            model_name='radicado',
-            name='id',
-            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="radicado",
+            name="id",
+            field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
         ),
     ]

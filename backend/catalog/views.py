@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from catalog.models import Motocicleta
 from catalog.serializers import MotocicletaEstadoSerializer, MotocicletaListSerializer, MotocicletaSerializer
 
+
 class AgregarMotocicletaView(APIView):
     """POST /api/catalog/motocicletas/agregar/ — HU-13"""
 
@@ -179,7 +180,6 @@ class DesactivarMotocicletaView(APIView):
         )
 
 
-
 # ── HU-15 (activar) ───────────────────────────────────────────────────────────
 class ActivarMotocicletaView(APIView):
     """
@@ -218,6 +218,8 @@ class ActivarMotocicletaView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
 # ── HU-15 (listado admin — todas las motos) ───────────────────────────────────
 class ListadoAdminMotocicletasView(APIView):
     """

@@ -708,6 +708,7 @@ class EditarMotocicletaTest(TestCase):
         self.assertEqual(self.moto.caracteristicas, "Versión Pro actualizada.")
         self.assertEqual(self.moto.marca, "Yamaha")  # campo no editable, intacto
 
+
 # ── HU-15 · Desactivar motocicleta ────────────────────────────────────────────
 
 
@@ -795,7 +796,6 @@ class DesactivarMotocicletaTest(TestCase):
         self.assertNotIn(self.moto.pk, ids)
 
 
-
 # ── HU-15 · Activar motocicleta ───────────────────────────────────────────────
 
 
@@ -867,14 +867,22 @@ class ListadoAdminMotocicletasTest(TestCase):
         self.admin = make_admin(self.local)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(self.admin)}")
         self.moto_activa = Motocicleta.objects.create(
-            referencia="MT-03", anio=2024, tipo="DEPORTIVA",
-            cilindraje=321, precio="15000000.00",
-            caracteristicas="Moto activa.", activa=True,
+            referencia="MT-03",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=321,
+            precio="15000000.00",
+            caracteristicas="Moto activa.",
+            activa=True,
         )
         self.moto_inactiva = Motocicleta.objects.create(
-            referencia="FZ 150", anio=2023, tipo="URBANA",
-            cilindraje=150, precio="9000000.00",
-            caracteristicas="Moto inactiva.", activa=False,
+            referencia="FZ 150",
+            anio=2023,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="9000000.00",
+            caracteristicas="Moto inactiva.",
+            activa=False,
         )
 
     def test_cp_hu15_13_admin_ve_todas_las_motos(self):

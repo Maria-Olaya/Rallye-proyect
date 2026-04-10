@@ -94,6 +94,7 @@ class MotocicletaEstadoSerializer(serializers.ModelSerializer):
         model = Motocicleta
         fields = ["id", "marca", "referencia", "anio", "activa"]
 
+
 class MotocicletaListSerializer(serializers.ModelSerializer):
     """Serializer de solo lectura para el catálogo público — HU-11"""
 
