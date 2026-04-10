@@ -87,6 +87,14 @@ class MotocicletaSerializer(serializers.ModelSerializer):
         return value
 
 
+class MotocicletaEstadoSerializer(serializers.ModelSerializer):
+    """Serializer de solo lectura para respuestas de cambio de estado — HU-15"""
+
+    class Meta:
+        model = Motocicleta
+        fields = ["id", "marca", "referencia", "anio", "activa"]
+
+
 class MotocicletaListSerializer(serializers.ModelSerializer):
     """Serializer de solo lectura para el catálogo público — HU-11"""
 

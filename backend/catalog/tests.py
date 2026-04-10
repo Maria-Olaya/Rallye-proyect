@@ -707,3 +707,201 @@ class EditarMotocicletaTest(TestCase):
         self.assertEqual(self.moto.precio, 14000000)
         self.assertEqual(self.moto.caracteristicas, "Versión Pro actualizada.")
         self.assertEqual(self.moto.marca, "Yamaha")  # campo no editable, intacto
+
+
+# ── HU-15 · Desactivar motocicleta ────────────────────────────────────────────
+
+
+class DesactivarMotocicletaTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local()
+        self.admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(self.admin)}")
+        self.moto = Motocicleta.objects.create(
+            referencia="MT-03",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=321,
+            precio="15000000.00",
+            caracteristicas="Moto deportiva de media cilindrada.",
+            activa=True,
+        )
+
+    def _url(self, pk=None):
+        pk = pk or self.moto.pk
+        return f"/api/catalog/motocicletas/{pk}/desactivar/"
+
+    def test_cp_hu15_01_admin_desactiva_moto_correctamente(self):
+        """CP-HU15-01 · Caja negra — flujo feliz · CA-01"""
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 200)
+        self.moto.refresh_from_db()
+        self.assertFalse(self.moto.activa)
+        self.assertIn("mensaje", response.data)
+
+    def test_cp_hu15_02_moto_desactivada_no_aparece_en_catalogo_publico(self):
+        """CP-HU15-02 · Integración — visibilidad · CA-01"""
+        self.client.patch(self._url(), format="json")
+        public_client = APIClient()
+        response = public_client.get("/api/catalog/motocicletas/", format="json")
+        self.assertEqual(response.status_code, 200)
+        ids = [m["id"] for m in response.data]
+        self.assertNotIn(self.moto.pk, ids)
+
+    def test_cp_hu15_03_moto_desactivada_permanece_en_base_de_datos(self):
+        """CP-HU15-03 · Base de datos — registro · CA-01"""
+        self.client.patch(self._url(), format="json")
+        self.assertTrue(Motocicleta.objects.filter(pk=self.moto.pk).exists())
+        self.moto.refresh_from_db()
+        self.assertFalse(self.moto.activa)
+
+    def test_cp_hu15_04_sin_autenticacion_retorna_401(self):
+        """CP-HU15-04 · Control de acceso · CA-01"""
+        self.client.credentials()
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 401)
+        self.moto.refresh_from_db()
+        self.assertTrue(self.moto.activa)
+
+    def test_cp_hu15_05_moto_inexistente_retorna_404(self):
+        """CP-HU15-05 · Caja negra — ID inválido · CA-01"""
+        response = self.client.patch(self._url(pk=99999), format="json")
+        self.assertEqual(response.status_code, 404)
+
+    def test_cp_hu15_06_desactivar_moto_ya_inactiva_retorna_400(self):
+        """CP-HU15-06 · Caja negra — estado duplicado · CA-01"""
+        self.moto.activa = False
+        self.moto.save()
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.data)
+
+    def test_cp_hu15_07_moto_activa_sigue_visible_en_catalogo(self):
+        """CP-HU15-07 · Integración — otra moto no se ve afectada · CA-01"""
+        otra_moto = Motocicleta.objects.create(
+            referencia="FZ 25",
+            anio=2023,
+            tipo="URBANA",
+            cilindraje=250,
+            precio="12000000.00",
+            caracteristicas="Moto urbana.",
+            activa=True,
+        )
+        self.client.patch(self._url(), format="json")
+        public_client = APIClient()
+        response = public_client.get("/api/catalog/motocicletas/", format="json")
+        ids = [m["id"] for m in response.data]
+        self.assertIn(otra_moto.pk, ids)
+        self.assertNotIn(self.moto.pk, ids)
+
+
+# ── HU-15 · Activar motocicleta ───────────────────────────────────────────────
+
+
+class ActivarMotocicletaTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local()
+        self.admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(self.admin)}")
+        self.moto = Motocicleta.objects.create(
+            referencia="MT-03",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=321,
+            precio="15000000.00",
+            caracteristicas="Moto deportiva de media cilindrada.",
+            activa=False,  # empieza inactiva
+        )
+
+    def _url(self, pk=None):
+        pk = pk or self.moto.pk
+        return f"/api/catalog/motocicletas/{pk}/activar/"
+
+    def test_cp_hu15_08_admin_activa_moto_correctamente(self):
+        """CP-HU15-08 · Caja negra — flujo feliz"""
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 200)
+        self.moto.refresh_from_db()
+        self.assertTrue(self.moto.activa)
+        self.assertIn("mensaje", response.data)
+
+    def test_cp_hu15_09_moto_activada_aparece_en_catalogo_publico(self):
+        """CP-HU15-09 · Integración — visibilidad"""
+        self.client.patch(self._url(), format="json")
+        public_client = APIClient()
+        response = public_client.get("/api/catalog/motocicletas/", format="json")
+        ids = [m["id"] for m in response.data]
+        self.assertIn(self.moto.pk, ids)
+
+    def test_cp_hu15_10_activar_moto_ya_activa_retorna_400(self):
+        """CP-HU15-10 · Caja negra — estado duplicado"""
+        self.moto.activa = True
+        self.moto.save()
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.data)
+
+    def test_cp_hu15_11_sin_autenticacion_retorna_401(self):
+        """CP-HU15-11 · Control de acceso"""
+        self.client.credentials()
+        response = self.client.patch(self._url(), format="json")
+        self.assertEqual(response.status_code, 401)
+        self.moto.refresh_from_db()
+        self.assertFalse(self.moto.activa)
+
+    def test_cp_hu15_12_moto_inexistente_retorna_404(self):
+        """CP-HU15-12 · Caja negra — ID inválido"""
+        response = self.client.patch(self._url(pk=99999), format="json")
+        self.assertEqual(response.status_code, 404)
+
+
+# ── HU-15 · Listado admin ─────────────────────────────────────────────────────
+
+
+class ListadoAdminMotocicletasTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local()
+        self.admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(self.admin)}")
+        self.moto_activa = Motocicleta.objects.create(
+            referencia="MT-03",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=321,
+            precio="15000000.00",
+            caracteristicas="Moto activa.",
+            activa=True,
+        )
+        self.moto_inactiva = Motocicleta.objects.create(
+            referencia="FZ 150",
+            anio=2023,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="9000000.00",
+            caracteristicas="Moto inactiva.",
+            activa=False,
+        )
+
+    def test_cp_hu15_13_admin_ve_todas_las_motos(self):
+        """CP-HU15-13 · Admin ve activas e inactivas"""
+        response = self.client.get("/api/catalog/motocicletas/admin/")
+        self.assertEqual(response.status_code, 200)
+        ids = [m["id"] for m in response.data]
+        self.assertIn(self.moto_activa.pk, ids)
+        self.assertIn(self.moto_inactiva.pk, ids)
+
+    def test_cp_hu15_14_sin_autenticacion_retorna_401(self):
+        """CP-HU15-14 · Control de acceso"""
+        self.client.credentials()
+        response = self.client.get("/api/catalog/motocicletas/admin/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_cp_hu15_15_respuesta_incluye_campo_activa(self):
+        """CP-HU15-15 · El serializer retorna el campo activa"""
+        response = self.client.get("/api/catalog/motocicletas/admin/")
+        self.assertEqual(response.status_code, 200)
+        for m in response.data:
+            self.assertIn("activa", m)

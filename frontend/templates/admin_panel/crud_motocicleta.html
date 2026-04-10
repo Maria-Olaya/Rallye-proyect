@@ -208,6 +208,25 @@
     .moto-btn-edit:hover { border-color: var(--red); color: var(--red); }
     .moto-btn-edit svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
 
+    .moto-btn-toggle {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.38rem 1rem; border: 1.5px solid #dedede; border-radius: 8px;
+            background: #fff; color: #555; cursor: pointer;
+            font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+            font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+            transition: border-color 0.15s, color 0.15s; white-space: nowrap;
+        }
+        .moto-btn-toggle.desactivar:hover { border-color: #e53e3e; color: #e53e3e; }
+        .moto-btn-toggle.activar:hover   { border-color: #276749; color: #276749; }
+        .moto-btn-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+        .moto-btn-toggle svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
+
+        .status-badge { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 999px;
+            font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+            font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+        .status-badge.activa   { background: #f0fff4; color: #276749; }
+        .status-badge.inactiva { background: #fff0f0; color: #c53030; }
+
     /* Contador */
     .moto-count {
         font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
@@ -299,7 +318,8 @@
                             <th>Cilindraje</th>
                             <th>Año</th>
                             <th>Precio</th>
-                            <th></th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="motoTableBody"></tbody>
@@ -335,15 +355,14 @@
             <li><a href="/panel/graficos/">GRÁFICOS</a></li>
             <li class="admin-dropdown">
                 <button class="admin-dropdown-trigger" id="crudTrigger">
-                    CRUD MOTOCICLETA
+                    GESTIONAR MOTOCICLETAS
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </button>
-                <ul class="admin-dropdown-menu" id="crudMenu">
+                <ul class="admin-dropdown-menu" id="gestionarMenu">
                     <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
                     <li><a href="/panel/motocicletas/" class="active">Editar moto</a></li>
-                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
                 </ul>
             </li>
             <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
@@ -352,11 +371,11 @@
 
         document.getElementById('crudTrigger').addEventListener('click', (e) => {
             e.stopPropagation();
-            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('gestionarMenu').classList.toggle('open');
             document.getElementById('crudTrigger').classList.toggle('open');
         });
         document.addEventListener('click', () => {
-            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('gestionarMenu')?.classList.remove('open');
             document.getElementById('crudTrigger')?.classList.remove('open');
         });
         document.getElementById('btnSalirAdmin').addEventListener('click', () => {
@@ -377,7 +396,7 @@
 
     async function cargarMotos() {
         try {
-            const response = await fetch('/api/catalog/motocicletas/', {
+            const response = await fetch('/api/catalog/motocicletas/admin/', {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
             if (response.status === 401) { sessionStorage.clear(); window.location.replace('/login/'); return; }
@@ -432,7 +451,8 @@
                 <td>${m.cilindraje} cc</td>
                 <td>${m.anio}</td>
                 <td>${m.precio_display}</td>
-                <td>
+                <td><span class="status-badge ${m.activa ? 'activa' : 'inactiva'}">${m.activa ? 'Activa' : 'Inactiva'}</span></td>
+                <td style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
                     <a href="/panel/motocicletas/${m.id}/editar/" class="moto-btn-edit">
                         <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -440,11 +460,55 @@
                         </svg>
                         Editar
                     </a>
+                    ${m.activa
+                        ? `<button class="moto-btn-toggle desactivar" onclick="cambiarEstado(${m.id}, false, this)">
+                                <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                                Desactivar
+                           </button>`
+                        : `<button class="moto-btn-toggle activar" onclick="cambiarEstado(${m.id}, true, this)">
+                                <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>
+                                </svg>
+                                Activar
+                           </button>`
+                    }
                 </td>
             </tr>
         `).join('');
     }
 
+
+    /* ── Cambiar estado moto ── */
+    async function cambiarEstado(id, activar, btn) {
+        const accion = activar ? 'activar' : 'desactivar';
+        const confirmar = activar ? '¿Activar esta motocicleta?' : '¿Desactivar esta motocicleta? Dejará de aparecer en el catálogo público.';
+        if (!confirm(confirmar)) return;
+
+        btn.disabled = true;
+        btn.textContent = activar ? 'Activando...' : 'Desactivando...';
+
+        try {
+            const response = await fetch(`/api/catalog/motocicletas/${id}/${accion}/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (response.ok) {
+                todasLasMotos = todasLasMotos.map(m => m.id === id ? { ...m, activa: activar } : m);
+                renderTabla(todasLasMotos);
+            } else {
+                const data = await response.json();
+                alert(data.error || 'No se pudo realizar la acción.');
+                btn.disabled = false;
+                btn.textContent = activar ? 'Activar' : 'Desactivar';
+            }
+        } catch {
+            alert('Error de conexión. Intenta nuevamente.');
+            btn.disabled = false;
+            btn.textContent = activar ? 'Activar' : 'Desactivar';
+        }
+    }
     /* ── Búsqueda en tiempo real ── */
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const q = e.target.value.trim().toLowerCase();
