@@ -177,9 +177,9 @@ class DesactivarMotocicletaView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        
-        
-        
+
+
+
 # ── HU-15 (activar) ───────────────────────────────────────────────────────────
 class ActivarMotocicletaView(APIView):
     """

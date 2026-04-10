@@ -793,9 +793,9 @@ class DesactivarMotocicletaTest(TestCase):
         ids = [m["id"] for m in response.data]
         self.assertIn(otra_moto.pk, ids)
         self.assertNotIn(self.moto.pk, ids)
-        
-        
-        
+
+
+
 # ── HU-15 · Activar motocicleta ───────────────────────────────────────────────
 
 
@@ -855,8 +855,8 @@ class ActivarMotocicletaTest(TestCase):
         """CP-HU15-12 · Caja negra — ID inválido"""
         response = self.client.patch(self._url(pk=99999), format="json")
         self.assertEqual(response.status_code, 404)
-        
-        
+
+
 # ── HU-15 · Listado admin ─────────────────────────────────────────────────────
 
 

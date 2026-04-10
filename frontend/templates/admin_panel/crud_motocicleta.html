@@ -355,15 +355,14 @@
             <li><a href="/panel/graficos/">GRÁFICOS</a></li>
             <li class="admin-dropdown">
                 <button class="admin-dropdown-trigger" id="crudTrigger">
-                    CRUD MOTOCICLETA
+                    GESTIONAR MOTOCICLETAS
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </button>
-                <ul class="admin-dropdown-menu" id="crudMenu">
+                <ul class="admin-dropdown-menu" id="gestionarMenu">
                     <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
                     <li><a href="/panel/motocicletas/" class="active">Editar moto</a></li>
-                    <li><a href="/panel/motocicletas/">Desactivar moto</a></li>
                 </ul>
             </li>
             <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
@@ -372,11 +371,11 @@
 
         document.getElementById('crudTrigger').addEventListener('click', (e) => {
             e.stopPropagation();
-            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('gestionarMenu').classList.toggle('open');
             document.getElementById('crudTrigger').classList.toggle('open');
         });
         document.addEventListener('click', () => {
-            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('gestionarMenu')?.classList.remove('open');
             document.getElementById('crudTrigger')?.classList.remove('open');
         });
         document.getElementById('btnSalirAdmin').addEventListener('click', () => {
