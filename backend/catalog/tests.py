@@ -299,7 +299,8 @@ class CotizarMotocicletaTest(TestCase):
         self.assertEqual(response.data["tramites_estimados"], "800000.00")
         self.assertEqual(response.data["total_estimado"], "12700000.00")
         self.assertIsNone(response.data["local"])
-        self.assertIsNone(response.data["whatsapp_url"])
+        self.assertIn("https://wa.me/573113252436", response.data["whatsapp_url"])
+        self.assertIn(response.data["radicado"], response.data["whatsapp_url"])
         self.assertEqual(CotizacionMotocicleta.objects.count(), 1)
 
     def test_cp_hu10_02_guarda_datos_correctos_en_bd(self):
@@ -381,6 +382,7 @@ class CotizarMotocicletaTest(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["local"]["id"], self.local.id)
         self.assertIn("https://wa.me/573001234567", response.data["whatsapp_url"])
+        self.assertIn(response.data["radicado"], response.data["whatsapp_url"])
 
     def test_cp_hu10_09_usuario_autenticado_queda_asociado(self):
         admin = make_admin(self.local)

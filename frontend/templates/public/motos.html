@@ -1030,7 +1030,7 @@
 
     function renderResumenCotizacion(moto, cotizacion) {
         const redireccionHtml = cotizacion.whatsapp_url
-            ? `<div id="cotizacionRedirectMsg" class="cat-cot-msg success">Redirigiendo a WhatsApp para continuar la atención...</div>`
+            ? `<div id="cotizacionRedirectMsg" class="cat-cot-msg success">Tu cotización está lista. Puedes continuar por WhatsApp cuando quieras.</div>`
             : `<div id="cotizacionRedirectMsg" class="cat-cot-msg">Cotización generada. Falta configurar un local para continuar por WhatsApp.</div>`;
         const whatsappHtml = cotizacion.whatsapp_url
             ? `<a class="cat-modal-cta" href="${cotizacion.whatsapp_url}" target="_blank" rel="noopener noreferrer">Continuar por WhatsApp</a>`
@@ -1087,12 +1087,6 @@
                     ${whatsappHtml}
                 </div>
             </div>`;
-
-        if (cotizacion.whatsapp_url) {
-            setTimeout(() => {
-                window.location.href = cotizacion.whatsapp_url;
-            }, 1400);
-        }
     }
 
     function cerrarModal() {
