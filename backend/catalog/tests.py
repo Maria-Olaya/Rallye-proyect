@@ -289,6 +289,10 @@ class CotizarMotocicletaTest(TestCase):
         }
 
     def test_cp_hu10_01_crea_cotizacion_con_desglose_y_radicado_sin_local(self):
+        """CP-HU10-01 · Flujo feliz · CA-01 · CA-02
+        Sin local_id el sistema calcula el desglose completo, genera un radicado
+        con prefijo COT- y retorna un WhatsApp genérico de la empresa.
+        Resultado esperado: HTTP 201 · desglose correcto · local null · whatsapp_url con número genérico."""
         with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
             response = self.client.post(self.url, self._payload_valido(), format="json")
 
@@ -299,6 +303,7 @@ class CotizarMotocicletaTest(TestCase):
         self.assertEqual(response.data["tramites_estimados"], "800000.00")
         self.assertEqual(response.data["total_estimado"], "12700000.00")
         self.assertIsNone(response.data["local"])
+        # Sin local, el sistema retorna WhatsApp genérico de la empresa
         self.assertIn("https://wa.me/573113252436", response.data["whatsapp_url"])
         self.assertIn(response.data["radicado"], response.data["whatsapp_url"])
         self.assertEqual(CotizacionMotocicleta.objects.count(), 1)
@@ -1070,3 +1075,229 @@ class ListadoAdminMotocicletasTest(TestCase):
         self.assertEqual(response.status_code, 200)
         for m in response.data:
             self.assertIn("activa", m)
+            
+            
+            
+## HU-10 · Cotizaciones de motocicletas ─────────────────────────────────────────────
+
+# En catalog/tests.py — agregar esta clase después de VisualizarCatalogoTest
+
+
+class CotizarMotocicletaTest(TestCase):
+    """
+    Cubre los criterios de aceptación de HU-10:
+      CA-01  El usuario selecciona una motocicleta y obtiene desglose de costos.
+      CA-02  Se genera un radicado único de cotización.
+      CA-03  Se envía correo si el cliente proporciona su email.
+      CA-04  El usuario es redirigido al WhatsApp del local (si aplica).
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("cotizar_moto")
+        self.local = make_local()
+        self.motocicleta = Motocicleta.objects.create(
+            referencia="FZ 150",
+            anio=2026,
+            tipo="URBANA",
+            cilindraje=150,
+            precio=Decimal("10000000.00"),
+            caracteristicas="Moto urbana para uso diario.",
+            activa=True,
+        )
+
+    def _payload_valido(self):
+        return {
+            "motocicleta_id": self.motocicleta.id,
+            "cliente_nombre": "Juan Perez",
+            "cliente_correo": "juan@test.com",
+            "cliente_telefono": "3004567890",
+            "comentario": "Deseo financiar la compra",
+        }
+
+    def test_cp_hu10_01_crea_cotizacion_con_desglose_y_radicado_sin_local(self):
+        """CP-HU10-01 · Flujo feliz · CA-01 · CA-02
+        Sin local_id el sistema calcula el desglose completo, genera un radicado
+        con prefijo COT- y retorna whatsapp_url como null.
+        Resultado esperado: HTTP 201 · desglose correcto · local null · whatsapp_url null."""
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["radicado"].startswith("COT-"))
+        self.assertEqual(response.data["precio_base"], "10000000.00")
+        self.assertEqual(response.data["impuestos_estimados"], "1900000.00")
+        self.assertEqual(response.data["tramites_estimados"], "800000.00")
+        self.assertEqual(response.data["total_estimado"], "12700000.00")
+        self.assertIsNone(response.data["local"])
+        self.assertIn("https://wa.me/573113252436", response.data["whatsapp_url"])
+        self.assertIn(response.data["radicado"], response.data["whatsapp_url"])
+        self.assertEqual(CotizacionMotocicleta.objects.count(), 1)
+
+    def test_cp_hu10_02_guarda_datos_correctos_en_bd(self):
+        """CP-HU10-02 · Integración · CA-01
+        Los datos del cliente y el desglose calculado deben persistir exactamente
+        en la base de datos tras una cotización exitosa.
+        Resultado esperado: campos en BD coinciden con el payload y el cálculo."""
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post(self.url, self._payload_valido(), format="json")
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.motocicleta, self.motocicleta)
+        self.assertIsNone(cotizacion.local)
+        self.assertEqual(cotizacion.cliente_nombre, "Juan Perez")
+        self.assertEqual(cotizacion.cliente_correo, "juan@test.com")
+        self.assertEqual(cotizacion.cliente_telefono, "3004567890")
+        self.assertEqual(cotizacion.total_estimado, Decimal("12700000.00"))
+
+    def test_cp_hu10_03_correo_se_envia_si_cliente_ingresa_email(self):
+        """CP-HU10-03 · Integración · CA-03
+        Si el cliente proporciona su correo, el sistema debe enviar exactamente
+        un email con el radicado en el asunto y marcar correo_cotizacion_enviado.
+        Resultado esperado: 1 email en outbox · correo_cotizacion_enviado=True."""
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(mail.outbox), 1)
+        correo = mail.outbox[0]
+        self.assertIn(response.data["radicado"], correo.subject)
+        self.assertEqual(correo.to, ["juan@test.com"])
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertTrue(cotizacion.correo_cotizacion_enviado)
+        self.assertIsNotNone(cotizacion.fecha_envio_cotizacion)
+
+    def test_cp_hu10_04_no_envia_correo_si_no_hay_email(self):
+        """CP-HU10-04 · Flujo alternativo · CA-03
+        Si el cliente no ingresa correo, no debe enviarse ningún email y
+        correo_cotizacion_enviado debe quedar en False.
+        Resultado esperado: outbox vacío · correo_cotizacion_enviado=False."""
+        payload = self._payload_valido()
+        payload["cliente_correo"] = ""
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(mail.outbox), 0)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertFalse(cotizacion.correo_cotizacion_enviado)
+        self.assertIsNone(cotizacion.fecha_envio_cotizacion)
+
+    def test_cp_hu10_05_motocicleta_inexistente_retorna_400(self):
+        """CP-HU10-05 · Flujo alternativo · CA-01
+        Un motocicleta_id que no existe en BD debe retornar 400 con error en
+        ese campo y no crear ninguna cotización.
+        Resultado esperado: HTTP 400 · 'motocicleta_id' en errores · BD vacía."""
+        payload = self._payload_valido()
+        payload["motocicleta_id"] = 99999
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("motocicleta_id", response.data)
+        self.assertFalse(CotizacionMotocicleta.objects.exists())
+
+    def test_cp_hu10_06_motocicleta_inactiva_retorna_400(self):
+        """CP-HU10-06 · Flujo alternativo · CA-01
+        Una motocicleta que existe pero está inactiva no puede cotizarse; el
+        sistema debe retornar 400 con el error en motocicleta_id.
+        Resultado esperado: HTTP 400 · 'motocicleta_id' en errores."""
+        self.motocicleta.activa = False
+        self.motocicleta.save(update_fields=["activa"])
+
+        response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("motocicleta_id", response.data)
+
+    def test_cp_hu10_07_local_inactivo_retorna_400_si_se_envia(self):
+        """CP-HU10-07 · Flujo alternativo · CA-04
+        Si se envía un local_id de un local marcado como inactivo, el sistema
+        debe rechazar la solicitud con 400 y el error en local_id.
+        Resultado esperado: HTTP 400 · 'local_id' en errores."""
+        self.local.activo = False
+        self.local.save(update_fields=["activo"])
+        payload = self._payload_valido()
+        payload["local_id"] = self.local.id
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("local_id", response.data)
+
+    def test_cp_hu10_08_con_local_retorna_whatsapp_del_local(self):
+        """CP-HU10-08 · Flujo feliz · CA-04
+        Cuando se envía un local_id válido, la respuesta debe incluir los datos
+        del local y una whatsapp_url con el teléfono de ese local.
+        Resultado esperado: HTTP 201 · local presente · URL contiene número del local."""
+        payload = self._payload_valido()
+        payload["local_id"] = self.local.id
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["local"]["id"], self.local.id)
+        # El local tiene teléfono '3001234567' → con prefijo Colombia: 573001234567
+        self.assertIn("https://wa.me/573001234567", response.data["whatsapp_url"])
+        self.assertIn(response.data["radicado"], response.data["whatsapp_url"])
+
+    def test_cp_hu10_09_usuario_autenticado_queda_asociado(self):
+        """CP-HU10-09 · Integración · CA-01
+        Si el request viene de un usuario autenticado, la cotización debe
+        quedar relacionada con ese usuario en la base de datos.
+        Resultado esperado: HTTP 201 · cotizacion.usuario == admin."""
+        admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(admin)}")
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.usuario, admin)
+
+    def test_cp_hu10_10_usuario_anonimo_puede_cotizar(self):
+        """CP-HU10-10 · Control de acceso · CA-01
+        El endpoint de cotización es público; un usuario no autenticado debe
+        poder cotizar y la cotización queda con usuario=None.
+        Resultado esperado: HTTP 201 · cotizacion.usuario es None."""
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertIsNone(cotizacion.usuario)
+
+    def test_cp_hu10_11_campos_texto_se_normalizan(self):
+        """CP-HU10-11 · Normalización · CA-01
+        Los campos nombre, teléfono y comentario deben guardarse sin espacios
+        al inicio o al final, independientemente de lo que envíe el cliente.
+        Resultado esperado: campos en BD sin padding de espacios."""
+        payload = self._payload_valido()
+        payload["cliente_nombre"] = "  Juan Perez  "
+        payload["cliente_telefono"] = " 3004567890 "
+        payload["comentario"] = "  Quiero entrega inmediata  "
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post(self.url, payload, format="json")
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.cliente_nombre, "Juan Perez")
+        self.assertEqual(cotizacion.cliente_telefono, "3004567890")
+        self.assertEqual(cotizacion.comentario, "Quiero entrega inmediata")
+
+    def test_cp_hu10_12_radicados_son_unicos(self):
+        """CP-HU10-12 · Unicidad · CA-02
+        Dos cotizaciones creadas en la misma sesión deben tener radicados
+        distintos, garantizando la unicidad del identificador.
+        Resultado esperado: HTTP 201 en ambas · radicados diferentes entre sí."""
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response_1 = self.client.post(self.url, self._payload_valido(), format="json")
+            response_2 = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response_1.status_code, 201)
+        self.assertEqual(response_2.status_code, 201)
+        self.assertNotEqual(response_1.data["radicado"], response_2.data["radicado"])
