@@ -403,6 +403,43 @@
     .cat-modal-cta:disabled, .cat-modal-cta.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .cat-modal-cta svg { width: 16px; height: 16px; stroke: #fff; fill: none; flex-shrink: 0; }
     .cat-modal-sede-hint { font-family: 'DM Sans', sans-serif; font-size: 0.68rem; color: #444; line-height: 1.4; }
+    .cat-cot-form { margin-top: auto; padding-top: 0.9rem; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 0.75rem; }
+    .cat-cot-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.45rem; font-weight: 800; color: #fff; text-transform: uppercase; line-height: 1; }
+    .cat-cot-sub { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #777; line-height: 1.5; }
+    .cat-cot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .cat-cot-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .cat-cot-field.full { grid-column: 1 / -1; }
+    .cat-cot-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #666; }
+    .cat-cot-input, .cat-cot-select {
+        width: 100%; background: #222; border: 1.5px solid #333; border-radius: 8px;
+        color: #ddd; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+        padding: 0.75rem 0.85rem; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cat-cot-select {
+        appearance: none; -webkit-appearance: none; padding-right: 2.2rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 14px;
+    }
+    .cat-cot-input:focus, .cat-cot-select:focus { border-color: #cc0000; box-shadow: 0 0 0 3px rgba(204,0,0,0.08); }
+    .cat-cot-actions { display: flex; gap: 0.7rem; margin-top: 0.2rem; }
+    .cat-cot-secondary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+        width: 100%; padding: 0.82rem 1.1rem; background: transparent; color: #bbb;
+        border: 1px solid #333; border-radius: 8px; font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .cat-cot-secondary:hover { border-color: #666; color: #fff; background: #202020; }
+    .cat-cot-msg { min-height: 1.15rem; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; line-height: 1.4; }
+    .cat-cot-msg.error { color: #ff6b6b; }
+    .cat-cot-msg.success { color: #83d483; }
+    .cat-cot-summary { margin-top: auto; padding-top: 0.9rem; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 0.8rem; }
+    .cat-cot-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .cat-cot-summary-card { background: #202020; border: 1px solid #2f2f2f; border-radius: 10px; padding: 0.8rem 0.9rem; }
+    .cat-cot-summary-card.full { grid-column: 1 / -1; }
+    .cat-cot-summary-label { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #666; margin-bottom: 0.2rem; }
+    .cat-cot-summary-value { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 1.02rem; font-weight: 700; color: #f1f1f1; }
+    .cat-cot-summary-total { color: #cc0000; font-size: 1.25rem; }
 
     @media (max-width: 640px) {
         .cat-modal-inner { grid-template-columns: 1fr; }
@@ -410,6 +447,8 @@
         .cat-modal-moto-img { max-height: 150px; }
         .cat-modal-right { padding: 1.2rem 1.1rem 1.4rem; }
         .cat-modal-nombre { font-size: 1.5rem; }
+        .cat-cot-grid, .cat-cot-summary-grid { grid-template-columns: 1fr; }
+        .cat-cot-actions { flex-direction: column; }
         .cat-grid { grid-template-columns: 1fr; }
         .cat-cc-row { gap: 0.35rem; }
         .cat-cc-input { width: 75px; }
@@ -516,9 +555,11 @@
 <script>
     const API_MOTOS = '/api/catalog/motocicletas/';
     const API_SEDES = '/api/core/sedes/';
+    const API_COTIZAR = '/api/catalog/cotizaciones/motocicletas/';
 
     let todasLasMotos = [];
     let todasLasSedes = [];
+    let motoActual = null;
 
     /* ── Estado de filtros ── */
     const filtros = {
@@ -724,7 +765,7 @@
     /* ── Render ── */
     function buildSelectOptions() {
         if (!todasLasSedes.length) {
-            return `<option value="" disabled selected>Sin sedes disponibles</option>`;
+            return `<option value="" selected>Sin sedes disponibles</option>`;
         }
         let html = `<option value="" disabled selected>Selecciona local cercano...</option>`;
         todasLasSedes.forEach(sede => {
@@ -784,9 +825,8 @@
     }
 
     /* ── Modal ── */
-    function abrirModal(id) {
-        const moto = todasLasMotos.find(m => m.id === id);
-        if (!moto) return;
+    function renderModalFormulario(moto) {
+        motoActual = moto;
 
         const imgHtml = moto.imagen_url
             ? `<img class="cat-modal-moto-img" src="${moto.imagen_url}" alt="${moto.referencia}">`
@@ -804,6 +844,26 @@
 
         const precioTexto = (moto.precio_display || '').replace(/^\$\s*/, '');
         const selectOpts  = buildSelectOptions();
+        const haySedes = todasLasSedes.some(sede => sede.locales && sede.locales.length);
+        const sedeHint = haySedes
+            ? 'Selecciona el local más cercano a ti para continuar con la cotización.'
+            : '';
+        const sedeSection = haySedes
+            ? `
+                        <div class="cat-cot-field full">
+                            <span class="cat-modal-sede-label">
+                                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                ¿En qué sede te encuentras?
+                            </span>
+                            <select class="cat-cot-select" id="sedeSelect" onchange="onSedeChange()">
+                                ${selectOpts}
+                            </select>
+                            <span class="cat-modal-sede-hint">${sedeHint}</span>
+                        </div>`
+            : '';
 
         modalContent.innerHTML = `
             <div class="cat-modal-left">
@@ -837,28 +897,59 @@
                 </div>
                 <p class="cat-modal-desc-title">Especificaciones técnicas</p>
                 <p class="cat-modal-desc-text">${moto.caracteristicas || 'Sin descripción disponible.'}</p>
-                <div class="cat-modal-sede-wrap">
-                    <span class="cat-modal-sede-label">
-                        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                            <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        ¿En qué sede te encuentras?
-                    </span>
-                    <select class="cat-modal-select" id="sedeSelect" onchange="onSedeChange()">
-                        ${selectOpts}
-                    </select>
-                    <span class="cat-modal-sede-hint">Selecciona el local más cercano a ti para continuar con la cotización.</span>
-                    <a id="btnCotizar" href="/agendamientos/" class="cat-modal-cta disabled" onclick="return validarSede(event)">
+                <div class="cat-cot-form">
+                    <h3 class="cat-cot-title">Cotizar motocicleta</h3>
+                    <p class="cat-cot-sub">Completa tus datos para generar el valor total estimado, el radicado y continuar la atención.</p>
+                    <div class="cat-cot-grid">
+                        <div class="cat-cot-field">
+                            <label class="cat-cot-label" for="tipoDocumento">Tipo de documento</label>
+                            <select class="cat-cot-select" id="tipoDocumento">
+                                <option value="CC">Cédula de ciudadanía</option>
+                                <option value="CE">Cédula de extranjería</option>
+                                <option value="PP">Pasaporte</option>
+                            </select>
+                        </div>
+                        <div class="cat-cot-field">
+                            <label class="cat-cot-label" for="numeroDocumento">Número de documento</label>
+                            <input class="cat-cot-input" id="numeroDocumento" type="text" placeholder="Ej: 1023456789">
+                        </div>
+                        <div class="cat-cot-field full">
+                            <label class="cat-cot-label" for="nombreCompleto">Nombre completo</label>
+                            <input class="cat-cot-input" id="nombreCompleto" type="text" placeholder="Ej: Juan Pérez">
+                        </div>
+                        <div class="cat-cot-field">
+                            <label class="cat-cot-label" for="telefonoCotizacion">Número de teléfono</label>
+                            <input class="cat-cot-input" id="telefonoCotizacion" type="text" placeholder="Ej: 3001234567">
+                        </div>
+                        <div class="cat-cot-field">
+                            <label class="cat-cot-label" for="correoCotizacion">Correo electrónico</label>
+                            <input class="cat-cot-input" id="correoCotizacion" type="email" placeholder="correo@ejemplo.com">
+                        </div>
+                        ${sedeSection}
+                        <div class="cat-cot-field full">
+                            <label class="cat-cot-label" for="comentarioCotizacion">Comentario</label>
+                            <input class="cat-cot-input" id="comentarioCotizacion" type="text" placeholder="Ej: Quiero financiar esta motocicleta">
+                        </div>
+                    </div>
+                    <div id="cotizacionMsg" class="cat-cot-msg"></div>
+                    <div class="cat-cot-actions">
+                    <button id="btnCotizar" type="button" class="cat-modal-cta" onclick="enviarCotizacion()">
                         <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 11l3 3L22 4"/>
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                         </svg>
                         Cotizar moto
-                    </a>
+                    </button>
+                    <button type="button" class="cat-cot-secondary" onclick="cerrarModal()">Cancelar</button>
+                    </div>
                 </div>
             </div>`;
+    }
 
+    function abrirModal(id) {
+        const moto = todasLasMotos.find(m => m.id === id);
+        if (!moto) return;
+        renderModalFormulario(moto);
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
     }
@@ -867,24 +958,141 @@
         const sel = document.getElementById('sedeSelect');
         const btn = document.getElementById('btnCotizar');
         if (!sel || !btn) return;
-        if (sel.value) {
-            btn.classList.remove('disabled');
-            btn.href = `/agendamientos/?local=${sel.value}`;
-        } else {
-            btn.classList.add('disabled');
-            btn.href = '/agendamientos/';
+        if (!todasLasSedes.some(sede => sede.locales && sede.locales.length)) {
+            return;
         }
     }
 
-    function validarSede(e) {
+    function setCotizacionMsg(message, type = '') {
+        const box = document.getElementById('cotizacionMsg');
+        if (!box) return;
+        box.className = `cat-cot-msg ${type}`.trim();
+        box.textContent = message;
+    }
+
+    function validarFormularioCotizacion() {
+        const nombre = document.getElementById('nombreCompleto')?.value.trim();
+        const telefono = document.getElementById('telefonoCotizacion')?.value.trim();
+        const correo = document.getElementById('correoCotizacion')?.value.trim();
+        const documento = document.getElementById('numeroDocumento')?.value.trim();
+        if (!documento) return 'Ingresa el numero de documento.';
+        if (!nombre) return 'Ingresa el nombre completo.';
+        if (!telefono) return 'Ingresa el numero de telefono.';
+        if (!correo) return 'Ingresa el correo electronico.';
         const sel = document.getElementById('sedeSelect');
-        if (!sel || !sel.value) {
-            e.preventDefault();
-            sel.style.borderColor = '#cc0000';
-            sel.focus();
-            return false;
+        if (todasLasSedes.some(sede => sede.locales && sede.locales.length) && (!sel || !sel.value)) {
+            return 'Selecciona un local para continuar.';
         }
-        return true;
+        return '';
+    }
+
+    async function enviarCotizacion() {
+        if (!motoActual) return;
+        const error = validarFormularioCotizacion();
+        if (error) {
+            setCotizacionMsg(error, 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btnCotizar');
+        const payload = {
+            motocicleta_id: motoActual.id,
+            cliente_nombre: document.getElementById('nombreCompleto')?.value.trim() || '',
+            cliente_correo: document.getElementById('correoCotizacion')?.value.trim() || '',
+            cliente_telefono: document.getElementById('telefonoCotizacion')?.value.trim() || '',
+            comentario: document.getElementById('comentarioCotizacion')?.value.trim() || '',
+        };
+        const localId = document.getElementById('sedeSelect')?.value;
+        if (localId) payload.local_id = Number(localId);
+
+        btn.disabled = true;
+        setCotizacionMsg('Generando cotizacion...', '');
+
+        try {
+            const res = await fetch(API_COTIZAR, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                const firstError = Object.values(data)[0];
+                const msg = Array.isArray(firstError) ? firstError[0] : (firstError || 'No se pudo generar la cotizacion.');
+                throw new Error(msg);
+            }
+            renderResumenCotizacion(motoActual, data);
+        } catch (err) {
+            setCotizacionMsg(err.message || 'No se pudo generar la cotizacion.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function renderResumenCotizacion(moto, cotizacion) {
+        const redireccionHtml = cotizacion.whatsapp_url
+            ? `<div id="cotizacionRedirectMsg" class="cat-cot-msg success">Redirigiendo a WhatsApp para continuar la atención...</div>`
+            : `<div id="cotizacionRedirectMsg" class="cat-cot-msg">Cotización generada. Falta configurar un local para continuar por WhatsApp.</div>`;
+        const whatsappHtml = cotizacion.whatsapp_url
+            ? `<a class="cat-modal-cta" href="${cotizacion.whatsapp_url}" target="_blank" rel="noopener noreferrer">Continuar por WhatsApp</a>`
+            : `<button type="button" class="cat-cot-secondary" onclick="renderModalFormulario(motoActual)">Volver al formulario</button>`;
+
+        modalContent.innerHTML = `
+            <div class="cat-modal-left">
+                ${moto.imagen_url
+                    ? `<img class="cat-modal-moto-img" src="${moto.imagen_url}" alt="${moto.referencia}">`
+                    : `<div class="cat-modal-moto-placeholder">${placeholderCard}</div>`}
+                <div class="cat-modal-left-bottom">
+                    <span class="cat-modal-precio-label">Radicado generado</span>
+                    <div><span class="cat-modal-precio-val" style="font-size:1.4rem;">${cotizacion.radicado}</span></div>
+                    <span class="cat-modal-precio-base">Cotizacion creada correctamente</span>
+                </div>
+            </div>
+            <div class="cat-modal-right">
+                <span class="cat-modal-tipo-badge">${moto.tipo_display}</span>
+                <h2 class="cat-modal-nombre">Resumen de cotizacion</h2>
+                <p class="cat-modal-anio-cc">Yamaha ${moto.referencia} · Modelo ${moto.anio}</p>
+                <div class="cat-cot-summary">
+                    <div id="cotizacionMsg" class="cat-cot-msg success">La cotizacion fue generada exitosamente.</div>
+                    ${redireccionHtml}
+                    <div class="cat-cot-summary-grid">
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Precio base</span>
+                            <span class="cat-cot-summary-value">$ ${Number(cotizacion.precio_base).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Impuestos</span>
+                            <span class="cat-cot-summary-value">$ ${Number(cotizacion.impuestos_estimados).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Tramites</span>
+                            <span class="cat-cot-summary-value">$ ${Number(cotizacion.tramites_estimados).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Correo enviado</span>
+                            <span class="cat-cot-summary-value">${cotizacion.correo_cotizacion_enviado ? 'Si' : 'No'}</span>
+                        </div>
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Radicado</span>
+                            <span class="cat-cot-summary-value">${cotizacion.radicado}</span>
+                        </div>
+                        <div class="cat-cot-summary-card">
+                            <span class="cat-cot-summary-label">Local</span>
+                            <span class="cat-cot-summary-value">${cotizacion.local ? cotizacion.local.nombre : 'Pendiente'}</span>
+                        </div>
+                        <div class="cat-cot-summary-card full">
+                            <span class="cat-cot-summary-label">Total estimado</span>
+                            <span class="cat-cot-summary-value cat-cot-summary-total">$ ${Number(cotizacion.total_estimado).toLocaleString('es-CO')}</span>
+                        </div>
+                    </div>
+                    ${whatsappHtml}
+                </div>
+            </div>`;
+
+        if (cotizacion.whatsapp_url) {
+            setTimeout(() => {
+                window.location.href = cotizacion.whatsapp_url;
+            }, 1400);
+        }
     }
 
     function cerrarModal() {

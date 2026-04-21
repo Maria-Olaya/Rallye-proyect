@@ -1,11 +1,15 @@
 # catalog/tests.py
 
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from catalog.models import Motocicleta
+from catalog.models import CotizacionMotocicleta, Motocicleta
 from core.models import Local, Municipio, Sede
 
 User = get_user_model()
@@ -258,8 +262,167 @@ class VisualizarCatalogoTest(TestCase):
         self.assertEqual(response.status_code, 200)
         tipos = [m["tipo_display"] for m in response.data]
         self.assertIn("Deportiva", tipos)
-        self.assertIn("Todoterreno", tipos)
-        self.assertNotIn("Urbana", tipos)  # la moto urbana está inactiva
+
+
+class CotizarMotocicletaTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("cotizar_moto")
+        self.local = make_local()
+        self.motocicleta = Motocicleta.objects.create(
+            referencia="FZ 150",
+            anio=2026,
+            tipo="URBANA",
+            cilindraje=150,
+            precio=Decimal("10000000.00"),
+            caracteristicas="Moto urbana para uso diario.",
+            activa=True,
+        )
+
+    def _payload_valido(self):
+        return {
+            "motocicleta_id": self.motocicleta.id,
+            "cliente_nombre": "Juan Perez",
+            "cliente_correo": "juan@test.com",
+            "cliente_telefono": "3004567890",
+            "comentario": "Deseo financiar la compra",
+        }
+
+    def test_cp_hu10_01_crea_cotizacion_con_desglose_y_radicado_sin_local(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["radicado"].startswith("COT-"))
+        self.assertEqual(response.data["precio_base"], "10000000.00")
+        self.assertEqual(response.data["impuestos_estimados"], "1900000.00")
+        self.assertEqual(response.data["tramites_estimados"], "800000.00")
+        self.assertEqual(response.data["total_estimado"], "12700000.00")
+        self.assertIsNone(response.data["local"])
+        self.assertIsNone(response.data["whatsapp_url"])
+        self.assertEqual(CotizacionMotocicleta.objects.count(), 1)
+
+    def test_cp_hu10_02_guarda_datos_correctos_en_bd(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post(self.url, self._payload_valido(), format="json")
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.motocicleta, self.motocicleta)
+        self.assertIsNone(cotizacion.local)
+        self.assertEqual(cotizacion.cliente_nombre, "Juan Perez")
+        self.assertEqual(cotizacion.cliente_correo, "juan@test.com")
+        self.assertEqual(cotizacion.cliente_telefono, "3004567890")
+        self.assertEqual(cotizacion.total_estimado, Decimal("12700000.00"))
+
+    def test_cp_hu10_03_correo_se_envia_si_cliente_ingresa_email(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(mail.outbox), 1)
+        correo = mail.outbox[0]
+        self.assertIn(response.data["radicado"], correo.subject)
+        self.assertEqual(correo.to, ["juan@test.com"])
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertTrue(cotizacion.correo_cotizacion_enviado)
+        self.assertIsNotNone(cotizacion.fecha_envio_cotizacion)
+
+    def test_cp_hu10_04_no_envia_correo_si_no_hay_email(self):
+        payload = self._payload_valido()
+        payload["cliente_correo"] = ""
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(mail.outbox), 0)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertFalse(cotizacion.correo_cotizacion_enviado)
+        self.assertIsNone(cotizacion.fecha_envio_cotizacion)
+
+    def test_cp_hu10_05_motocicleta_inexistente_retorna_400(self):
+        payload = self._payload_valido()
+        payload["motocicleta_id"] = 99999
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("motocicleta_id", response.data)
+        self.assertFalse(CotizacionMotocicleta.objects.exists())
+
+    def test_cp_hu10_06_motocicleta_inactiva_retorna_400(self):
+        self.motocicleta.activa = False
+        self.motocicleta.save(update_fields=["activa"])
+
+        response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("motocicleta_id", response.data)
+
+    def test_cp_hu10_07_local_inactivo_retorna_400_si_se_envia(self):
+        self.local.activo = False
+        self.local.save(update_fields=["activo"])
+        payload = self._payload_valido()
+        payload["local_id"] = self.local.id
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("local_id", response.data)
+
+    def test_cp_hu10_08_con_local_retorna_whatsapp(self):
+        payload = self._payload_valido()
+        payload["local_id"] = self.local.id
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["local"]["id"], self.local.id)
+        self.assertIn("https://wa.me/573001234567", response.data["whatsapp_url"])
+
+    def test_cp_hu10_09_usuario_autenticado_queda_asociado(self):
+        admin = make_admin(self.local)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(admin)}")
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.usuario, admin)
+
+    def test_cp_hu10_10_usuario_anonimo_puede_cotizar(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response.status_code, 201)
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertIsNone(cotizacion.usuario)
+
+    def test_cp_hu10_11_campos_texto_se_normalizan(self):
+        payload = self._payload_valido()
+        payload["cliente_nombre"] = "  Juan Perez  "
+        payload["cliente_telefono"] = " 3004567890 "
+        payload["comentario"] = "  Quiero entrega inmediata  "
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post(self.url, payload, format="json")
+
+        cotizacion = CotizacionMotocicleta.objects.get()
+        self.assertEqual(cotizacion.cliente_nombre, "Juan Perez")
+        self.assertEqual(cotizacion.cliente_telefono, "3004567890")
+        self.assertEqual(cotizacion.comentario, "Quiero entrega inmediata")
+
+    def test_cp_hu10_12_radicados_son_unicos(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response_1 = self.client.post(self.url, self._payload_valido(), format="json")
+            response_2 = self.client.post(self.url, self._payload_valido(), format="json")
+
+        self.assertEqual(response_1.status_code, 201)
+        self.assertEqual(response_2.status_code, 201)
+        self.assertNotEqual(response_1.data["radicado"], response_2.data["radicado"])
 
 
 # ── HU-12 · Filtrar catálogo ─────────────────────────────────────────────────

@@ -6,12 +6,24 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.models import Motocicleta
-from catalog.serializers import MotocicletaEstadoSerializer, MotocicletaListSerializer, MotocicletaSerializer
+from catalog.models import CotizacionMotocicleta, Motocicleta
+from catalog.serializers import (
+    CotizacionMotocicletaResponseSerializer,
+    CotizarMotocicletaSerializer,
+    MotocicletaEstadoSerializer,
+    MotocicletaListSerializer,
+    MotocicletaSerializer,
+)
+from catalog.services import (
+    calcular_desglose_cotizacion,
+    construir_enlace_whatsapp,
+    enviar_cotizacion_por_correo,
+    generar_radicado_cotizacion,
+)
 
 
 class AgregarMotocicletaView(APIView):
-    """POST /api/catalog/motocicletas/agregar/ — HU-13"""
+    """POST /api/catalog/motocicletas/agregar/ - HU-13"""
 
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -22,7 +34,7 @@ class AgregarMotocicletaView(APIView):
             motocicleta = serializer.save(activa=True)
             return Response(
                 {
-                    "mensaje": "Motocicleta agregada al catálogo correctamente.",
+                    "mensaje": "Motocicleta agregada al catalogo correctamente.",
                     "id": motocicleta.id,
                 },
                 status=status.HTTP_201_CREATED,
@@ -30,14 +42,52 @@ class AgregarMotocicletaView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ── HU-14 ─────────────────────────────────────────────────────────────────────
-class EditarMotocicletaView(APIView):
-    """
-    GET   /api/catalog/motocicletas/<pk>/editar/  — Carga datos actuales
-    PUT   /api/catalog/motocicletas/<pk>/editar/  — Actualiza todos los campos
-    PATCH /api/catalog/motocicletas/<pk>/editar/  — Actualiza campos parcialmente
-    """
+class CotizarMotocicletaView(APIView):
+    """POST /api/catalog/cotizaciones/motocicletas/ - HU-10"""
 
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = CotizarMotocicletaSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        motocicleta = serializer.context["motocicleta"]
+        local = serializer.context.get("local")
+        desglose = calcular_desglose_cotizacion(motocicleta.precio)
+        radicado = generar_radicado_cotizacion()
+
+        cotizacion = CotizacionMotocicleta.objects.create(
+            usuario=request.user if request.user.is_authenticated else None,
+            motocicleta=motocicleta,
+            local=local,
+            radicado=radicado,
+            precio_base=desglose["precio_base"],
+            impuestos_estimados=desglose["impuestos_estimados"],
+            tramites_estimados=desglose["tramites_estimados"],
+            total_estimado=desglose["total_estimado"],
+            cliente_nombre=serializer.validated_data.get("cliente_nombre", ""),
+            cliente_correo=serializer.validated_data.get("cliente_correo", ""),
+            cliente_telefono=serializer.validated_data.get("cliente_telefono", ""),
+            comentario=serializer.validated_data.get("comentario", ""),
+        )
+
+        correo_enviado = enviar_cotizacion_por_correo(cotizacion)
+        whatsapp_url = None
+        if local:
+            whatsapp_url = construir_enlace_whatsapp(
+                local.telefono,
+                cotizacion.radicado,
+                f"{motocicleta.marca} {motocicleta.referencia} {motocicleta.anio}",
+            )
+
+        response_data = CotizacionMotocicletaResponseSerializer(cotizacion).data
+        response_data["whatsapp_url"] = whatsapp_url
+        response_data["correo_cotizacion_enviado"] = correo_enviado
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class EditarMotocicletaView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -92,7 +142,12 @@ class EditarMotocicletaView(APIView):
                 {"error": "Motocicleta no encontrada."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = MotocicletaSerializer(moto, data=request.data, partial=True, context={"request": request})
+        serializer = MotocicletaSerializer(
+            moto,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -105,11 +160,8 @@ class EditarMotocicletaView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-
-
 class CatalogoMotocicletasView(APIView):
-    """GET /api/catalog/motocicletas/ — HU-11 + HU-12"""
+    """GET /api/catalog/motocicletas/ - HU-11 + HU-12"""
 
     permission_classes = [AllowAny]
 
@@ -125,7 +177,7 @@ class CatalogoMotocicletasView(APIView):
             motos = motos.filter(referencia__icontains=referencia)
 
         if tipo:
-            tipos_validos = [t[0] for t in Motocicleta.TipoMotocicleta.choices]
+            tipos_validos = [opcion[0] for opcion in Motocicleta.TipoMotocicleta.choices]
             if tipo not in tipos_validos:
                 return Response([], status=status.HTTP_200_OK)
             motos = motos.filter(tipo=tipo)
@@ -140,14 +192,7 @@ class CatalogoMotocicletasView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# ── HU-15 ─────────────────────────────────────────────────────────────────────
 class DesactivarMotocicletaView(APIView):
-    """
-    PATCH /api/catalog/motocicletas/<pk>/desactivar/ — HU-15
-    Desactiva una motocicleta del catálogo público.
-    Solo accesible por usuarios autenticados (administrador del local).
-    """
-
     permission_classes = [IsAuthenticated]
 
     def _get_motocicleta(self, pk):
@@ -180,14 +225,7 @@ class DesactivarMotocicletaView(APIView):
         )
 
 
-# ── HU-15 (activar) ───────────────────────────────────────────────────────────
 class ActivarMotocicletaView(APIView):
-    """
-    PATCH /api/catalog/motocicletas/<pk>/activar/ — HU-15
-    Reactiva una motocicleta del catálogo público.
-    Solo accesible por usuarios autenticados (administrador del local).
-    """
-
     permission_classes = [IsAuthenticated]
 
     def _get_motocicleta(self, pk):
@@ -220,14 +258,7 @@ class ActivarMotocicletaView(APIView):
         )
 
 
-# ── HU-15 (listado admin — todas las motos) ───────────────────────────────────
 class ListadoAdminMotocicletasView(APIView):
-    """
-    GET /api/catalog/motocicletas/admin/ — HU-15
-    Retorna todas las motocicletas (activas e inactivas) para el panel admin.
-    Solo accesible por usuarios autenticados.
-    """
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
