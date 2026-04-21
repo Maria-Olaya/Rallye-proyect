@@ -3,6 +3,8 @@
 from django.conf import settings
 from django.db import models
 
+from core.models import Local
+
 
 class Motocicleta(models.Model):
     class TipoMotocicleta(models.TextChoices):
@@ -10,7 +12,7 @@ class Motocicleta(models.Model):
         URBANA = "URBANA", "Urbana"
         TODOTERRENO = "TODOTERRENO", "Todoterreno"
         CUATRIMOTOS = "CUATRIMOTOS", "Cuatrimotos"
-        AUTOMATICA = "AUTOMATICA", "Automáticas y Semiautomáticas"
+        AUTOMATICA = "AUTOMATICA", "Automaticas y Semiautomaticas"
 
     marca = models.CharField(max_length=80, default="Yamaha", editable=False)
     referencia = models.CharField(max_length=80)
@@ -47,14 +49,40 @@ class InteresRepuesto(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.usuario} — {self.repuesto} ({self.created_at.date()})"
+        return f"{self.usuario} - {self.repuesto} ({self.created_at.date()})"
 
 
 class CotizacionMotocicleta(models.Model):
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     motocicleta = models.ForeignKey(Motocicleta, on_delete=models.PROTECT)
+    local = models.ForeignKey(
+        Local,
+        on_delete=models.PROTECT,
+        related_name="cotizaciones_motocicletas",
+        null=True,
+        blank=True,
+    )
+    radicado = models.CharField(max_length=30, unique=True, null=True, blank=True)
+    precio_base = models.DecimalField(max_digits=12, decimal_places=2)
+    impuestos_estimados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tramites_estimados = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_estimado = models.DecimalField(max_digits=12, decimal_places=2)
+    cliente_nombre = models.CharField(max_length=120, blank=True, default="")
+    cliente_correo = models.EmailField(blank=True, default="")
+    cliente_telefono = models.CharField(max_length=20, blank=True, default="")
+    correo_cotizacion_enviado = models.BooleanField(default=False)
+    fecha_envio_cotizacion = models.DateTimeField(null=True, blank=True)
+    error_envio_cotizacion = models.TextField(blank=True, default="")
     comentario = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
     def __str__(self):
-        return f"Cotización {self.motocicleta} — {self.usuario} ({self.created_at.date()})"
+        return f"{self.radicado or 'SIN-RADICADO'} - {self.motocicleta}"

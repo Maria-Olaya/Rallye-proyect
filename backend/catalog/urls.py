@@ -1,16 +1,19 @@
 # catalog/urls.py
 
 from django.urls import path
+
 from catalog.views import (
-    AgregarMotocicletaView,
     ActivarMotocicletaView,
+    AgregarMotocicletaView,
     CatalogoMotocicletasView,
+    CotizarMotocicletaView,
     DesactivarMotocicletaView,
     EditarMotocicletaView,
     ListadoAdminMotocicletasView,
 )
 
 urlpatterns = [
+    path("cotizaciones/motocicletas/", CotizarMotocicletaView.as_view(), name="cotizar_moto"),
     path("motocicletas/agregar/", AgregarMotocicletaView.as_view(), name="agregar_moto"),
     path("motocicletas/admin/", ListadoAdminMotocicletasView.as_view(), name="admin_motos"),
     path("motocicletas/<int:pk>/editar/", EditarMotocicletaView.as_view(), name="editar_moto"),
