@@ -73,13 +73,12 @@ class CotizarMotocicletaView(APIView):
         )
 
         correo_enviado = enviar_cotizacion_por_correo(cotizacion)
-        whatsapp_url = None
-        if local:
-            whatsapp_url = construir_enlace_whatsapp(
-                local.telefono,
-                cotizacion.radicado,
-                f"{motocicleta.marca} {motocicleta.referencia} {motocicleta.anio}",
-            )
+        whatsapp_url = construir_enlace_whatsapp(
+            local.telefono if local else "",
+            cotizacion.radicado,
+            f"{motocicleta.marca} {motocicleta.referencia} {motocicleta.anio}",
+            cotizacion.total_estimado,
+        )
 
         response_data = CotizacionMotocicletaResponseSerializer(cotizacion).data
         response_data["whatsapp_url"] = whatsapp_url

@@ -11,6 +11,7 @@ from catalog.models import CotizacionMotocicleta
 IMPUESTO_RATE = Decimal("0.19")
 TRAMITES_RATE = Decimal("0.08")
 MONEY_STEP = Decimal("0.01")
+WHATSAPP_FALLBACK_NUMBER = "573113252436"
 
 
 def _money(value: Decimal) -> Decimal:
@@ -39,13 +40,24 @@ def calcular_desglose_cotizacion(precio_base: Decimal) -> dict[str, Decimal]:
     }
 
 
-def construir_enlace_whatsapp(telefono: str, radicado: str, nombre_motocicleta: str) -> str:
+def construir_enlace_whatsapp(
+    telefono: str,
+    radicado: str,
+    nombre_motocicleta: str,
+    total_estimado: Decimal,
+) -> str:
     numero = re.sub(r"\D", "", telefono or "")
+    if not numero:
+        numero = WHATSAPP_FALLBACK_NUMBER
     if len(numero) == 10:
         numero = f"57{numero}"
 
     mensaje = (
-        f"Hola, quiero continuar la atencion de mi cotizacion {radicado} para la motocicleta {nombre_motocicleta}."
+        "Hola, realice una cotizacion por su pagina y me interesa conocer mas "
+        "y formalizar el proceso.\n\n"
+        f"Radicado: {radicado}\n"
+        f"Motocicleta: {nombre_motocicleta}\n"
+        f"Total estimado: ${total_estimado}"
     )
     return f"https://wa.me/{numero}?text={quote(mensaje)}"
 
