@@ -1,0 +1,997 @@
+{% extends "base.html" %}
+{% block title %}Repuestos | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════════════
+   PÁGINA REPUESTOS — Flujo guiado 3 pasos
+   Paso 1: Modelo de moto  (datos reales de BD)
+   Paso 2: Año del modelo  (datos reales de BD)
+   Paso 3: Repuesto buscado (texto libre)
+   + Registro estadístico al consultar
+══════════════════════════════════════════════════════ */
+:root {
+    --red:#cc0000; --red-h:#b30000;
+    --bg:#0a0a0a; --surface:#111; --surface2:#181818;
+    --border:#1e1e1e; --border2:#252525;
+    --muted:#888; --muted2:#444;
+}
+
+.rep-page { min-height:calc(100vh - 64px); background:var(--bg); padding-bottom:5rem; }
+
+/* Hero */
+.rep-hero {
+    background:linear-gradient(135deg,#0a0a0a 55%,#1a0000 100%);
+    border-bottom:3px solid var(--red);
+    padding:3.5rem 2rem 3rem; text-align:center;
+    position:relative; overflow:hidden;
+}
+.rep-hero::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 120%,rgba(204,0,0,.14) 0%,transparent 68%);
+    pointer-events:none;
+}
+.rep-hero-eyebrow {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.72rem; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase;
+    color:var(--red); margin-bottom:.55rem;
+}
+.rep-hero-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:clamp(2.8rem,6vw,5rem); font-weight:800;
+    color:#fff; line-height:.92;
+    text-transform:uppercase; margin-bottom:1rem;
+}
+.rep-hero-title em { font-style:normal; color:var(--red); }
+.rep-hero-desc {
+    font-family:'DM Sans',sans-serif;
+    font-size:.95rem; color:var(--muted);
+    max-width:520px; margin:0 auto; line-height:1.6;
+}
+
+/* Stepper */
+.rep-stepper-wrap { width:min(100%,720px); margin:2.5rem auto 0; padding:0 1.5rem; }
+.rep-stepper { display:flex; align-items:center; }
+.rep-step { display:flex; align-items:center; gap:.6rem; flex:1; }
+.rep-step-num {
+    width:32px; height:32px; border-radius:50%;
+    border:2px solid var(--border2);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.85rem; font-weight:800; color:var(--muted2);
+    flex-shrink:0; transition:all .3s;
+}
+.rep-step-label {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.7rem; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted2); transition:color .3s; white-space:nowrap;
+}
+.rep-step-line { flex:1; height:2px; background:var(--border2); margin:0 .5rem; transition:background .3s; }
+.rep-step.active .rep-step-num  { border-color:var(--red); background:var(--red); color:#fff; }
+.rep-step.active .rep-step-label{ color:#fff; }
+.rep-step.done   .rep-step-num  { border-color:#2a6e2a; background:#2a6e2a; color:#fff; }
+.rep-step.done   .rep-step-label{ color:#4caf50; }
+.rep-step-line.done { background:#2a6e2a; }
+
+/* Layout */
+.rep-layout {
+    width:min(100%,1160px); margin:2.5rem auto 0;
+    padding:0 1.5rem;
+    display:grid; grid-template-columns:1fr 400px; gap:2rem; align-items:start;
+}
+
+/* Panel izquierdo */
+.rep-panel { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.2rem 2rem 2.4rem; }
+.rep-screen { display:none; }
+.rep-screen.active { display:block; }
+
+.rep-screen-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1.4rem; font-weight:800; color:#fff;
+    text-transform:uppercase; letter-spacing:.04em; margin-bottom:.3rem;
+}
+.rep-screen-sub {
+    font-family:'DM Sans',sans-serif;
+    font-size:.82rem; color:var(--muted); margin-bottom:1.8rem; line-height:1.5;
+}
+
+/* Breadcrumb chips */
+.rep-breadcrumb { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1.4rem; }
+.rep-bc-chip {
+    display:inline-flex; align-items:center; gap:.35rem;
+    background:rgba(204,0,0,.1); border:1px solid rgba(204,0,0,.25);
+    border-radius:999px; padding:.22rem .75rem;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.68rem; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--red);
+}
+.rep-bc-chip button {
+    background:none; border:none; color:var(--red);
+    font-size:.75rem; cursor:pointer; padding:0; line-height:1; opacity:.7;
+}
+.rep-bc-chip button:hover { opacity:1; }
+
+/* Grid de opciones */
+.rep-options-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr));
+    gap:.7rem; margin-bottom:1.5rem;
+}
+.rep-option-btn {
+    padding:.85rem .7rem;
+    background:var(--surface2); border:1.5px solid var(--border2);
+    border-radius:10px; color:#ccc;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.95rem; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase;
+    cursor:pointer; text-align:center; transition:all .15s;
+}
+.rep-option-btn:hover { border-color:var(--red); color:#fff; background:#1d1d1d; }
+.rep-option-btn.selected { border-color:var(--red); background:rgba(204,0,0,.1); color:#fff; }
+
+/* Campo de repuesto libre */
+.rep-field { margin-bottom:1.4rem; }
+.rep-label {
+    display:block; font-family:'Barlow Condensed',sans-serif;
+    font-size:.78rem; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:.5rem;
+}
+.rep-label span { color:var(--red); }
+.rep-input {
+    width:100%; background:var(--surface2);
+    border:1.5px solid var(--border2); border-radius:10px;
+    color:#e0e0e0; font-family:'DM Sans',sans-serif;
+    font-size:.9rem; padding:.8rem 1rem; outline:none;
+    transition:border-color .2s;
+}
+.rep-input::placeholder { color:var(--muted2); }
+.rep-input:focus { border-color:var(--red); }
+.rep-input.error { border-color:var(--red); box-shadow:0 0 0 3px rgba(204,0,0,.12); }
+.rep-field-error {
+    font-family:'DM Sans',sans-serif; font-size:.72rem; color:#ff4444;
+    margin-top:.35rem; display:none;
+}
+.rep-field-error.visible { display:block; }
+
+/* Select sede */
+.rep-select {
+    width:100%; background:var(--surface2);
+    border:1.5px solid var(--border2); border-radius:10px;
+    color:#e0e0e0; font-family:'DM Sans',sans-serif;
+    font-size:.9rem; padding:.8rem 2.2rem .8rem 1rem; outline:none;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right .9rem center; background-size:14px;
+    cursor:pointer; transition:border-color .2s;
+}
+.rep-select:focus { border-color:var(--red); }
+.rep-select option { background:#181818; color:#e0e0e0; }
+.rep-select option:disabled { color:#444; }
+.rep-select.error { border-color:var(--red); box-shadow:0 0 0 3px rgba(204,0,0,.12); }
+
+/* Divider */
+.rep-divider { height:1px; background:linear-gradient(90deg,transparent,#222 20%,#222 80%,transparent); margin:1.6rem 0; }
+
+/* Estado vacío / loading */
+.rep-state { text-align:center; padding:2.5rem 1rem; color:var(--muted2); }
+.rep-state svg { width:40px; height:40px; margin:0 auto .7rem; display:block; opacity:.2; }
+.rep-state p { font-family:'Barlow Condensed',sans-serif; font-size:1rem; letter-spacing:.08em; text-transform:uppercase; }
+.rep-state small { font-family:'DM Sans',sans-serif; font-size:.75rem; display:block; margin-top:.3rem; text-transform:none; letter-spacing:0; }
+
+/* Botones de acción */
+.rep-panel-actions { display:flex; gap:.8rem; flex-wrap:wrap; margin-top:1.6rem; }
+.rep-btn-back {
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.75rem 1.3rem; background:transparent;
+    border:1.5px solid var(--border2); border-radius:10px;
+    color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+    font-size:.88rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; transition:all .15s;
+}
+.rep-btn-back:hover { border-color:#555; color:#fff; }
+.rep-btn-back svg { width:14px; height:14px; stroke:currentColor; fill:none; }
+
+.rep-btn-next {
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.75rem 1.8rem; background:var(--red); border:none;
+    border-radius:10px; color:#fff;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.88rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; transition:background .15s,transform .1s,opacity .2s;
+}
+.rep-btn-next:hover:not(:disabled) { background:var(--red-h); transform:translateY(-1px); }
+.rep-btn-next:disabled { opacity:.4; cursor:not-allowed; }
+.rep-btn-next svg { width:14px; height:14px; stroke:currentColor; fill:none; }
+
+.rep-btn-reset {
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.75rem 1.1rem; background:transparent;
+    border:1.5px solid var(--border2); border-radius:10px;
+    color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+    font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; transition:all .15s; margin-left:auto;
+}
+.rep-btn-reset:hover { border-color:var(--red); color:var(--red); }
+.rep-btn-reset svg { width:12px; height:12px; stroke:currentColor; fill:none; }
+
+.rep-btn-submit {
+    display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+    padding:.85rem 2rem; background:var(--red); border:none;
+    border-radius:10px; color:#fff;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    cursor:pointer; transition:background .2s,transform .1s,opacity .2s; white-space:nowrap;
+}
+.rep-btn-submit:hover:not(:disabled) { background:var(--red-h); transform:translateY(-1px); }
+.rep-btn-submit:disabled { opacity:.5; cursor:not-allowed; }
+.rep-btn-submit svg { width:16px; height:16px; stroke:#fff; fill:none; }
+
+/* Spinner inline */
+.rep-spinner {
+    width:15px; height:15px;
+    border:2px solid rgba(255,255,255,.3); border-top-color:#fff;
+    border-radius:50%; animation:spin .6s linear infinite; display:none;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Nota WhatsApp bajo el botón */
+.rep-wa-note {
+    display:flex; align-items:center; gap:.5rem;
+    color:var(--muted); font-family:'DM Sans',sans-serif; font-size:.78rem;
+    margin-top:.9rem;
+}
+.rep-wa-icon {
+    width:26px; height:26px; background:#25d366; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.rep-wa-icon svg { width:14px; height:14px; fill:#fff; }
+
+/* ── Panel derecho ── */
+.rep-side-panel {
+    background:var(--red); border-radius:16px;
+    padding:2rem 1.8rem 2.2rem;
+    position:sticky; top:84px;
+}
+.rep-side-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1.1rem; font-weight:800; color:#fff;
+    text-transform:uppercase; letter-spacing:.04em;
+    text-align:center; line-height:1.2; margin-bottom:1.6rem;
+}
+
+/* Placeholder (estado vacío) */
+.rep-side-empty { display:block; }
+.rep-side-empty.hidden { display:none; }
+.rep-side-empty-icons { display:grid; grid-template-columns:1fr 1fr; gap:1rem; width:100%; }
+.rep-side-empty-box {
+    background:rgba(0,0,0,.18); border-radius:12px;
+    padding:1.2rem .8rem; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:.5rem;
+}
+.rep-side-empty-box svg { width:40px; height:40px; opacity:.7; }
+.rep-side-empty-name {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:rgba(255,255,255,.85);
+}
+.rep-side-empty-price { font-family:'Barlow Condensed',sans-serif; font-size:.72rem; color:rgba(255,255,255,.45); }
+.rep-side-empty-price::before { content:'$ '; }
+.rep-side-empty-locs { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin-top:.8rem; width:100%; }
+.rep-side-empty-loc {
+    background:rgba(0,0,0,.18); border-radius:10px; padding:.7rem;
+    display:flex; align-items:flex-start; gap:.35rem;
+}
+.rep-side-empty-loc svg { width:13px; height:13px; flex-shrink:0; stroke:rgba(255,255,255,.55); fill:none; margin-top:1px; }
+.rep-side-empty-loc span { font-family:'DM Sans',sans-serif; font-size:.68rem; color:rgba(255,255,255,.55); line-height:1.4; }
+
+/* Estado activo */
+.rep-side-active { display:none; }
+.rep-side-active.visible { display:block; }
+.rep-side-check {
+    width:48px; height:48px; background:rgba(0,0,0,.2); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; margin:0 auto .9rem;
+}
+.rep-side-check svg { width:22px; height:22px; stroke:#fff; fill:none; }
+.rep-side-badge {
+    display:block; text-align:center;
+    background:rgba(0,0,0,.2); border-radius:999px;
+    padding:.18rem .8rem; margin:0 auto .9rem; width:fit-content;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(255,255,255,.7);
+}
+.rep-side-nombre {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1.3rem; font-weight:800; color:#fff;
+    text-transform:uppercase; text-align:center; margin-bottom:.15rem;
+}
+.rep-side-sub {
+    font-family:'DM Sans',sans-serif;
+    font-size:.75rem; color:rgba(255,255,255,.55);
+    text-align:center; margin-bottom:1rem;
+}
+.rep-side-info-box {
+    background:rgba(0,0,0,.18); border-radius:12px;
+    padding:.85rem 1rem; margin-bottom:.7rem;
+}
+.rep-side-info-label {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.58rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(255,255,255,.45); display:block; margin-bottom:.15rem;
+}
+.rep-side-info-val { font-family:'DM Sans',sans-serif; font-size:.85rem; color:#fff; }
+
+.rep-btn-wa {
+    display:flex; align-items:center; justify-content:center; gap:.55rem;
+    width:100%; padding:.9rem 1.2rem; background:#25d366; color:#fff;
+    border:none; border-radius:10px; text-decoration:none;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    cursor:pointer; transition:background .2s,transform .1s; margin-top:1rem;
+}
+.rep-btn-wa:hover { background:#1ebe5d; transform:translateY(-1px); }
+.rep-btn-wa svg { width:17px; height:17px; fill:#fff; flex-shrink:0; }
+
+.rep-btn-nueva {
+    display:flex; align-items:center; justify-content:center;
+    width:100%; padding:.65rem; margin-top:.6rem;
+    background:rgba(0,0,0,.2); border:1.5px solid rgba(255,255,255,.15);
+    border-radius:10px; color:rgba(255,255,255,.7);
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; transition:all .2s;
+}
+.rep-btn-nueva:hover { background:rgba(0,0,0,.35); color:#fff; }
+.rep-side-hint {
+    font-family:'DM Sans',sans-serif; font-size:.68rem;
+    color:rgba(255,255,255,.4); text-align:center; margin-top:.6rem; line-height:1.4;
+}
+
+/* Toast */
+.rep-toast {
+    position:fixed; bottom:2rem; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:#1a1a1a; border:1px solid var(--red);
+    border-radius:10px; padding:.85rem 1.5rem;
+    font-family:'DM Sans',sans-serif; font-size:.85rem; color:#fff;
+    display:flex; align-items:center; gap:.6rem;
+    box-shadow:0 8px 32px rgba(0,0,0,.6); z-index:9999;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s,transform .25s;
+}
+.rep-toast.visible { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+.rep-toast svg { width:16px; height:16px; stroke:var(--red); fill:none; flex-shrink:0; }
+
+@media(max-width:860px) {
+    .rep-layout { grid-template-columns:1fr; }
+    .rep-side-panel { position:static; order:-1; }
+}
+@media(max-width:500px) {
+    .rep-options-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+    .rep-panel-actions { flex-direction:column; }
+    .rep-btn-reset { margin-left:0; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rep-page">
+
+  <!-- Hero -->
+  <div class="rep-hero">
+    <p class="rep-hero-eyebrow">Yamaha — Rallye Motor's</p>
+    <h1 class="rep-hero-title">Consulta de<br><em>Repuestos</em></h1>
+    <p class="rep-hero-desc">
+      Te guiamos paso a paso: dinos el modelo, el año y el repuesto que necesitas,
+      y te conectamos directamente con el local más cercano vía WhatsApp.
+    </p>
+  </div>
+
+  <!-- Stepper -->
+  <div class="rep-stepper-wrap">
+    <div class="rep-stepper">
+      <div class="rep-step active" id="step-ind-1">
+        <div class="rep-step-num">1</div>
+        <span class="rep-step-label">Modelo</span>
+      </div>
+      <div class="rep-step-line" id="line-1"></div>
+      <div class="rep-step" id="step-ind-2">
+        <div class="rep-step-num">2</div>
+        <span class="rep-step-label">Año</span>
+      </div>
+      <div class="rep-step-line" id="line-2"></div>
+      <div class="rep-step" id="step-ind-3">
+        <div class="rep-step-num">3</div>
+        <span class="rep-step-label">Repuesto</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="rep-layout">
+
+    <!-- ══ Panel izquierdo ══ -->
+    <div class="rep-panel">
+
+      <!-- PASO 1 — Modelo -->
+      <div class="rep-screen active" id="screen-1">
+        <h2 class="rep-screen-title">¿Cuál es el modelo de tu moto?</h2>
+        <p class="rep-screen-sub">
+          Selecciona la referencia de tu motocicleta Yamaha.
+          Solo se muestran modelos activos en el catálogo.
+        </p>
+
+        <div id="s1-loading" class="rep-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#cc0000" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+          <p>Cargando modelos…</p>
+        </div>
+        <div class="rep-options-grid" id="s1-grid" style="display:none"></div>
+
+        <div class="rep-panel-actions">
+          <button class="rep-btn-next" id="btn-next-1" disabled onclick="irPaso2()">
+            Continuar
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button class="rep-btn-reset" onclick="reiniciar()">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-4"/>
+            </svg>
+            Reiniciar
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 2 — Año -->
+      <div class="rep-screen" id="screen-2">
+        <div class="rep-breadcrumb" id="bc-2"></div>
+        <h2 class="rep-screen-title">¿De qué año es tu moto?</h2>
+        <p class="rep-screen-sub">
+          Selecciona el año modelo de tu Yamaha {{ modelo }} para ver los repuestos compatibles.
+        </p>
+
+        <div id="s2-loading" class="rep-state" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#cc0000" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+          <p>Cargando años…</p>
+        </div>
+        <div class="rep-options-grid" id="s2-grid"></div>
+
+        <div class="rep-panel-actions">
+          <button class="rep-btn-back" onclick="irPaso1()">
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Atrás
+          </button>
+          <button class="rep-btn-next" id="btn-next-2" disabled onclick="irPaso3()">
+            Continuar
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <button class="rep-btn-reset" onclick="reiniciar()">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-4"/>
+            </svg>
+            Reiniciar
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 3 — Repuesto + Local -->
+      <div class="rep-screen" id="screen-3">
+        <div class="rep-breadcrumb" id="bc-3"></div>
+        <h2 class="rep-screen-title">¿Qué repuesto necesitas?</h2>
+        <p class="rep-screen-sub">
+          Describe el repuesto que buscas. Puedes indicar el nombre o la referencia Yamaha.
+          Selecciona también el local más cercano para continuar la atención por WhatsApp.
+        </p>
+
+        <!-- Nombre repuesto -->
+        <div class="rep-field">
+          <label class="rep-label" for="inputRepuesto">
+            Nombre o referencia del repuesto <span>*</span>
+          </label>
+          <input
+            type="text" id="inputRepuesto" class="rep-input"
+            placeholder="Ej: Filtro de aire, Pastillas de freno, 5VK-14451-00…"
+            maxlength="120" autocomplete="off"
+            oninput="onRepuestoInput()"
+          >
+          <p class="rep-field-error" id="err-repuesto">Este campo es obligatorio.</p>
+        </div>
+
+        <div class="rep-divider"></div>
+
+        <!-- Local -->
+        <div class="rep-field">
+          <label class="rep-label" for="selectLocal">
+            Local más cercano <span>*</span>
+          </label>
+          <select id="selectLocal" class="rep-select" onchange="onLocalChange()">
+            <option value="" disabled selected>Cargando locales…</option>
+          </select>
+          <p class="rep-field-error" id="err-local">Debes seleccionar un local.</p>
+        </div>
+
+        <div class="rep-divider"></div>
+
+        <!-- Botón consultar -->
+        <button class="rep-btn-submit" id="btnConsultar" onclick="consultarRepuesto()">
+          <div class="rep-spinner" id="spinner"></div>
+          <svg id="btnIcon" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Consultar repuesto
+        </button>
+
+        <div class="rep-wa-note">
+          <div class="rep-wa-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.85L0 24l6.335-1.509A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.882a9.87 9.87 0 0 1-5.031-1.375l-.36-.214-3.733.979.997-3.642-.235-.374A9.867 9.867 0 0 1 2.118 12C2.118 6.532 6.532 2.118 12 2.118c5.469 0 9.882 4.414 9.882 9.882 0 5.469-4.413 9.882-9.882 9.882z"/>
+            </svg>
+          </div>
+          <span>Al consultar, quedará registrada tu solicitud y serás redirigido al WhatsApp del local.</span>
+        </div>
+
+        <div class="rep-panel-actions" style="margin-top:1.2rem">
+          <button class="rep-btn-back" onclick="irPaso2()">
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Atrás
+          </button>
+          <button class="rep-btn-reset" onclick="reiniciar()">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-4"/>
+            </svg>
+            Reiniciar
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /rep-panel -->
+
+    <!-- ══ Panel derecho ══ -->
+    <div class="rep-side-panel">
+      <h3 class="rep-side-title">
+        Repuestos compatibles con tu motocicleta
+        según la información ingresada
+      </h3>
+
+      <!-- Placeholder -->
+      <div class="rep-side-empty" id="sideEmpty">
+        <div class="rep-side-empty-icons">
+          <div class="rep-side-empty-box">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="20" cy="44" r="10" stroke="rgba(255,255,255,.5)" stroke-width="3"/>
+              <circle cx="44" cy="44" r="10" stroke="rgba(255,255,255,.5)" stroke-width="3"/>
+              <path d="M10 44 L20 20 L38 16 L54 20 L54 44" stroke="rgba(255,255,255,.5)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 16 L30 28 L42 28" stroke="rgba(255,255,255,.4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="rep-side-empty-name">Nombre del repuesto</span>
+            <span class="rep-side-empty-price">##.###.###</span>
+          </div>
+          <div class="rep-side-empty-box">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="16" cy="44" r="8" stroke="rgba(255,255,255,.5)" stroke-width="3"/>
+              <circle cx="48" cy="44" r="8" stroke="rgba(255,255,255,.5)" stroke-width="3"/>
+              <path d="M8 44 L22 18 L42 16 L56 22 L56 44" stroke="rgba(255,255,255,.5)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="36" y="16" width="16" height="16" rx="2" stroke="rgba(255,255,255,.4)" stroke-width="2.5"/>
+            </svg>
+            <span class="rep-side-empty-name">Nombre del repuesto</span>
+            <span class="rep-side-empty-price">##.###.###</span>
+          </div>
+        </div>
+        <div class="rep-side-empty-locs">
+          <div class="rep-side-empty-loc">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>Turbo / Dirección / Teléfono?</span>
+          </div>
+          <div class="rep-side-empty-loc">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>Turbo / Dirección / Teléfono?</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultado registrado -->
+      <div class="rep-side-active" id="sideActive">
+        <div class="rep-side-check">
+          <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <span class="rep-side-badge">✓ Consulta registrada</span>
+
+        <p class="rep-side-nombre" id="sideNombre">—</p>
+        <p class="rep-side-sub"   id="sideSub"></p>
+
+        <div class="rep-side-info-box">
+          <span class="rep-side-info-label">Motocicleta</span>
+          <span class="rep-side-info-val" id="sideMoto">—</span>
+        </div>
+
+        <div class="rep-side-info-box" id="sideLocalBox" style="display:none">
+          <span class="rep-side-info-label">Local seleccionado</span>
+          <span class="rep-side-info-val" id="sideLocalNombre">—</span>
+          <span class="rep-side-info-label" style="margin-top:.4rem">Dirección</span>
+          <span class="rep-side-info-val"  id="sideLocalDir" style="font-size:.8rem;opacity:.8">—</span>
+        </div>
+
+        <a id="btnWhatsApp" href="#" target="_blank" rel="noopener" class="rep-btn-wa">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.85L0 24l6.335-1.509A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.882a9.87 9.87 0 0 1-5.031-1.375l-.36-.214-3.733.979.997-3.642-.235-.374A9.867 9.867 0 0 1 2.118 12C2.118 6.532 6.532 2.118 12 2.118c5.469 0 9.882 4.414 9.882 9.882 0 5.469-4.413 9.882-9.882 9.882z"/>
+          </svg>
+          Finalizar consulta por WhatsApp
+        </a>
+
+        <button class="rep-btn-nueva" onclick="reiniciar()">Realizar otra consulta</button>
+        <p class="rep-side-hint">Tu consulta ha quedado registrada. Serás atendido por el local seleccionado.</p>
+      </div>
+    </div>
+
+  </div><!-- /rep-layout -->
+</div>
+
+<!-- Toast -->
+<div class="rep-toast" id="repToast">
+  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+  <span id="toastMsg">Error. Intenta de nuevo.</span>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* ════════════════════════════════════════════════════════
+   REPUESTOS — Flujo guiado 3 pasos
+   Paso 1: modelo (desde Motocicleta activa en BD)
+   Paso 2: año    (desde Motocicleta filtrada por modelo)
+   Paso 3: repuesto libre + local → registra en ConsultaRepuesto
+════════════════════════════════════════════════════════ */
+
+const API_MODELOS  = '/api/catalog/repuestos/modelos/';
+const API_ANIOS    = (ref) => `/api/catalog/repuestos/modelos/${encodeURIComponent(ref)}/anios/`;
+const API_CONSULTA = '/api/catalog/repuestos/consulta/';
+const API_SEDES    = '/api/core/sedes/';
+
+/* Estado */
+const st = { modelo: null, anio: null };
+
+/* ── Toast ── */
+let toastTimer;
+function toast(msg) {
+    document.getElementById('toastMsg').textContent = msg;
+    const el = document.getElementById('repToast');
+    el.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('visible'), 4000);
+}
+
+/* ── Stepper ── */
+function setStepper(paso) {
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`step-ind-${i}`);
+        el.classList.remove('active', 'done');
+        if (i < paso) el.classList.add('done');
+        else if (i === paso) el.classList.add('active');
+    }
+    for (let i = 1; i <= 2; i++) {
+        document.getElementById(`line-${i}`).classList.toggle('done', i < paso);
+    }
+}
+
+function mostrarPantalla(n) {
+    document.querySelectorAll('.rep-screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(`screen-${n}`).classList.add('active');
+    setStepper(n);
+}
+
+/* ── Breadcrumb ── */
+function setBc(id, items) {
+    const bc = document.getElementById(id);
+    bc.innerHTML = items.map(({ label, fn }) =>
+        `<span class="rep-bc-chip">${label} <button onclick="${fn}" title="Cambiar">✕</button></span>`
+    ).join('');
+}
+
+/* ════════ PASO 1 — Modelos ════════ */
+async function cargarModelos() {
+    const loading = document.getElementById('s1-loading');
+    const grid    = document.getElementById('s1-grid');
+    loading.style.display = 'block';
+    grid.style.display    = 'none';
+
+    try {
+        const res = await fetch(API_MODELOS);
+        if (!res.ok) throw new Error();
+        const { modelos } = await res.json();
+
+        loading.style.display = 'none';
+
+        if (!modelos.length) {
+            loading.innerHTML = `<p style="color:#555;font-family:'Barlow Condensed',sans-serif;
+                text-align:center;letter-spacing:.08em;text-transform:uppercase;padding:2rem">
+                Sin modelos en catálogo</p>`;
+            loading.style.display = 'block';
+            return;
+        }
+
+        grid.innerHTML = modelos.map(m =>
+            `<button class="rep-option-btn" onclick="selModelo('${m.replace(/'/g,"\\'")}',this)">
+                Yamaha ${m}
+             </button>`
+        ).join('');
+        grid.style.display = 'grid';
+
+        // Re-seleccionar si ya había selección (al volver)
+        if (st.modelo) {
+            grid.querySelectorAll('.rep-option-btn').forEach(b => {
+                if (b.textContent.trim() === `Yamaha ${st.modelo}`) b.classList.add('selected');
+            });
+            document.getElementById('btn-next-1').disabled = false;
+        }
+    } catch {
+        loading.innerHTML = `<p style="color:#555;font-family:'Barlow Condensed',sans-serif;
+            text-align:center;letter-spacing:.08em;text-transform:uppercase;padding:2rem">
+            No se pudieron cargar los modelos</p>`;
+        loading.style.display = 'block';
+    }
+}
+
+function selModelo(modelo, btn) {
+    document.querySelectorAll('#s1-grid .rep-option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    st.modelo = modelo;
+    document.getElementById('btn-next-1').disabled = false;
+}
+
+function irPaso1() {
+    st.anio = null;
+    mostrarPantalla(1);
+}
+
+/* ════════ PASO 2 — Años ════════ */
+async function irPaso2() {
+    if (!st.modelo) { toast('Selecciona un modelo para continuar.'); return; }
+
+    mostrarPantalla(2);
+    setBc('bc-2', [{ label: `Yamaha ${st.modelo}`, fn: 'irPaso1()' }]);
+
+    const loading = document.getElementById('s2-loading');
+    const grid    = document.getElementById('s2-grid');
+    loading.style.display = 'block';
+    grid.innerHTML = '';
+
+    try {
+        const res = await fetch(API_ANIOS(st.modelo));
+        if (!res.ok) throw new Error();
+        const { anios } = await res.json();
+
+        loading.style.display = 'none';
+
+        if (!anios.length) {
+            grid.innerHTML = `<div class="rep-state"><p>Sin años disponibles</p></div>`;
+            return;
+        }
+
+        grid.innerHTML = anios.map(a =>
+            `<button class="rep-option-btn ${st.anio === a ? 'selected' : ''}"
+                     onclick="selAnio(${a},this)">${a}</button>`
+        ).join('');
+
+        document.getElementById('btn-next-2').disabled = !st.anio;
+    } catch {
+        loading.style.display = 'none';
+        grid.innerHTML = `<div class="rep-state"><p>Error al cargar los años</p></div>`;
+    }
+}
+
+function selAnio(anio, btn) {
+    document.querySelectorAll('#s2-grid .rep-option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    st.anio = anio;
+    document.getElementById('btn-next-2').disabled = false;
+}
+
+/* ════════ PASO 3 — Repuesto + Local ════════ */
+function irPaso3() {
+    if (!st.anio) { toast('Selecciona un año para continuar.'); return; }
+
+    mostrarPantalla(3);
+    setBc('bc-3', [
+        { label: `Yamaha ${st.modelo}`, fn: 'irPaso1()' },
+        { label: st.anio,               fn: 'irPaso2()' },
+    ]);
+}
+
+/* Validación en tiempo real del campo repuesto */
+function onRepuestoInput() {
+    const v = document.getElementById('inputRepuesto').value.trim();
+    document.getElementById('inputRepuesto').classList.toggle('error', false);
+    document.getElementById('err-repuesto').classList.remove('visible');
+}
+
+function onLocalChange() {
+    document.getElementById('selectLocal').classList.remove('error');
+    document.getElementById('err-local').classList.remove('visible');
+}
+
+/* ════════ Consultar repuesto → guardar + WhatsApp ════════ */
+async function consultarRepuesto() {
+    const inputRep   = document.getElementById('inputRepuesto');
+    const inputLocal = document.getElementById('selectLocal');
+    let ok = true;
+
+    if (!inputRep.value.trim()) {
+        inputRep.classList.add('error');
+        document.getElementById('err-repuesto').classList.add('visible');
+        ok = false;
+    }
+    if (!inputLocal.value) {
+        inputLocal.classList.add('error');
+        document.getElementById('err-local').classList.add('visible');
+        ok = false;
+    }
+    if (!ok) return;
+
+    /* UI: cargando */
+    const btn     = document.getElementById('btnConsultar');
+    const spinner = document.getElementById('spinner');
+    const icon    = document.getElementById('btnIcon');
+    btn.disabled  = true;
+    spinner.style.display = 'block';
+    icon.style.display    = 'none';
+
+    const payload = {
+        repuesto_nombre:    inputRep.value.trim(),
+        repuesto_referencia:'',          // campo libre, puede incluir referencia en el nombre
+        modelo_moto:        `Yamaha ${st.modelo} ${st.anio}`,
+        local:              parseInt(inputLocal.value, 10),
+    };
+
+    try {
+        const res  = await fetch(API_CONSULTA, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            const err = Object.values(data)[0];
+            toast(Array.isArray(err) ? err[0] : err);
+            return;
+        }
+
+        mostrarExito(payload, data);
+
+    } catch {
+        toast('No se pudo conectar con el servidor. Intenta de nuevo.');
+    } finally {
+        btn.disabled          = false;
+        spinner.style.display = 'none';
+        icon.style.display    = 'block';
+    }
+}
+
+function mostrarExito(payload, data) {
+    /* Panel derecho */
+    document.getElementById('sideNombre').textContent = payload.repuesto_nombre;
+    document.getElementById('sideSub').textContent    = `Para: ${payload.modelo_moto}`;
+    document.getElementById('sideMoto').textContent   = payload.modelo_moto;
+
+    const localBox = document.getElementById('sideLocalBox');
+    if (data.local) {
+        document.getElementById('sideLocalNombre').textContent = data.local.nombre;
+        document.getElementById('sideLocalDir').textContent   = data.local.direccion || '';
+        localBox.style.display = 'block';
+    } else {
+        localBox.style.display = 'none';
+    }
+
+    const btnWA = document.getElementById('btnWhatsApp');
+    if (data.whatsapp_url) {
+        btnWA.href = data.whatsapp_url;
+        btnWA.style.display = 'flex';
+    } else {
+        btnWA.style.display = 'none';
+    }
+
+    document.getElementById('sideEmpty').classList.add('hidden');
+    document.getElementById('sideActive').classList.add('visible');
+
+    if (window.innerWidth <= 860) {
+        document.querySelector('.rep-side-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/* ════════ Reiniciar ════════ */
+function reiniciar() {
+    st.modelo = null;
+    st.anio   = null;
+
+    document.getElementById('inputRepuesto').value = '';
+    document.getElementById('inputRepuesto').classList.remove('error');
+    document.getElementById('err-repuesto').classList.remove('visible');
+    document.getElementById('selectLocal').value = '';
+    document.getElementById('selectLocal').classList.remove('error');
+    document.getElementById('err-local').classList.remove('visible');
+
+    document.getElementById('sideEmpty').classList.remove('hidden');
+    document.getElementById('sideActive').classList.remove('visible');
+
+    document.querySelectorAll('#s1-grid .rep-option-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('btn-next-1').disabled = true;
+
+    mostrarPantalla(1);
+}
+
+/* ════════ Cargar sedes/locales ════════ */
+async function cargarSedes() {
+    const sel = document.getElementById('selectLocal');
+    try {
+        const res   = await fetch(API_SEDES);
+        if (!res.ok) throw new Error();
+        const sedes = await res.json();
+
+        sel.innerHTML = '<option value="" disabled selected>Selecciona el local más cercano…</option>';
+        sedes.forEach(sede => {
+            if (!sede.locales?.length) return;
+            const grp = document.createElement('optgroup');
+            grp.label = sede.nombre;
+            sede.locales.forEach(local => {
+                if (local.activo === false) return;
+                const opt = document.createElement('option');
+                opt.value       = local.id;
+                opt.textContent = local.direccion ? `${local.nombre} — ${local.direccion}` : local.nombre;
+                grp.appendChild(opt);
+            });
+            if (grp.children.length) sel.appendChild(grp);
+        });
+        if (sel.options.length === 1)
+            sel.innerHTML = '<option value="" disabled selected>Sin locales disponibles</option>';
+    } catch {
+        sel.innerHTML = '<option value="" disabled selected>No se pudieron cargar los locales</option>';
+    }
+}
+
+/* ── CSRF ── */
+function getCookie(name) {
+    for (const c of document.cookie.split(';')) {
+        const t = c.trim();
+        if (t.startsWith(name + '=')) return decodeURIComponent(t.slice(name.length + 1));
+    }
+    return null;
+}
+
+/* ── Init ── */
+cargarModelos();
+cargarSedes();
+</script>
+{% endblock %}
