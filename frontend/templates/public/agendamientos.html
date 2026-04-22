@@ -57,7 +57,23 @@
     text-align: center;
     color: #888;
     font-size: 0.85rem;
-    margin: 0 0 1.8rem 0;
+    margin: 0 0 1.2rem 0;
+  }
+
+  .info-box {
+    margin: 0 0 1.4rem 0;
+    padding: 0.8rem 0.95rem;
+    background: #f8f8f8;
+    border: 1px solid #e7e7e7;
+    border-left: 4px solid #b8b8b8;
+    border-radius: 6px;
+    color: #555;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .info-box strong {
+    color: #333;
   }
 
   .lbl {
@@ -68,6 +84,19 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 600;
+  }
+
+  .req {
+    color: #cc0000;
+    margin-left: 0.15rem;
+    font-weight: 700;
+  }
+
+  .field-hint {
+    font-size: 0.78rem;
+    color: #888;
+    line-height: 1.35;
+    margin-top: 0.1rem;
   }
 
   .inp {
@@ -205,9 +234,13 @@
       <h2 class="card-title">Agendar revisión técnica</h2>
       <p class="card-subtitle">Completa tu información personal para agendar</p>
 
+      <div class="info-box">
+        Ten en cuenta que la revisión tiene una duración aproximada de <strong>2 horas</strong>.
+      </div>
+
       <div class="fields-col">
         <div class="field">
-          <label class="lbl">Tipo de documento</label>
+          <label class="lbl">Tipo de documento <span class="req">*</span></label>
           <select id="tipo_documento" class="inp">
             <option value="CC">Cédula de ciudadanía</option>
             <option value="CE">Cédula de extranjería</option>
@@ -215,19 +248,19 @@
           </select>
         </div>
         <div class="field">
-          <label class="lbl">Número de documento</label>
+          <label class="lbl">Número de documento <span class="req">*</span></label>
           <input id="cliente_documento" type="text" class="inp" placeholder="Ej: 1023456789">
         </div>
         <div class="field">
-          <label class="lbl">Nombre completo</label>
+          <label class="lbl">Nombre completo <span class="req">*</span></label>
           <input id="cliente_nombre" type="text" class="inp" placeholder="Ej: Juan Pérez">
         </div>
         <div class="field">
-          <label class="lbl">Número de teléfono</label>
+          <label class="lbl">Número de teléfono <span class="req">*</span></label>
           <input id="cliente_telefono" type="tel" class="inp" placeholder="Ej: 3001234567">
         </div>
         <div class="field">
-          <label class="lbl">Correo electrónico</label>
+          <label class="lbl">Correo electrónico <span class="req">*</span></label>
           <input id="cliente_correo" type="email" class="inp" placeholder="correo@ejemplo.com">
         </div>
       </div>
@@ -250,23 +283,27 @@
       <h2 class="card-title">Agendar revisión técnica</h2>
       <p class="card-subtitle">Datos de tu moto, servicio y horario</p>
 
+      <div class="info-box">
+        Ten en cuenta que la revisión tiene una duración aproximada de <strong>2 horas</strong>.
+      </div>
+
       <div class="fields-2col">
         <div class="field">
-          <label class="lbl">Referencia de la moto</label>
+          <label class="lbl">Referencia de la moto <span class="req">*</span></label>
           <input id="referencia_moto" type="text" class="inp" placeholder="Ej: FZ 150">
         </div>
         <div class="field">
-          <label class="lbl">Local de atención</label>
+          <label class="lbl">Local de atención <span class="req">*</span></label>
           <select id="local_id" class="inp" onchange="onLocalChange()">
             <option value="">— Selecciona un local —</option>
           </select>
         </div>
         <div class="field">
-          <label class="lbl">Modelo (año)</label>
+          <label class="lbl">Modelo (año) <span class="req">*</span></label>
           <input id="anio_moto" type="number" class="inp" placeholder="Ej: 2022" min="1900" max="2026">
         </div>
         <div class="field">
-          <label class="lbl">Categoría de servicio</label>
+          <label class="lbl">Categoría de servicio <span class="req">*</span></label>
           <select id="tipo_servicio" class="inp">
             <option value="MANTENIMIENTO">Mantenimiento general</option>
             <option value="REVISION">Revisión general</option>
@@ -275,17 +312,18 @@
           </select>
         </div>
         <div class="field">
-          <label class="lbl">Placa</label>
+          <label class="lbl">Placa <span class="req">*</span></label>
           <input id="placa_moto" type="text" class="inp" placeholder="Ej: AXA39C" oninput="this.value=this.value.toUpperCase()">
+          <span class="field-hint">Formato: 3 letras, 2 números y 1 letra.</span>
         </div>
         <div class="field">
-          <label class="lbl">Fecha del servicio</label>
+          <label class="lbl">Fecha del servicio <span class="req">*</span></label>
           <input id="fecha" type="date" class="inp" onchange="cargarHorarios()">
         </div>
       </div>
 
       <div id="horarios-container" style="display:none;margin-top:1rem;">
-        <label class="lbl">Horario disponible</label>
+        <label class="lbl">Horario disponible <span class="req">*</span></label>
         <div id="horarios-grid" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;"></div>
       </div>
       <div id="sin-horarios" style="display:none;color:#cc0000;font-size:0.82rem;margin-top:0.5rem;padding:0.4rem 0;">
@@ -353,6 +391,19 @@
   const dd = String(manana.getDate()).padStart(2, "0");
   document.getElementById("fecha").min = `${yyyy}-${mm}-${dd}`;
 
+  function formatearHoraInicio(hora) {
+    if (!hora) return "";
+    const [h, m] = hora.split(":");
+    let horas = parseInt(h, 10);
+    const minutos = m || "00";
+    const periodo = horas >= 12 ? "P.M." : "A.M.";
+
+    horas = horas % 12;
+    if (horas === 0) horas = 12;
+
+    return `${horas}:${minutos} ${periodo}`;
+  }
+
   function onLocalChange() {
     document.getElementById("horarios-container").style.display = "none";
     document.getElementById("sin-horarios").style.display = "none";
@@ -387,7 +438,7 @@
           vistos.add(c.hora_inicio);
           const btn = document.createElement("button");
           btn.className = "slot-btn";
-          btn.textContent = `${c.hora_inicio.slice(0,5)} – ${c.hora_fin.slice(0,5)}`;
+          btn.textContent = formatearHoraInicio(c.hora_inicio);
           btn.dataset.citaId = c.id;
           btn.onclick = () => seleccionarSlot(btn, c.id);
           grid.appendChild(btn);
@@ -408,7 +459,7 @@
     const campos = ["cliente_nombre", "cliente_documento", "cliente_telefono", "cliente_correo"];
     for (const id of campos) {
       if (!document.getElementById(id).value.trim()) {
-        mostrarError("msg-error-1", "Por favor completa todos los campos.");
+        mostrarError("msg-error-1", "Por favor completa todos los campos obligatorios.");
         return;
       }
     }
@@ -448,7 +499,7 @@
     const placa = document.getElementById("placa_moto").value.trim().toUpperCase();
     const placaRegex = /^[A-Z]{3}\d{2}[A-Z]$/;
     if (!placa) return mostrarError("msg-error-2", "Ingresa la placa.");
-    if (!placaRegex.test(placa)) return mostrarError("msg-error-2", "Formato de placa inválido. Ejemplo: AXA39C");
+    if (!placaRegex.test(placa)) return mostrarError("msg-error-2", "Formato de placa inválido. Usa 3 letras, 2 números y 1 letra. Ejemplo: AXA39C");
 
     if (!document.getElementById("local_id").value) return mostrarError("msg-error-2", "Selecciona un local.");
     if (!document.getElementById("fecha").value) return mostrarError("msg-error-2", "Selecciona una fecha.");
