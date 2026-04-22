@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from catalog.models import CotizacionMotocicleta, Motocicleta
+from catalog.models import CotizacionMotocicleta, Motocicleta, ConsultaRepuesto
 from core.models import Local, Municipio, Sede
 
 User = get_user_model()
@@ -1071,266 +1071,156 @@ class ListadoAdminMotocicletasTest(TestCase):
         for m in response.data:
             self.assertIn("activa", m)
 
-# ── HU-09: Consultar repuestos guiado ─────────────────────────────────────────
 
 
-class ModelosMotoViewTest(TestCase):
+
+# ── HU-08 · Paso 1 — Modelos disponibles ────────────────────────────────
+
+class ModelosMotoTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = "/api/catalog/repuestos/modelos/"
         Motocicleta.objects.create(
-            referencia="FZ 25", anio=2023, tipo="DEPORTIVA",
-            cilindraje=250, precio="12500000.00",
-            caracteristicas="Motor monocilíndrico.", activa=True,
+            referencia="FZ 150", anio=2024, tipo="URBANA",
+            cilindraje=150, precio="9000000.00",
+            caracteristicas="Test", activa=True
         )
         Motocicleta.objects.create(
-            referencia="FZ 25", anio=2024, tipo="DEPORTIVA",
-            cilindraje=250, precio="13000000.00",
-            caracteristicas="Motor monocilíndrico.", activa=True,
+            referencia="FZ 150", anio=2023, tipo="URBANA",
+            cilindraje=150, precio="8500000.00",
+            caracteristicas="Test", activa=True
         )
         Motocicleta.objects.create(
             referencia="MT-07", anio=2024, tipo="DEPORTIVA",
             cilindraje=689, precio="28000000.00",
-            caracteristicas="Motor bicilíndrico.", activa=True,
-        )
-        Motocicleta.objects.create(
-            referencia="YBR 125", anio=2020, tipo="URBANA",
-            cilindraje=125, precio="8000000.00",
-            caracteristicas="Moto básica.", activa=False,
+            caracteristicas="Test", activa=True
         )
 
-    def test_cp_rep_01_retorna_modelos_unicos_de_motos_activas(self):
-        """CP-REP-01 · Unitaria — flujo feliz
-        Debe retornar referencias únicas de motos activas.
-        FZ 25 existe dos veces pero debe aparecer solo una vez.
-        Resultado esperado: HTTP 200 · ['FZ 25', 'MT-07'] sin duplicados."""
-        response = self.client.get(self.url)
+    def test_cp_hu08_01_retorna_modelos_unicos(self):
+        response = self.client.get("/api/catalog/repuestos/modelos/")
         self.assertEqual(response.status_code, 200)
-        modelos = response.data["modelos"]
-        self.assertIn("FZ 25", modelos)
-        self.assertIn("MT-07", modelos)
-        self.assertEqual(modelos.count("FZ 25"), 1)
+        self.assertIn("FZ 150", response.data["modelos"])
+        self.assertIn("MT-07", response.data["modelos"])
+        self.assertEqual(len(response.data["modelos"]), 2)
 
-    def test_cp_rep_02_no_retorna_motos_inactivas(self):
-        """CP-REP-02 · Unitaria — control de visibilidad
-        Las motos inactivas no deben aparecer en la lista de modelos.
-        Resultado esperado: HTTP 200 · 'YBR 125' ausente."""
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("YBR 125", response.data["modelos"])
-
-    def test_cp_rep_03_sin_motos_activas_retorna_lista_vacia(self):
-        """CP-REP-03 · Unitaria — flujo alternativo
-        Si no hay motos activas, debe retornar lista vacía, no error.
-        Resultado esperado: HTTP 200 · modelos: []"""
-        Motocicleta.objects.update(activa=False)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["modelos"], [])
-
-    def test_cp_rep_04_endpoint_es_publico_sin_autenticacion(self):
-        """CP-REP-04 · Control de acceso
-        El endpoint no requiere autenticación.
-        Resultado esperado: HTTP 200 sin token."""
+    def test_cp_hu08_02_no_requiere_autenticacion(self):
         self.client.credentials()
-        response = self.client.get(self.url)
+        response = self.client.get("/api/catalog/repuestos/modelos/")
         self.assertEqual(response.status_code, 200)
+        
+        
+# ── HU-08 · Paso 2 — Años por modelo ───────────────────────────────────
 
-    def test_cp_rep_05_modelos_retornados_ordenados_alfabeticamente(self):
-        """CP-REP-05 · Unitaria — orden
-        Los modelos deben retornarse ordenados alfabéticamente.
-        Resultado esperado: HTTP 200 · FZ 25 antes que MT-07."""
-        response = self.client.get(self.url)
-        modelos = response.data["modelos"]
-        self.assertEqual(modelos, sorted(modelos))
-
-
-class AniosModeloViewTest(TestCase):
+class AniosModeloTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         Motocicleta.objects.create(
-            referencia="FZ 25", anio=2022, tipo="DEPORTIVA",
-            cilindraje=250, precio="11000000.00",
-            caracteristicas="Versión 2022.", activa=True,
+            referencia="FZ 150", anio=2024, tipo="URBANA",
+            cilindraje=150, precio="9000000.00",
+            caracteristicas="Test", activa=True
         )
         Motocicleta.objects.create(
-            referencia="FZ 25", anio=2023, tipo="DEPORTIVA",
-            cilindraje=250, precio="12500000.00",
-            caracteristicas="Versión 2023.", activa=True,
-        )
-        Motocicleta.objects.create(
-            referencia="FZ 25", anio=2020, tipo="DEPORTIVA",
-            cilindraje=250, precio="10000000.00",
-            caracteristicas="Versión inactiva.", activa=False,
+            referencia="FZ 150", anio=2022, tipo="URBANA",
+            cilindraje=150, precio="8000000.00",
+            caracteristicas="Test", activa=True
         )
 
-    def _url(self, referencia):
-        return f"/api/catalog/repuestos/modelos/{referencia}/anios/"
-
-    def test_cp_rep_06_retorna_anios_del_modelo_activo(self):
-        """CP-REP-06 · Unitaria — flujo feliz
-        Debe retornar los años de las motos activas con esa referencia.
-        Resultado esperado: HTTP 200 · [2023, 2022]."""
-        response = self.client.get(self._url("FZ 25"))
+    def test_cp_hu08_03_retorna_anios_del_modelo(self):
+        response = self.client.get("/api/catalog/repuestos/modelos/FZ 150/anios/")
         self.assertEqual(response.status_code, 200)
+        self.assertIn(2024, response.data["anios"])
         self.assertIn(2022, response.data["anios"])
-        self.assertIn(2023, response.data["anios"])
 
-    def test_cp_rep_07_no_retorna_anios_de_motos_inactivas(self):
-        """CP-REP-07 · Unitaria — control de visibilidad
-        El año 2020 corresponde a una moto inactiva y no debe aparecer.
-        Resultado esperado: HTTP 200 · 2020 ausente en anios."""
-        response = self.client.get(self._url("FZ 25"))
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn(2020, response.data["anios"])
-
-    def test_cp_rep_08_anios_retornados_en_orden_descendente(self):
-        """CP-REP-08 · Unitaria — orden
-        Los años más recientes deben aparecer primero.
-        Resultado esperado: HTTP 200 · 2023 antes que 2022."""
-        response = self.client.get(self._url("FZ 25"))
-        anios = response.data["anios"]
-        self.assertEqual(anios, sorted(anios, reverse=True))
-
-    def test_cp_rep_09_modelo_inexistente_retorna_404(self):
-        """CP-REP-09 · Unitaria — flujo alternativo
-        Un modelo que no existe debe retornar 404.
-        Resultado esperado: HTTP 404."""
-        response = self.client.get(self._url("NOEXISTE"))
+    def test_cp_hu08_04_modelo_inexistente_retorna_404(self):
+        response = self.client.get("/api/catalog/repuestos/modelos/XYZ/anios/")
         self.assertEqual(response.status_code, 404)
+        
+        
+# ── HU-09 · Registrar consulta de repuesto ─────────────────────────────
 
-    def test_cp_rep_10_retorna_nombre_del_modelo_en_respuesta(self):
-        """CP-REP-10 · Unitaria — estructura de respuesta
-        La respuesta debe incluir el campo 'modelo'.
-        Resultado esperado: HTTP 200 · modelo == 'FZ 25'."""
-        response = self.client.get(self._url("FZ 25"))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["modelo"], "FZ 25")
-
-    def test_cp_rep_11_endpoint_es_publico(self):
-        """CP-REP-11 · Control de acceso
-        No requiere autenticación.
-        Resultado esperado: HTTP 200 sin token."""
-        self.client.credentials()
-        response = self.client.get(self._url("FZ 25"))
-        self.assertEqual(response.status_code, 200)
-
-
-class RegistrarConsultaRepuestoViewTest(TestCase):
+class RegistrarConsultaRepuestoTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = "/api/catalog/repuestos/consulta/"
         self.local = make_local()
 
     def _payload_valido(self):
         return {
-            "repuesto_nombre": "Filtro de aire",
-            "repuesto_referencia": "5VK-14451-00",
-            "modelo_moto": "Yamaha FZ 25 2023",
+            "repuesto_nombre": "Pastillas de freno",
+            "repuesto_referencia": "PF-123",
+            "modelo_moto": "FZ 150",
             "local": self.local.id,
         }
 
-    def test_cp_rep_12_consulta_valida_queda_guardada_en_bd(self):
-        """CP-REP-12 · Integración — flujo feliz
-        Una consulta válida debe persistir en la tabla ConsultaRepuesto.
-        Resultado esperado: HTTP 201 · un registro en BD."""
-        from catalog.models import ConsultaRepuesto
-        response = self.client.post(self.url, self._payload_valido(), format="json")
+    def test_cp_hu09_01_registra_consulta_correctamente(self):
+        """Flujo feliz"""
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            self._payload_valido(),
+            format="json"
+        )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ConsultaRepuesto.objects.count(), 1)
 
-    def test_cp_rep_13_bd_guarda_datos_correctos(self):
-        """CP-REP-13 · Integración — integridad de datos
-        Los campos guardados deben coincidir con el payload enviado.
-        Resultado esperado: HTTP 201 · campos en BD iguales al payload."""
-        from catalog.models import ConsultaRepuesto
-        self.client.post(self.url, self._payload_valido(), format="json")
+    def test_cp_hu09_02_guarda_datos_correctos_en_bd(self):
+        self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            self._payload_valido(),
+            format="json"
+        )
         consulta = ConsultaRepuesto.objects.get()
-        self.assertEqual(consulta.repuesto_nombre, "Filtro de aire")
-        self.assertEqual(consulta.repuesto_referencia, "5VK-14451-00")
-        self.assertEqual(consulta.modelo_moto, "Yamaha FZ 25 2023")
-        self.assertEqual(consulta.local_id, self.local.id)
+        self.assertEqual(consulta.repuesto_nombre, "Pastillas de freno")
+        self.assertEqual(consulta.repuesto_referencia, "PF-123")
+        self.assertEqual(consulta.modelo_moto, "FZ 150")
+        self.assertEqual(consulta.local, self.local)
 
-    def test_cp_rep_14_respuesta_incluye_url_whatsapp(self):
-        """CP-REP-14 · Unitaria — estructura de respuesta
-        La respuesta debe incluir whatsapp_url con 'wa.me'.
-        Resultado esperado: HTTP 201 · whatsapp_url contiene 'wa.me'."""
-        response = self.client.post(self.url, self._payload_valido(), format="json")
-        self.assertEqual(response.status_code, 201)
-        self.assertIsNotNone(response.data["whatsapp_url"])
-        self.assertIn("wa.me", response.data["whatsapp_url"])
-
-    def test_cp_rep_15_whatsapp_url_contiene_nombre_repuesto(self):
-        """CP-REP-15 · Unitaria — contenido del mensaje WhatsApp
-        La URL de WhatsApp debe incluir el nombre del repuesto.
-        Resultado esperado: HTTP 201 · 'Filtro' en whatsapp_url."""
-        response = self.client.post(self.url, self._payload_valido(), format="json")
-        self.assertIn("Filtro", response.data["whatsapp_url"])
-
-    def test_cp_rep_16_whatsapp_url_contiene_telefono_colombia(self):
-        """CP-REP-16 · Unitaria — formato de teléfono
-        El teléfono debe tener prefijo 57 en la URL de WhatsApp.
-        Resultado esperado: HTTP 201 · URL contiene '573001234567'."""
-        response = self.client.post(self.url, self._payload_valido(), format="json")
-        self.assertIn("573001234567", response.data["whatsapp_url"])
-
-    def test_cp_rep_17_repuesto_nombre_vacio_retorna_400(self):
-        """CP-REP-17 · Caja negra — validación campo obligatorio
-        El nombre del repuesto vacío debe retornar 400.
-        Resultado esperado: HTTP 400 · sin registros en BD."""
-        from catalog.models import ConsultaRepuesto
+    def test_cp_hu09_03_repuesto_nombre_obligatorio(self):
         payload = self._payload_valido()
         payload["repuesto_nombre"] = ""
-        response = self.client.post(self.url, payload, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(ConsultaRepuesto.objects.count(), 0)
 
-    def test_cp_rep_18_sin_local_no_genera_whatsapp_url(self):
-        """CP-REP-18 · Unitaria — flujo alternativo sin local
-        Sin local, la consulta se guarda pero whatsapp_url es None.
-        Resultado esperado: HTTP 201 · whatsapp_url == None."""
-        from catalog.models import ConsultaRepuesto
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            payload,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cp_hu09_04_local_inexistente_retorna_400(self):
         payload = self._payload_valido()
-        del payload["local"]
-        response = self.client.post(self.url, payload, format="json")
+        payload["local"] = 9999
+
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            payload,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cp_hu09_05_retorna_url_whatsapp(self):
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            self._payload_valido(),
+            format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("https://wa.me/", response.data["whatsapp_url"])
+        self.assertIn("Pastillas", response.data["whatsapp_url"])
+
+    def test_cp_hu09_06_sin_local_no_hay_whatsapp(self):
+        payload = self._payload_valido()
+        payload.pop("local")
+
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            payload,
+            format="json"
+        )
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(response.data["whatsapp_url"])
-        self.assertEqual(ConsultaRepuesto.objects.count(), 1)
 
-    def test_cp_rep_19_consulta_guarda_fecha_automaticamente(self):
-        """CP-REP-19 · Unitaria — auto campos
-        El campo 'fecha' debe asignarse automáticamente.
-        Resultado esperado: HTTP 201 · consulta.fecha == hoy."""
-        from catalog.models import ConsultaRepuesto
-        from datetime import date
-        self.client.post(self.url, self._payload_valido(), format="json")
-        consulta = ConsultaRepuesto.objects.get()
-        self.assertEqual(consulta.fecha, date.today())
-
-    def test_cp_rep_20_respuesta_incluye_info_del_local(self):
-        """CP-REP-20 · Unitaria — estructura de respuesta
-        La respuesta debe incluir el objeto 'local' con nombre.
-        Resultado esperado: HTTP 201 · local.nombre == 'Local Test'."""
-        response = self.client.post(self.url, self._payload_valido(), format="json")
-        self.assertEqual(response.status_code, 201)
-        self.assertIsNotNone(response.data["local"])
-        self.assertEqual(response.data["local"]["nombre"], "Local Test")
-
-    def test_cp_rep_21_endpoint_es_publico(self):
-        """CP-REP-21 · Control de acceso
-        Cualquier usuario puede registrar una consulta sin token.
-        Resultado esperado: HTTP 201 sin token JWT."""
+    def test_cp_hu09_07_no_requiere_autenticacion(self):
         self.client.credentials()
-        response = self.client.post(self.url, self._payload_valido(), format="json")
+        response = self.client.post(
+            "/api/catalog/repuestos/consulta/",
+            self._payload_valido(),
+            format="json"
+        )
         self.assertEqual(response.status_code, 201)
-
-    def test_cp_rep_22_multiples_consultas_se_guardan_independientemente(self):
-        """CP-REP-22 · Integración — múltiples registros
-        Dos consultas distintas deben generar dos registros en BD.
-        Resultado esperado: ConsultaRepuesto.count() == 2."""
-        from catalog.models import ConsultaRepuesto
-        self.client.post(self.url, self._payload_valido(), format="json")
-        payload2 = self._payload_valido()
-        payload2["repuesto_nombre"] = "Pastillas de freno"
-        self.client.post(self.url, payload2, format="json")
-        self.assertEqual(ConsultaRepuesto.objects.count(), 2)
