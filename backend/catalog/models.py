@@ -86,3 +86,31 @@ class CotizacionMotocicleta(models.Model):
 
     def __str__(self):
         return f"{self.radicado or 'SIN-RADICADO'} - {self.motocicleta}"
+
+
+# ── HU: Registrar interés en repuesto ────────────────────────────────────────
+
+
+class ConsultaRepuesto(models.Model):
+    """Tabla estadística — registra cada consulta de repuesto realizada."""
+
+    repuesto_nombre = models.CharField(max_length=200)
+    repuesto_referencia = models.CharField(max_length=80, blank=True, default="")
+    modelo_moto = models.CharField(max_length=120, blank=True, default="")
+    local = models.ForeignKey(
+        Local,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="consultas_repuestos",
+    )
+    fecha = models.DateField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Consulta de repuesto"
+        verbose_name_plural = "Consultas de repuestos"
+
+    def __str__(self):
+        return f"{self.repuesto_nombre} [{self.modelo_moto}] — {self.fecha}"

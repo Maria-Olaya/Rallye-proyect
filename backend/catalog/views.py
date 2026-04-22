@@ -1,12 +1,14 @@
 # catalog/views.py
 
+import urllib.parse
+
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.models import CotizacionMotocicleta, Motocicleta
+from catalog.models import ConsultaRepuesto, CotizacionMotocicleta, Motocicleta
 from catalog.serializers import (
     CotizacionMotocicletaResponseSerializer,
     CotizarMotocicletaSerializer,
@@ -264,3 +266,129 @@ class ListadoAdminMotocicletasView(APIView):
         motos = Motocicleta.objects.all().order_by("id")
         serializer = MotocicletaListSerializer(motos, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ── HU: Consultar repuestos guiado + Registrar interés ───────────────────────
+
+
+class ModelosMotoView(APIView):
+    """
+    GET /api/catalog/repuestos/modelos/
+    Paso 1 — devuelve referencias únicas de motos activas.
+    Público.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        referencias = (
+            Motocicleta.objects.filter(activa=True)
+            .values_list("referencia", flat=True)
+            .distinct()
+            .order_by("referencia")
+        )
+        return Response({"modelos": list(referencias)}, status=status.HTTP_200_OK)
+
+
+class AniosModeloView(APIView):
+    """
+    GET /api/catalog/repuestos/modelos/<referencia>/anios/
+    Paso 2 — devuelve años disponibles para un modelo dado.
+    Público.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, referencia):
+        anios = (
+            Motocicleta.objects.filter(activa=True, referencia__iexact=referencia)
+            .values_list("anio", flat=True)
+            .distinct()
+            .order_by("-anio")
+        )
+        if not anios.exists():
+            return Response(
+                {"error": "Modelo no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(
+            {"modelo": referencia, "anios": list(anios)},
+            status=status.HTTP_200_OK,
+        )
+
+
+class RegistrarConsultaRepuestoView(APIView):
+    """
+    POST /api/catalog/repuestos/consulta/
+    Paso 3 — registra la consulta en tabla estadística y devuelve URL WhatsApp.
+    Público.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from core.models import Local
+
+        repuesto_nombre = request.data.get("repuesto_nombre", "").strip()
+        if not repuesto_nombre:
+            return Response(
+                {"repuesto_nombre": "Este campo es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        repuesto_referencia = request.data.get("repuesto_referencia", "").strip()
+        modelo_moto = request.data.get("modelo_moto", "").strip()
+        local_id = request.data.get("local")
+
+        local = None
+        if local_id:
+            try:
+                local = Local.objects.select_related("sede").get(pk=local_id)
+            except Local.DoesNotExist:
+                return Response(
+                    {"local": "El local seleccionado no existe."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        consulta = ConsultaRepuesto.objects.create(
+            repuesto_nombre=repuesto_nombre,
+            repuesto_referencia=repuesto_referencia,
+            modelo_moto=modelo_moto,
+            local=local,
+        )
+
+        whatsapp_url = None
+        local_info = None
+
+        if local:
+            telefono = local.telefono.strip().replace(" ", "").replace("-", "")
+            if telefono.startswith("+"):
+                telefono = telefono[1:]
+            if not telefono.startswith("57"):
+                telefono = f"57{telefono}"
+
+            mensaje = f"Hola, estoy interesado/a en el repuesto: *{consulta.repuesto_nombre}*"
+            if consulta.repuesto_referencia:
+                mensaje += f" (Ref: {consulta.repuesto_referencia})"
+            if consulta.modelo_moto:
+                mensaje += f". Es para una *{consulta.modelo_moto}*"
+            mensaje += ". ¿Pueden ayudarme con disponibilidad y precio? Gracias."
+
+            whatsapp_url = f"https://wa.me/{telefono}?text={urllib.parse.quote(mensaje)}"
+            local_info = {
+                "id": local.id,
+                "nombre": local.nombre,
+                "direccion": local.direccion,
+                "telefono": local.telefono,
+                "sede": local.sede.nombre,
+            }
+
+        return Response(
+            {
+                "mensaje": "Consulta registrada correctamente.",
+                "consulta_id": consulta.id,
+                "whatsapp_url": whatsapp_url,
+                "local": local_info,
+            },
+            status=status.HTTP_201_CREATED,
+        )

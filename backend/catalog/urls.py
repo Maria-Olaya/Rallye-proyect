@@ -5,11 +5,14 @@ from django.urls import path
 from catalog.views import (
     ActivarMotocicletaView,
     AgregarMotocicletaView,
+    AniosModeloView,
     CatalogoMotocicletasView,
     CotizarMotocicletaView,
     DesactivarMotocicletaView,
     EditarMotocicletaView,
     ListadoAdminMotocicletasView,
+    ModelosMotoView,
+    RegistrarConsultaRepuestoView,
 )
 
 urlpatterns = [
@@ -20,4 +23,7 @@ urlpatterns = [
     path("motocicletas/<int:pk>/desactivar/", DesactivarMotocicletaView.as_view(), name="desactivar_moto"),
     path("motocicletas/<int:pk>/activar/", ActivarMotocicletaView.as_view(), name="activar_moto"),
     path("motocicletas/", CatalogoMotocicletasView.as_view(), name="catalogo_motos"),
+    path("repuestos/modelos/", ModelosMotoView.as_view(), name="modelos_moto"),
+    path("repuestos/modelos/<str:referencia>/anios/", AniosModeloView.as_view(), name="anios_modelo"),
+    path("repuestos/consulta/", RegistrarConsultaRepuestoView.as_view(), name="consulta_repuesto"),
 ]
