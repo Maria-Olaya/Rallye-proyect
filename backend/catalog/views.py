@@ -270,6 +270,7 @@ class ListadoAdminMotocicletasView(APIView):
 
 # ── HU: Consultar repuestos guiado + Registrar interés ───────────────────────
 
+
 class ModelosMotoView(APIView):
     """
     GET /api/catalog/repuestos/modelos/
@@ -281,8 +282,7 @@ class ModelosMotoView(APIView):
 
     def get(self, request):
         referencias = (
-            Motocicleta.objects
-            .filter(activa=True)
+            Motocicleta.objects.filter(activa=True)
             .values_list("referencia", flat=True)
             .distinct()
             .order_by("referencia")
@@ -301,8 +301,7 @@ class AniosModeloView(APIView):
 
     def get(self, request, referencia):
         anios = (
-            Motocicleta.objects
-            .filter(activa=True, referencia__iexact=referencia)
+            Motocicleta.objects.filter(activa=True, referencia__iexact=referencia)
             .values_list("anio", flat=True)
             .distinct()
             .order_by("-anio")
@@ -377,19 +376,19 @@ class RegistrarConsultaRepuestoView(APIView):
 
             whatsapp_url = f"https://wa.me/{telefono}?text={urllib.parse.quote(mensaje)}"
             local_info = {
-                "id":        local.id,
-                "nombre":    local.nombre,
+                "id": local.id,
+                "nombre": local.nombre,
                 "direccion": local.direccion,
-                "telefono":  local.telefono,
-                "sede":      local.sede.nombre,
+                "telefono": local.telefono,
+                "sede": local.sede.nombre,
             }
 
         return Response(
             {
-                "mensaje":      "Consulta registrada correctamente.",
-                "consulta_id":  consulta.id,
+                "mensaje": "Consulta registrada correctamente.",
+                "consulta_id": consulta.id,
                 "whatsapp_url": whatsapp_url,
-                "local":        local_info,
+                "local": local_info,
             },
             status=status.HTTP_201_CREATED,
         )

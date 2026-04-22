@@ -5,28 +5,36 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('catalog', '0009_alter_motocicleta_tipo'),
-        ('core', '0003_alter_local_id_alter_municipio_id_alter_sede_id'),
+        ("catalog", "0009_alter_motocicleta_tipo"),
+        ("core", "0003_alter_local_id_alter_municipio_id_alter_sede_id"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ConsultaRepuesto',
+            name="ConsultaRepuesto",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('repuesto_nombre', models.CharField(max_length=200)),
-                ('repuesto_referencia', models.CharField(blank=True, default='', max_length=80)),
-                ('modelo_moto', models.CharField(blank=True, default='', max_length=120)),
-                ('fecha', models.DateField(auto_now_add=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('local', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='consultas_repuestos', to='core.local')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("repuesto_nombre", models.CharField(max_length=200)),
+                ("repuesto_referencia", models.CharField(blank=True, default="", max_length=80)),
+                ("modelo_moto", models.CharField(blank=True, default="", max_length=120)),
+                ("fecha", models.DateField(auto_now_add=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "local",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="consultas_repuestos",
+                        to="core.local",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Consulta de repuesto',
-                'verbose_name_plural': 'Consultas de repuestos',
-                'ordering': ['-created_at'],
+                "verbose_name": "Consulta de repuesto",
+                "verbose_name_plural": "Consultas de repuestos",
+                "ordering": ["-created_at"],
             },
         ),
     ]

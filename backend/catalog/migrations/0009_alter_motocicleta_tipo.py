@@ -4,15 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('catalog', '0008_hu10_cotizacion_motocicleta'),
+        ("catalog", "0008_hu10_cotizacion_motocicleta"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='motocicleta',
-            name='tipo',
-            field=models.CharField(choices=[('DEPORTIVA', 'Deportiva'), ('URBANA', 'Urbana'), ('TODOTERRENO', 'Todoterreno'), ('CUATRIMOTOS', 'Cuatrimotos'), ('AUTOMATICA', 'Automaticas y Semiautomaticas')], default='URBANA', max_length=20),
+            model_name="motocicleta",
+            name="tipo",
+            field=models.CharField(
+                choices=[
+                    ("DEPORTIVA", "Deportiva"),
+                    ("URBANA", "Urbana"),
+                    ("TODOTERRENO", "Todoterreno"),
+                    ("CUATRIMOTOS", "Cuatrimotos"),
+                    ("AUTOMATICA", "Automaticas y Semiautomaticas"),
+                ],
+                default="URBANA",
+                max_length=20,
+            ),
         ),
     ]

@@ -90,6 +90,7 @@ class CotizacionMotocicleta(models.Model):
 
 # ── HU: Registrar interés en repuesto ────────────────────────────────────────
 
+
 class ConsultaRepuesto(models.Model):
     """Tabla estadística — registra cada consulta de repuesto realizada."""
 
