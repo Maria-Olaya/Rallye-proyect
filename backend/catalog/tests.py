@@ -1072,27 +1072,38 @@ class ListadoAdminMotocicletasTest(TestCase):
             self.assertIn("activa", m)
 
 
-
-
 # ── HU-08 · Paso 1 — Modelos disponibles ────────────────────────────────
+
 
 class ModelosMotoTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         Motocicleta.objects.create(
-            referencia="FZ 150", anio=2024, tipo="URBANA",
-            cilindraje=150, precio="9000000.00",
-            caracteristicas="Test", activa=True
+            referencia="FZ 150",
+            anio=2024,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="9000000.00",
+            caracteristicas="Test",
+            activa=True,
         )
         Motocicleta.objects.create(
-            referencia="FZ 150", anio=2023, tipo="URBANA",
-            cilindraje=150, precio="8500000.00",
-            caracteristicas="Test", activa=True
+            referencia="FZ 150",
+            anio=2023,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="8500000.00",
+            caracteristicas="Test",
+            activa=True,
         )
         Motocicleta.objects.create(
-            referencia="MT-07", anio=2024, tipo="DEPORTIVA",
-            cilindraje=689, precio="28000000.00",
-            caracteristicas="Test", activa=True
+            referencia="MT-07",
+            anio=2024,
+            tipo="DEPORTIVA",
+            cilindraje=689,
+            precio="28000000.00",
+            caracteristicas="Test",
+            activa=True,
         )
 
     def test_cp_hu08_01_retorna_modelos_unicos(self):
@@ -1106,22 +1117,31 @@ class ModelosMotoTest(TestCase):
         self.client.credentials()
         response = self.client.get("/api/catalog/repuestos/modelos/")
         self.assertEqual(response.status_code, 200)
-        
-        
+
+
 # ── HU-08 · Paso 2 — Años por modelo ───────────────────────────────────
+
 
 class AniosModeloTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         Motocicleta.objects.create(
-            referencia="FZ 150", anio=2024, tipo="URBANA",
-            cilindraje=150, precio="9000000.00",
-            caracteristicas="Test", activa=True
+            referencia="FZ 150",
+            anio=2024,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="9000000.00",
+            caracteristicas="Test",
+            activa=True,
         )
         Motocicleta.objects.create(
-            referencia="FZ 150", anio=2022, tipo="URBANA",
-            cilindraje=150, precio="8000000.00",
-            caracteristicas="Test", activa=True
+            referencia="FZ 150",
+            anio=2022,
+            tipo="URBANA",
+            cilindraje=150,
+            precio="8000000.00",
+            caracteristicas="Test",
+            activa=True,
         )
 
     def test_cp_hu08_03_retorna_anios_del_modelo(self):
@@ -1133,9 +1153,10 @@ class AniosModeloTest(TestCase):
     def test_cp_hu08_04_modelo_inexistente_retorna_404(self):
         response = self.client.get("/api/catalog/repuestos/modelos/XYZ/anios/")
         self.assertEqual(response.status_code, 404)
-        
-        
+
+
 # ── HU-09 · Registrar consulta de repuesto ─────────────────────────────
+
 
 class RegistrarConsultaRepuestoTest(TestCase):
     def setUp(self):
@@ -1152,20 +1173,12 @@ class RegistrarConsultaRepuestoTest(TestCase):
 
     def test_cp_hu09_01_registra_consulta_correctamente(self):
         """Flujo feliz"""
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            self._payload_valido(),
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ConsultaRepuesto.objects.count(), 1)
 
     def test_cp_hu09_02_guarda_datos_correctos_en_bd(self):
-        self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            self._payload_valido(),
-            format="json"
-        )
+        self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         consulta = ConsultaRepuesto.objects.get()
         self.assertEqual(consulta.repuesto_nombre, "Pastillas de freno")
         self.assertEqual(consulta.repuesto_referencia, "PF-123")
@@ -1176,30 +1189,18 @@ class RegistrarConsultaRepuestoTest(TestCase):
         payload = self._payload_valido()
         payload["repuesto_nombre"] = ""
 
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            payload,
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", payload, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_cp_hu09_04_local_inexistente_retorna_400(self):
         payload = self._payload_valido()
         payload["local"] = 9999
 
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            payload,
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", payload, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_cp_hu09_05_retorna_url_whatsapp(self):
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            self._payload_valido(),
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         self.assertEqual(response.status_code, 201)
         self.assertIn("https://wa.me/", response.data["whatsapp_url"])
         self.assertIn("Pastillas", response.data["whatsapp_url"])
@@ -1208,19 +1209,11 @@ class RegistrarConsultaRepuestoTest(TestCase):
         payload = self._payload_valido()
         payload.pop("local")
 
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            payload,
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", payload, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(response.data["whatsapp_url"])
 
     def test_cp_hu09_07_no_requiere_autenticacion(self):
         self.client.credentials()
-        response = self.client.post(
-            "/api/catalog/repuestos/consulta/",
-            self._payload_valido(),
-            format="json"
-        )
+        response = self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         self.assertEqual(response.status_code, 201)
