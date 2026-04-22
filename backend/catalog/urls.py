@@ -30,5 +30,5 @@ urlpatterns = [
 
     path("repuestos/modelos/",                        ModelosMotoView.as_view(),               name="modelos_moto"),
     path("repuestos/modelos/<str:referencia>/anios/", AniosModeloView.as_view(),               name="anios_modelo"),
-    path("repuestos/consulta/",                       RegistrarConsultaRepuestoView.as_view(), name="consulta_repuesto"),
+    path("repuestos/consulta/",     RegistrarConsultaRepuestoView.as_view(), name="consulta_repuesto"),
 ]
