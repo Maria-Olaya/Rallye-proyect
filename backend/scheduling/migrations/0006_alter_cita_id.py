@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('scheduling', '0005_cita_estado_atendido'),
+        ("scheduling", "0005_cita_estado_atendido"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='cita',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="cita",
+            name="id",
+            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
         ),
     ]
