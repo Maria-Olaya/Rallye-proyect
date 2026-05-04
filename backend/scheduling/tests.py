@@ -67,7 +67,7 @@ class CitasPorDiaTest(TestCase):
     def test_hora_sobrante_se_ignora(self):
         """6am-7pm → 6 slots completos × 3 mec = 18"""
         local = make_local(time(6, 0), time(19, 0), 3)
-        self.assertEqual(citas_por_dia(local), 18)   # antes 15 → ahora 18
+        self.assertEqual(citas_por_dia(local), 18)  # antes 15 → ahora 18
 
     def test_un_mecanico_dia_completo(self):
         """6am-6pm, 1 mecánico → 5 slots × 1 = 5"""
@@ -93,6 +93,7 @@ class CitasPorDiaTest(TestCase):
         """8am-11:30am → 1 slot (8-10) × 2 mec = 2"""
         local = make_local(time(8, 0), time(11, 30), 2)
         self.assertEqual(citas_por_dia(local), 2)
+
 
 # ─────────────────────────────────────────
 # generar_citas_para_local
@@ -168,15 +169,15 @@ class GenerarCitasTest(TestCase):
         """6am-6pm, 3 mecánicos → 5 slots × 3 = 15 citas en DB"""
         local = make_local(time(6, 0), time(18, 0), 3)
         citas = generar_citas_para_local(local, date(2025, 1, 15))
-        self.assertEqual(len(citas), 15)   # 5 slots × 3 mec = 15
-        
+        self.assertEqual(len(citas), 15)  # 5 slots × 3 mec = 15
+
     def test_almuerzo_bloquea_slot(self):
         """Slot 12-14 no debe generarse (almuerzo 12-13)"""
         local = make_local(time(6, 0), time(18, 0), 1)
         generar_citas_para_local(local, date(2025, 1, 15))
         # No debe existir cita que empiece a las 12:00
-        self.assertFalse(Cita.objects.filter(hora_inicio=time(12,0)).exists())
-            
+        self.assertFalse(Cita.objects.filter(hora_inicio=time(12, 0)).exists())
+
     def test_local_asociado_correctamente(self):
         """Todas las citas deben pertenecer al local correcto"""
         local = make_local(time(6, 0), time(10, 0), 2)
