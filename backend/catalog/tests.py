@@ -18,8 +18,6 @@ User = get_user_model()
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-
-
 def make_local(hora_apertura=None, hora_cierre=None, num_mecanicos=2, nombre="Local Test"):
     municipio = Municipio.objects.create(nombre="TestMunicipio", departamento="TestDepto")
     sede = Sede.objects.create(nombre="TestSede", direccion="Calle 1", municipio=municipio)
@@ -28,11 +26,13 @@ def make_local(hora_apertura=None, hora_cierre=None, num_mecanicos=2, nombre="Lo
         # Si llegan como string o time, convertimos a string HH:MM
         apertura_str = hora_apertura if isinstance(hora_apertura, str) else hora_apertura.strftime("%H:%M")
         cierre_str = hora_cierre if isinstance(hora_cierre, str) else hora_cierre.strftime("%H:%M")
-        horarios = [{
-            "dias": ["lun", "mar", "mie", "jue", "vie", "sab", "dom"],
-            "apertura": apertura_str,
-            "cierre": cierre_str,
-        }]
+        horarios = [
+            {
+                "dias": ["lun", "mar", "mie", "jue", "vie", "sab", "dom"],
+                "apertura": apertura_str,
+                "cierre": cierre_str,
+            }
+        ]
     return Local.objects.create(
         nombre=nombre,
         sede=sede,
