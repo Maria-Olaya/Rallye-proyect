@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Local — Panel Administrativo{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+    .ml-page { min-height:calc(100vh - 64px); background:#0d0d0d; padding:2.5rem 1.5rem; }
+    .ml-container { max-width:860px; margin:0 auto; display:grid; gap:1.5rem; }
+
+    .ml-header { display:flex; align-items:center; gap:1rem; padding:1.5rem 2rem; background:linear-gradient(135deg,#cc0000 0%,#8b0000 100%); border-radius:18px; position:relative; overflow:hidden; }
+    .ml-header::after { content:''; position:absolute; right:-30px; top:-30px; width:160px; height:160px; background:rgba(255,255,255,0.06); border-radius:50%; }
+    .ml-header-icon { width:52px; height:52px; background:rgba(255,255,255,0.15); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#fff; flex-shrink:0; }
+    .ml-header h1 { font-family:'Barlow Condensed',sans-serif; font-size:1.6rem; font-weight:800; color:#fff; letter-spacing:0.04em; margin:0; }
+    .ml-header p { color:rgba(255,255,255,0.75); font-size:0.82rem; margin-top:0.2rem; }
+
+    .ml-card { background:#1a1a1a; border:1px solid #2a2a2a; border-radius:18px; overflow:hidden; }
+    .ml-card-section { padding:1.6rem 2rem; border-bottom:1px solid #242424; }
+    .ml-card-section:last-child { border-bottom:none; }
+    .ml-section-title { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:#cc0000; margin-bottom:1.2rem; display:flex; align-items:center; gap:0.5rem; }
+    .ml-section-title::after { content:''; flex:1; height:1px; background:#2a2a2a; }
+
+    .ml-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+    @media(max-width:640px){ .ml-grid-2 { grid-template-columns:1fr; } }
+    .ml-field { display:flex; flex-direction:column; gap:0.45rem; margin-bottom:1rem; }
+    .ml-field:last-child { margin-bottom:0; }
+    .ml-label { font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#888; display:flex; align-items:center; gap:0.4rem; }
+    .ml-label i { color:#cc0000; font-size:0.75rem; }
+    .ml-label .req { color:#cc0000; }
+
+    .ml-input, .ml-textarea { background:#111; border:1.5px solid #2d2d2d; border-radius:10px; color:#f0f0f0; font-family:'DM Sans',sans-serif; font-size:0.875rem; padding:0.7rem 1rem; outline:none; width:100%; transition:border-color 0.15s,box-shadow 0.15s; }
+    .ml-input:focus, .ml-textarea:focus { border-color:#cc0000; box-shadow:0 0 0 3px rgba(204,0,0,0.12); }
+    .ml-input.readonly { background:#0d0d0d; color:#555; cursor:not-allowed; border-color:#1e1e1e; }
+    .ml-input.field-error, .ml-textarea.field-error { border-color:#e74c3c; box-shadow:0 0 0 3px rgba(231,76,60,0.12); }
+    .ml-textarea { resize:vertical; min-height:100px; }
+    .ml-hint { font-size:0.7rem; color:#555; }
+    .ml-char-count { font-size:0.68rem; color:#555; text-align:right; }
+
+    .ml-toggle-row { display:flex; align-items:center; gap:0.75rem; padding:0.8rem 1rem; background:#111; border:1.5px solid #2d2d2d; border-radius:10px; cursor:pointer; transition:border-color 0.15s; }
+    .ml-toggle-row:hover { border-color:#cc0000; }
+    .ml-toggle { width:44px; height:24px; background:#2d2d2d; border-radius:12px; position:relative; transition:background 0.2s; flex-shrink:0; }
+    .ml-toggle::after { content:''; position:absolute; width:18px; height:18px; background:#fff; border-radius:50%; top:3px; left:3px; transition:transform 0.2s; }
+    .ml-toggle.on { background:#22c55e; }
+    .ml-toggle.on::after { transform:translateX(20px); }
+    .ml-toggle-label { font-size:0.875rem; color:#ccc; }
+    .ml-toggle-badge { margin-left:auto; font-size:0.65rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:0.2rem 0.6rem; border-radius:20px; background:#2d2d2d; color:#666; }
+    .ml-toggle-badge.active { background:rgba(34,197,94,0.15); color:#22c55e; }
+
+    .ml-actions { display:flex; justify-content:flex-end; gap:0.75rem; align-items:center; }
+    .ml-btn-primary { display:inline-flex; align-items:center; gap:0.5rem; padding:0.7rem 1.6rem; background:#cc0000; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:0.85rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; border:none; border-radius:10px; cursor:pointer; transition:background 0.15s,transform 0.1s; }
+    .ml-btn-primary:hover { background:#b30000; transform:translateY(-1px); }
+    .ml-btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+    .ml-btn-ghost { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.2rem; background:transparent; color:#888; font-family:'Barlow Condensed',sans-serif; font-size:0.85rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; border:1.5px solid #2d2d2d; border-radius:10px; cursor:pointer; transition:all 0.15s; text-decoration:none; }
+    .ml-btn-ghost:hover { border-color:#555; color:#ccc; }
+
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .ml-toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; display:flex; flex-direction:column; gap:0.5rem; pointer-events:none; }
+    .ml-toast-item { display:flex; align-items:center; gap:0.75rem; padding:0.9rem 1.2rem; border-radius:12px; font-size:0.875rem; font-family:'DM Sans',sans-serif; pointer-events:all; animation:slideUp 0.25s ease; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+    .ml-toast-item.success { background:#0f2d1a; border:1px solid #22c55e33; color:#4ade80; }
+    .ml-toast-item.error   { background:#2d0f0f; border:1px solid #ef444433; color:#f87171; }
+    .ml-toast-item.info    { background:#0f1e2d; border:1px solid #3b82f633; color:#60a5fa; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+    .ml-preview { background:#1a1a1a; border:1px solid #2a2a2a; border-radius:18px; padding:1.4rem 1.6rem; display:grid; grid-template-columns:3px 1fr; gap:0 1.2rem; }
+    .ml-preview-stripe { background:linear-gradient(to bottom,#cc0000,#8b0000); border-radius:3px; }
+    .ml-preview-tag { font-size:0.62rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:#cc0000; margin-bottom:0.5rem; }
+    .ml-preview-nombre { font-family:'Barlow Condensed',sans-serif; font-size:1.25rem; font-weight:700; color:#f0f0f0; margin-bottom:0.5rem; }
+    .ml-preview-row { display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#888; margin-bottom:0.25rem; }
+    .ml-preview-row i { color:#cc0000; width:14px; text-align:center; }
+    .ml-preview-desc { font-size:0.78rem; color:#666; margin-top:0.5rem; font-style:italic; border-top:1px solid #222; padding-top:0.5rem; }
+    /* franjas horarias */
+    .franja-card { background:#111; border:1.5px solid #2d2d2d; border-radius:12px; padding:1rem 1.2rem; margin-bottom:0.75rem; position:relative; }
+    .franja-card:last-child { margin-bottom:0; }
+    .franja-remove { position:absolute; top:0.6rem; right:0.7rem; background:transparent; border:none; color:#444; font-size:1rem; cursor:pointer; transition:color 0.15s; padding:0.2rem 0.4rem; border-radius:6px; }
+    .franja-remove:hover { color:#f87171; background:rgba(239,68,68,0.1); }
+    .franja-dias { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+    .franja-dia { display:inline-flex; }
+    .franja-dia input[type=checkbox] { display:none; }
+    .franja-dia label { display:inline-block; padding:0.3rem 0.6rem; border:1.5px solid #2d2d2d; border-radius:6px; font-family:'Barlow Condensed',sans-serif; font-size:0.78rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:#555; background:#0d0d0d; cursor:pointer; transition:all 0.13s; user-select:none; }
+    .franja-dia input[type=checkbox]:checked + label { background:#cc0000; border-color:#cc0000; color:#fff; }
+    .franja-dia label:hover { border-color:#cc0000; color:#ccc; }
+    .franja-horas { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
+    .franja-horas label { font-size:0.65rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#666; display:block; margin-bottom:0.25rem; }
+    .franja-horas input[type=time] { background:#0d0d0d; border:1.5px solid #2d2d2d; border-radius:8px; color:#f0f0f0; font-size:0.85rem; padding:0.5rem 0.75rem; outline:none; width:100%; transition:border-color 0.15s; }
+    .franja-horas input[type=time]:focus { border-color:#cc0000; }
+    .btn-add-franja { display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1rem; background:transparent; border:1.5px dashed #333; border-radius:10px; color:#555; font-family:'Barlow Condensed',sans-serif; font-size:0.8rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; margin-top:0.5rem; width:100%; justify-content:center; }
+    .btn-add-franja:hover { border-color:#cc0000; color:#cc0000; }
+
+    .ml-preview-label { font-size:0.68rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:#555; margin-bottom:0.6rem; padding-left:0.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ml-page">
+  <div class="ml-container">
+
+    <!-- Header -->
+    <div class="ml-header">
+      <div class="ml-header-icon"><i class="fas fa-store"></i></div>
+      <div>
+        <h1>Mi Local</h1>
+        <p>Actualiza los datos de tu local y mantén la información al día</p>
+      </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="ml-card">
+
+      <!-- Datos básicos -->
+      <div class="ml-card-section">
+        <div class="ml-section-title"><i class="fas fa-id-card"></i> Información básica</div>
+        <div class="ml-field">
+          <label class="ml-label"><i class="fas fa-tag"></i> Nombre del local</label>
+          <input type="text" class="ml-input readonly" id="nombre" readonly>
+          <span class="ml-hint">El nombre no puede modificarse desde aquí</span>
+        </div>
+        <div class="ml-grid-2">
+          <div class="ml-field">
+            <label class="ml-label"><i class="fas fa-phone"></i> Teléfono <span class="req">*</span></label>
+            <input type="tel" class="ml-input" id="telefono" placeholder="Ej: 3001234567" maxlength="20">
+          </div>
+          <div class="ml-field">
+            <label class="ml-label"><i class="fas fa-envelope"></i> Correo admin <span class="req">*</span></label>
+            <input type="email" class="ml-input" id="correo_admin" placeholder="admin@rallye.com">
+          </div>
+        </div>
+      </div>
+
+      <!-- Ubicación y descripción -->
+      <div class="ml-card-section">
+        <div class="ml-section-title"><i class="fas fa-map-marker-alt"></i> Ubicación y descripción</div>
+        <div class="ml-field">
+          <label class="ml-label"><i class="fas fa-road"></i> Dirección <span class="req">*</span></label>
+          <input type="text" class="ml-input" id="direccion" placeholder="Ej: Calle 123 #45-67, Centro">
+        </div>
+        <div class="ml-field">
+          <label class="ml-label"><i class="fas fa-align-left"></i> Descripción del local</label>
+          <textarea class="ml-textarea" id="descripcion" rows="4" maxlength="1000"
+            placeholder="Describe los servicios, especialidades y cualquier información relevante…"></textarea>
+          <div class="ml-char-count"><span id="charCount">0</span>/1000</div>
+        </div>
+      </div>
+
+      <!-- Horarios con franjas -->
+      <div class="ml-card-section">
+        <div class="ml-section-title"><i class="fas fa-calendar-week"></i> Horarios de atención</div>
+        <div id="franjasContainer"></div>
+        <button type="button" class="btn-add-franja" onclick="agregarFranja()">
+          <i class="fas fa-plus"></i> Agregar franja horaria
+        </button>
+      </div>
+
+      <!-- Operación -->
+      <div class="ml-card-section">
+        <div class="ml-section-title"><i class="fas fa-wrench"></i> Operación</div>
+        <div class="ml-field">
+          <label class="ml-label"><i class="fas fa-wrench"></i> Número de mecánicos <span class="req">*</span></label>
+          <input type="number" class="ml-input" id="num_mecanicos" min="1" max="200" style="max-width:180px;">
+        </div>
+      </div>
+
+      <!-- Estado -->
+      <div class="ml-card-section">
+        <div class="ml-section-title"><i class="fas fa-toggle-on"></i> Estado del local</div>
+        <div class="ml-toggle-row" onclick="toggleActivo()">
+          <div class="ml-toggle" id="toggleActivo"></div>
+          <span class="ml-toggle-label">Visible para los usuarios en el mapa</span>
+          <span class="ml-toggle-badge" id="toggleBadge">Inactivo</span>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="ml-card-section">
+        <div class="ml-actions">
+          <a href="/panel/" class="ml-btn-ghost"><i class="fas fa-arrow-left"></i> Volver</a>
+          <button type="button" class="ml-btn-ghost" id="btnRestaurar" onclick="cargarDatos()">
+            <i class="fas fa-undo"></i> Restaurar
+          </button>
+          <button type="button" class="ml-btn-primary" id="btnGuardar" onclick="guardarCambios()">
+            <i class="fas fa-save"></i> Guardar cambios
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vista previa -->
+    <div>
+      <div class="ml-preview-label"><i class="fas fa-map" style="color:#cc0000;margin-right:0.4rem;"></i>Vista previa en el mapa</div>
+      <div class="ml-preview">
+        <div class="ml-preview-stripe"></div>
+        <div>
+          <div class="ml-preview-tag">Local Rallye Motor's</div>
+          <div class="ml-preview-nombre" id="pvNombre">—</div>
+          <div class="ml-preview-row"><i class="fas fa-phone"></i><span id="pvTelefono">No especificado</span></div>
+          <div class="ml-preview-row"><i class="fas fa-map-marker-alt"></i><span id="pvDireccion">No especificada</span></div>
+          <div class="ml-preview-row"><i class="fas fa-calendar-week"></i><span id="pvHorarios">Sin horarios configurados</span></div>
+          <div class="ml-preview-desc" id="pvDesc">Sin descripción</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="ml-toast" id="toastContainer"></div>
+
+<script>
+(function() {
+    var localId   = null;
+    var activoVal = false;
+    var franjaCount = 0;
+
+    var DIAS = ['lun','mar','mie','jue','vie','sab','dom'];
+    var DIAS_LABEL = { lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie', sab:'Sáb', dom:'Dom' };
+
+    function getToken() {
+        return sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    }
+
+    function getCsrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+
+    function toast(msg, tipo, dur) {
+        tipo = tipo || 'success';
+        dur  = dur  || 4000;
+        var icons = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
+        var c  = document.getElementById('toastContainer');
+        var el = document.createElement('div');
+        el.className = 'ml-toast-item ' + tipo;
+        el.innerHTML = '<i class="fas ' + (icons[tipo] || icons.info) + '"></i><span>' + msg + '</span>';
+        c.appendChild(el);
+        if (dur > 0) {
+            setTimeout(function() {
+                el.style.opacity = '0'; el.style.transition = 'opacity 0.3s';
+                setTimeout(function() { el.remove(); }, 300);
+            }, dur);
+        }
+    }
+
+    function setBusy(id, busy, label) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        btn.disabled = busy;
+        if (busy) {
+            btn._orig = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> ' + (label || '');
+        } else {
+            if (btn._orig) btn.innerHTML = btn._orig;
+        }
+    }
+
+    // ── Franjas horarias ────────────────────────────────────────────────────
+
+    window.agregarFranja = function(franja) {
+        franjaCount++;
+        var id = franjaCount;
+        var dias    = (franja && franja.dias)     || [];
+        var apertura = (franja && franja.apertura) || '';
+        var cierre   = (franja && franja.cierre)   || '';
+
+        var diasHtml = DIAS.map(function(d) {
+            var uid     = 'f' + id + '-' + d;
+            var checked = dias.includes(d) ? 'checked' : '';
+            return (
+                '<div class="franja-dia">' +
+                '<input type="checkbox" id="' + uid + '" value="' + d + '" ' + checked + '>' +
+                '<label for="' + uid + '">' + DIAS_LABEL[d] + '</label>' +
+                '</div>'
+            );
+        }).join('');
+
+        var card = document.createElement('div');
+        card.className = 'franja-card';
+        card.dataset.id = id;
+        card.innerHTML =
+            '<button type="button" class="franja-remove" onclick="eliminarFranja(' + id + ')" title="Eliminar franja">' +
+            '<i class="fas fa-times"></i></button>' +
+            '<div class="franja-dias">' + diasHtml + '</div>' +
+            '<div class="franja-horas">' +
+            '<div><label>Apertura</label>' +
+            '<input type="time" id="ap-' + id + '" value="' + apertura + '" onchange="actualizarPreviewHorarios()"></div>' +
+            '<div><label>Cierre</label>' +
+            '<input type="time" id="ci-' + id + '" value="' + cierre + '" onchange="actualizarPreviewHorarios()"></div>' +
+            '</div>';
+
+        card.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+            cb.addEventListener('change', actualizarPreviewHorarios);
+        });
+
+        document.getElementById('franjasContainer').appendChild(card);
+        actualizarPreviewHorarios();
+    };
+
+    window.eliminarFranja = function(id) {
+        var card = document.querySelector('.franja-card[data-id="' + id + '"]');
+        if (card) card.remove();
+        actualizarPreviewHorarios();
+    };
+
+    function getFranjas() {
+        var result = [];
+        document.querySelectorAll('.franja-card').forEach(function(card) {
+            var id   = card.dataset.id;
+            var dias = Array.from(card.querySelectorAll('input[type=checkbox]:checked')).map(function(cb){ return cb.value; });
+            var ap   = document.getElementById('ap-' + id);
+            var ci   = document.getElementById('ci-' + id);
+            result.push({ dias: dias, apertura: ap ? ap.value : '', cierre: ci ? ci.value : '' });
+        });
+        return result;
+    }
+
+    function setFranjas(horarios) {
+        document.getElementById('franjasContainer').innerHTML = '';
+        franjaCount = 0;
+        if (!Array.isArray(horarios) || horarios.length === 0) {
+            agregarFranja();
+            return;
+        }
+        horarios.forEach(function(f){ agregarFranja(f); });
+    }
+
+    function actualizarPreviewHorarios() {
+        var franjas = getFranjas();
+        var el = document.getElementById('pvHorarios');
+        if (!el) return;
+        if (franjas.length === 0) { el.textContent = 'Sin horarios configurados'; return; }
+        el.textContent = franjas.map(function(f) {
+            var dias = f.dias.map(function(d){ return DIAS_LABEL[d]||d; }).join(', ') || 'Sin días';
+            var hr   = (f.apertura || '--:--') + ' - ' + (f.cierre || '--:--');
+            return dias + ': ' + hr;
+        }).join(' | ');
+    }
+
+    window.toggleActivo = function() {
+        activoVal = !activoVal;
+        syncToggleUI();
+    };
+
+    function syncToggleUI() {
+        var t = document.getElementById('toggleActivo');
+        var b = document.getElementById('toggleBadge');
+        t.className = 'ml-toggle' + (activoVal ? ' on' : '');
+        b.className = 'ml-toggle-badge' + (activoVal ? ' active' : '');
+        b.textContent = activoVal ? 'Activo' : 'Inactivo';
+    }
+
+    function actualizarPreview() {
+        function v(id, fb) { var el = document.getElementById(id); return (el && el.value.trim()) || fb; }
+        var elNombre = document.getElementById('pvNombre');
+        if (elNombre) elNombre.textContent = v('nombre', '—');
+        var elTel = document.getElementById('pvTelefono');
+        if (elTel) elTel.textContent = v('telefono', 'No especificado');
+        var elDir = document.getElementById('pvDireccion');
+        if (elDir) elDir.textContent = v('direccion', 'No especificada');
+        var desc = document.getElementById('descripcion');
+        var elDesc = document.getElementById('pvDesc');
+        if (elDesc) elDesc.textContent = (desc && desc.value.trim().substring(0,150)) || 'Sin descripción';
+        actualizarPreviewHorarios();
+    }
+
+    function actualizarContador() {
+        var el = document.getElementById('descripcion');
+        document.getElementById('charCount').textContent = el ? el.value.length : 0;
+    }
+
+    async function obtenerLocalId() {
+        var cached = sessionStorage.getItem('local_id');
+        if (cached && cached !== 'null' && cached !== 'undefined') return parseInt(cached, 10);
+        var token = getToken();
+        if (!token) return null;
+        try {
+            var r = await fetch('/api/users/profile/', { headers: { 'Authorization': 'Bearer ' + token } });
+            if (r.status === 401) { sessionStorage.clear(); window.location.href = '/login/'; return null; }
+            if (r.ok) {
+                var d = await r.json();
+                if (d.local_id) {
+                    sessionStorage.setItem('local_id', d.local_id);
+                    sessionStorage.setItem('local_nombre', d.local_nombre || '');
+                    return d.local_id;
+                }
+            }
+        } catch(e) { console.error('Error perfil:', e); }
+        return null;
+    }
+
+    window.cargarDatos = async function() {
+        var token = getToken();
+        if (!token) { window.location.href = '/login/'; return; }
+        if (!localId) { toast('No se pudo identificar el local asignado.', 'error'); return; }
+
+        setBusy('btnGuardar', true, 'Cargando…');
+        setBusy('btnRestaurar', true, '');
+
+        try {
+            var r = await fetch('/api/core/locales/' + localId + '/editar/', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            if (r.status === 401) { sessionStorage.clear(); window.location.href = '/login/'; return; }
+            if (r.status === 404) {
+                toast('Sin permiso para este local. Verifica tu cuenta con el administrador.', 'error', 8000);
+                return;
+            }
+            if (!r.ok) {
+                var err = await r.json().catch(function(){ return {}; });
+                throw new Error(err.error || ('Error HTTP ' + r.status));
+            }
+
+            var d = await r.json();
+
+            function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val != null ? val : ''; }
+            setVal('nombre',        d.nombre);
+            setVal('telefono',      d.telefono);
+            setVal('correo_admin',  d.correo_admin);
+            setVal('direccion',     d.direccion);
+            setVal('descripcion',   d.descripcion);
+            setVal('num_mecanicos', d.num_mecanicos);
+
+            activoVal = !!d.activo;
+            syncToggleUI();
+            setFranjas(d.horarios || []);
+            actualizarContador();
+            actualizarPreview();
+
+            toast('Datos cargados correctamente.', 'success');
+
+        } catch(e) {
+            console.error(e);
+            toast(e.message || 'Error al cargar los datos.', 'error');
+        } finally {
+            setBusy('btnGuardar', false, '');
+            setBusy('btnRestaurar', false, '');
+        }
+    };
+
+    function validar() {
+        var checks = [
+            { id:'telefono',     test:function(v){ return v.length >= 7; },   msg:'El teléfono debe tener al menos 7 dígitos.' },
+            { id:'correo_admin', test:function(v){ return v.includes('@') && v.includes('.'); }, msg:'Ingresa un correo electrónico válido.' },
+            { id:'direccion',    test:function(v){ return v.length >= 5; },   msg:'La dirección debe tener al menos 5 caracteres.' },
+            { id:'num_mecanicos',test:function(v){ return parseInt(v) >= 1; },msg:'Debe haber al menos 1 mecánico.' },
+        ];
+        document.querySelectorAll('.ml-input,.ml-textarea').forEach(function(el){ el.classList.remove('field-error'); });
+        for (var i = 0; i < checks.length; i++) {
+            var c  = checks[i];
+            var el = document.getElementById(c.id);
+            var val = el ? el.value.trim() : '';
+            if (!c.test(val)) {
+                if (el) el.classList.add('field-error');
+                toast(c.msg, 'error');
+                return false;
+            }
+        }
+        var franjas = getFranjas();
+        var franjaOk = franjas.every(function(f){ return f.dias.length > 0 && f.apertura && f.cierre && f.apertura < f.cierre; });
+        if (!franjaOk) { toast('Cada franja debe tener al menos un día y apertura antes del cierre.', 'error'); return false; }
+        return true;
+    }
+
+    window.guardarCambios = async function() {
+        var token = getToken();
+        if (!token) { window.location.href = '/login/'; return; }
+        if (!localId) { toast('No se pudo identificar el local.', 'error'); return; }
+        if (!validar()) return;
+
+        setBusy('btnGuardar', true, 'Guardando…');
+
+        var payload = {
+            telefono:      document.getElementById('telefono').value.trim(),
+            correo_admin:  document.getElementById('correo_admin').value.trim(),
+            direccion:     document.getElementById('direccion').value.trim(),
+            descripcion:   document.getElementById('descripcion').value.trim(),
+            num_mecanicos: parseInt(document.getElementById('num_mecanicos').value, 10),
+            activo:        activoVal,
+            horarios:      getFranjas(),
+        };
+
+        try {
+            var r = await fetch('/api/core/locales/' + localId + '/editar/', {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type':  'application/json',
+                    'X-CSRFToken':   getCsrf(),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (r.status === 401) { sessionStorage.clear(); window.location.href = '/login/'; return; }
+
+            var result = await r.json().catch(function(){ return {}; });
+
+            if (r.ok) {
+                toast(result.mensaje || '¡Información actualizada correctamente!', 'success');
+                actualizarPreview();
+                setTimeout(function(){ cargarDatos(); }, 1500);
+            } else {
+                var errMsg = result.error
+                    || (result.non_field_errors && result.non_field_errors[0])
+                    || Object.entries(result).map(function(e){ return e[0] + ': ' + (Array.isArray(e[1]) ? e[1][0] : e[1]); }).join(' | ')
+                    || 'Error al guardar los cambios.';
+                toast(errMsg, 'error', 6000);
+            }
+
+        } catch(e) {
+            console.error(e);
+            toast('Error de conexión con el servidor.', 'error');
+        } finally {
+            setBusy('btnGuardar', false, '');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        var token = getToken();
+        if (!token) { window.location.href = '/login/'; return; }
+
+        localId = await obtenerLocalId();
+
+        if (!localId) {
+            toast('No tienes un local asignado. Contacta al administrador.', 'error', 0);
+            document.getElementById('btnGuardar').disabled  = true;
+            document.getElementById('btnRestaurar').disabled = true;
+            return;
+        }
+
+        await cargarDatos();
+
+        ['telefono','correo_admin','direccion'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) { el.addEventListener('input', actualizarPreview); el.addEventListener('change', actualizarPreview); }
+        });
+        var descEl = document.getElementById('descripcion');
+        if (descEl) descEl.addEventListener('input', function(){ actualizarContador(); actualizarPreview(); });
+        document.querySelectorAll('.ml-input,.ml-textarea').forEach(function(el){
+            el.addEventListener('input', function(){ el.classList.remove('field-error'); });
+        });
+    });
+})();
+</script>
+{% endblock %}

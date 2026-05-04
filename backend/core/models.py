@@ -30,10 +30,13 @@ class Local(models.Model):
     telefono = models.CharField(max_length=20)
     correo_admin = models.EmailField()
     descripcion = models.TextField(blank=True, default="")
-    hora_apertura = models.TimeField()
-    hora_cierre = models.TimeField()
     num_mecanicos = models.PositiveIntegerField()
     activo = models.BooleanField(default=True)
+    horarios = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=('Lista de franjas: [{"dias":["lun","mar"], "apertura":"08:00", "cierre":"17:00"}]'),
+    )
 
     def __str__(self):
         return self.nombre

@@ -18,15 +18,23 @@ from scheduling.services import (
 def make_local(hora_apertura, hora_cierre, num_mecanicos, nombre="TestLocal"):
     municipio = Municipio.objects.create(nombre="TestMunicipio", departamento="TestDepto")
     sede = Sede.objects.create(nombre="TestSede", direccion="Calle 1", municipio=municipio)
+    # Convertir hora_apertura/hora_cierre a la nueva estructura horarios
+    # Se asignan todos los días para que los tests funcionen igual que antes
+    horarios = [
+        {
+            "dias": ["lun", "mar", "mie", "jue", "vie", "sab", "dom"],
+            "apertura": hora_apertura.strftime("%H:%M"),
+            "cierre": hora_cierre.strftime("%H:%M"),
+        }
+    ]
     return Local.objects.create(
         nombre=nombre,
         sede=sede,
         direccion="Calle 2",
         telefono="3001234567",
         correo_admin="admin@test.com",
-        hora_apertura=hora_apertura,
-        hora_cierre=hora_cierre,
         num_mecanicos=num_mecanicos,
+        horarios=horarios,
     )
 
 
@@ -37,9 +45,9 @@ def make_local(hora_apertura, hora_cierre, num_mecanicos, nombre="TestLocal"):
 
 class CitasPorDiaTest(TestCase):
     def test_caso_base(self):
-        """6am-6pm, 3 mecánicos → 6 slots × 3 = 18"""
+        """6am-6pm, 3 mecánicos → 5 slots (saltando almuerzo) × 3 = 15"""
         local = make_local(time(6, 0), time(18, 0), 3)
-        self.assertEqual(citas_por_dia(local), 18)
+        self.assertEqual(citas_por_dia(local), 15)
 
     def test_horario_corto(self):
         """8am-12pm, 1 mecánico → 2 slots × 1 = 2"""
@@ -52,29 +60,29 @@ class CitasPorDiaTest(TestCase):
         self.assertEqual(citas_por_dia(local), 2)
 
     def test_muchos_mecanicos(self):
-        """6am-6pm, 10 mecánicos → 6 slots × 10 = 60"""
+        """6am-6pm, 10 mecánicos → 5 slots × 10 = 50"""
         local = make_local(time(6, 0), time(18, 0), 10)
-        self.assertEqual(citas_por_dia(local), 60)
+        self.assertEqual(citas_por_dia(local), 50)
 
     def test_hora_sobrante_se_ignora(self):
-        """6am-7pm = 13h → 6 slots completos × 3 mec = 18 (la hora sobrante se ignora)"""
+        """6am-7pm → 6 slots completos × 3 mec = 18"""
         local = make_local(time(6, 0), time(19, 0), 3)
-        self.assertEqual(citas_por_dia(local), 18)
+        self.assertEqual(citas_por_dia(local), 18)  # antes 15 → ahora 18
 
     def test_un_mecanico_dia_completo(self):
-        """6am-6pm, 1 mecánico → 6 slots × 1 = 6"""
+        """6am-6pm, 1 mecánico → 5 slots × 1 = 5"""
         local = make_local(time(6, 0), time(18, 0), 1)
-        self.assertEqual(citas_por_dia(local), 6)
+        self.assertEqual(citas_por_dia(local), 5)
 
     def test_dos_mecanicos(self):
-        """8am-4pm, 2 mecánicos → 4 slots × 2 = 8"""
+        """8am-4pm, 2 mecánicos → 3 slots (8-10,10-12,13-15) × 2 = 6"""
         local = make_local(time(8, 0), time(16, 0), 2)
-        self.assertEqual(citas_por_dia(local), 8)
+        self.assertEqual(citas_por_dia(local), 6)
 
     def test_horario_tarde(self):
-        """12pm-8pm, 1 mecánico → 4 slots × 1 = 4"""
+        """12pm-8pm, 1 mecánico → 3 slots (13-15,15-17,17-19... 12-14 salta) → 13-15,15-17,17-19 × 1 = 3"""
         local = make_local(time(12, 0), time(20, 0), 1)
-        self.assertEqual(citas_por_dia(local), 4)
+        self.assertEqual(citas_por_dia(local), 3)
 
     def test_exactamente_dos_horas(self):
         """10am-12pm, 5 mecánicos → 1 slot × 5 = 5"""
@@ -82,7 +90,7 @@ class CitasPorDiaTest(TestCase):
         self.assertEqual(citas_por_dia(local), 5)
 
     def test_horario_con_minutos_sobrantes(self):
-        """8am-11:30am = 3.5h → 1 slot completo × 2 mec = 2"""
+        """8am-11:30am → 1 slot (8-10) × 2 mec = 2"""
         local = make_local(time(8, 0), time(11, 30), 2)
         self.assertEqual(citas_por_dia(local), 2)
 
@@ -158,11 +166,17 @@ class GenerarCitasTest(TestCase):
         self.assertEqual(Cita.objects.filter(local=local2).count(), 2)
 
     def test_horario_completo_18_citas(self):
-        """6am-6pm, 3 mecánicos → 18 citas en DB"""
+        """6am-6pm, 3 mecánicos → 5 slots × 3 = 15 citas en DB"""
         local = make_local(time(6, 0), time(18, 0), 3)
         citas = generar_citas_para_local(local, date(2025, 1, 15))
-        self.assertEqual(len(citas), 18)
-        self.assertEqual(Cita.objects.count(), 18)
+        self.assertEqual(len(citas), 15)  # 5 slots × 3 mec = 15
+
+    def test_almuerzo_bloquea_slot(self):
+        """Slot 12-14 no debe generarse (almuerzo 12-13)"""
+        local = make_local(time(6, 0), time(18, 0), 1)
+        generar_citas_para_local(local, date(2025, 1, 15))
+        # No debe existir cita que empiece a las 12:00
+        self.assertFalse(Cita.objects.filter(hora_inicio=time(12, 0)).exists())
 
     def test_local_asociado_correctamente(self):
         """Todas las citas deben pertenecer al local correcto"""

@@ -1,3 +1,52 @@
+# fix_final_completo.py
+from pathlib import Path
+
+ROOT    = Path(__file__).parent
+BACKEND = ROOT / "backend"
+mig_dir = BACKEND / "core" / "migrations"
+
+OK  = "\033[92m✔\033[0m"
+INF = "\033[94m→\033[0m"
+
+# 1. Reescribir 0006 para eliminar hora_apertura, hora_cierre Y dias_atencion, y agregar horarios
+print(f"\n{INF} Reescribiendo 0006_local_horarios.py …")
+(mig_dir / "0006_local_horarios.py").write_text(
+    """\
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("core", "0005_local_horarios"),
+    ]
+
+    operations = [
+        migrations.RemoveField(model_name="local", name="hora_apertura"),
+        migrations.RemoveField(model_name="local", name="hora_cierre"),
+        migrations.RemoveField(model_name="local", name="dias_atencion"),
+        migrations.AddField(
+            model_name="local",
+            name="horarios",
+            field=models.JSONField(
+                blank=True,
+                default=list,
+                help_text=(
+                    "Lista de franjas: "
+                    '[{"dias":["lun","mar"], "apertura":"08:00", "cierre":"17:00"}]'
+                ),
+            ),
+        ),
+    ]
+""",
+    encoding="utf-8",
+)
+print(f"  {OK} 0006 reescrita: elimina hora_apertura, hora_cierre, dias_atencion + agrega horarios")
+
+# 2. Reescribir tests.py completo y limpio
+print(f"\n{INF} Reescribiendo tests.py …")
+(BACKEND / "core" / "tests.py").write_text(
+    """\
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -88,3 +137,12 @@ class LocalUpdateTest(TestCase):
         self.local.refresh_from_db()
         self.assertEqual(len(self.local.horarios), 2)
         self.assertIn("lun", self.local.horarios[0]["dias"])
+""",
+    encoding="utf-8",
+)
+print(f"  {OK} tests.py reescrito limpio (sin hora_apertura/hora_cierre)")
+
+print(f"\n{OK} Listo. Ahora corre:")
+print("  python manage.py migrate core 0003 --fake")
+print("  python manage.py migrate core")
+print("  python manage.py test core")
