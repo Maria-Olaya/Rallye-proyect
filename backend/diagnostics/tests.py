@@ -18,19 +18,23 @@ from scheduling.models import Cita
 def make_local(hora_apertura, hora_cierre, num_mecanicos, nombre="TestLocal"):
     municipio = Municipio.objects.create(nombre="TestMunicipio", departamento="TestDepto")
     sede = Sede.objects.create(nombre="TestSede", direccion="Calle 1", municipio=municipio)
+    horarios = [{
+        "dias": ["lun", "mar", "mie", "jue", "vie", "sab", "dom"],
+        "apertura": hora_apertura.strftime("%H:%M"),
+        "cierre": hora_cierre.strftime("%H:%M"),
+    }]
     return Local.objects.create(
         nombre=nombre,
         sede=sede,
         direccion="Calle 2",
         telefono="3001234567",
         correo_admin="admin@test.com",
-        hora_apertura=hora_apertura,
-        hora_cierre=hora_cierre,
         num_mecanicos=num_mecanicos,
+        horarios=horarios,
     )
 
-
 # ── HU-04 · Registrar diagnóstico ─────────────────────────────────────────────
+
 
 
 class DiagnosticoApiTests(TestCase):
@@ -44,9 +48,8 @@ class DiagnosticoApiTests(TestCase):
             telefono="3000000000",
             correo_admin="admin@local.com",
             activo=True,
-            hora_apertura=time(8, 0),
-            hora_cierre=time(18, 0),
             num_mecanicos=2,
+            horarios=[{"dias": ["lun","mar","mie","jue","vie","sab","dom"], "apertura":"08:00","cierre":"18:00"}],
         )
         self.user = get_user_model().objects.create_user(
             username="adminlocal",
@@ -58,6 +61,7 @@ class DiagnosticoApiTests(TestCase):
         token = str(RefreshToken.for_user(self.user).access_token)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
+    # El resto de métodos igual (no cambian)
     def _crear_cita(self, estado, placa="ABC12C"):
         return Cita.objects.create(
             local=self.local,
@@ -118,6 +122,7 @@ class DiagnosticoApiTests(TestCase):
 # ── HU-05 · Enviar radicado por correo ───────────────────────────────────────
 
 
+
 class EnviarRadicadoCorreoTest(TestCase):
     def setUp(self):
         self.local = make_local(time(8, 0), time(12, 0), 2, nombre="Local Rallye Motor's - Carepa")
@@ -158,7 +163,6 @@ class EnviarRadicadoCorreoTest(TestCase):
             referencia_moto="FZ 250",
             anio_moto=2021,
         )
-
     def test_cp_hu05_01_radicado_enviado_automaticamente_tras_diagnostico(self):
         """CP-HU05-01 · Caja negra — flujo feliz · CA-01"""
         cita = self._cita_con_correo()
