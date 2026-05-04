@@ -10,38 +10,95 @@ from django.utils import timezone
 from core.models import Local
 from scheduling.models import Cita
 
+from datetime import time
 
-def citas_por_dia(local: Local) -> int:
-    apertura = local.hora_apertura.hour * 60 + local.hora_apertura.minute
-    cierre = local.hora_cierre.hour * 60 + local.hora_cierre.minute
-    slots = (cierre - apertura) // 120
-    return slots * local.num_mecanicos
+ALMUERZO_INICIO = time(12, 0)
+ALMUERZO_FIN = time(13, 0)
+SLOT_DURACION = timedelta(hours=2)
 
 
-def generar_citas_para_local(local: Local, fecha: date) -> list[Cita]:
-    # Si ya hay citas para ese local y fecha, no generamos nada
+DIAS_MAP = {
+    0: "lun",
+    1: "mar",
+    2: "mie",
+    3: "jue",
+    4: "vie",
+    5: "sab",
+    6: "dom",
+}
+
+
+def _franjas_del_dia(local, fecha: date) -> list[tuple[time, time]]:
+    """
+    Retorna solo las franjas cuyo campo 'dias' incluye el día de la semana
+    correspondiente a 'fecha'.
+    """
+    dia_semana = DIAS_MAP[fecha.weekday()]
+    franjas = []
+    for f in local.horarios or []:
+        try:
+            if dia_semana not in f.get("dias", []):
+                continue
+            ap = time.fromisoformat(f["apertura"])
+            ci = time.fromisoformat(f["cierre"])
+            if ap < ci:
+                franjas.append((ap, ci))
+        except (KeyError, ValueError):
+            continue
+    return franjas
+
+
+def _slots_en_franja(fecha: date, apertura: time, cierre: time) -> list[tuple[datetime, datetime]]:
+    slots = []
+    inicio = datetime.combine(fecha, apertura)
+    fin_franja = datetime.combine(fecha, cierre)
+    almuerzo_ini = datetime.combine(fecha, ALMUERZO_INICIO)
+    almuerzo_fin = datetime.combine(fecha, ALMUERZO_FIN)
+
+    while inicio + SLOT_DURACION <= fin_franja:
+        fin_slot = inicio + SLOT_DURACION
+
+        # Si el slot solapa con el almuerzo, saltar al fin del almuerzo y reintentar
+        if inicio < almuerzo_fin and fin_slot > almuerzo_ini:
+            inicio = almuerzo_fin
+            continue  # vuelve al while, que verifica si inicio + SLOT_DURACION <= fin_franja
+
+        slots.append((inicio, fin_slot))
+        inicio = fin_slot
+
+    return slots
+
+
+def citas_por_dia(local, fecha: date = None) -> int:
+    if fecha is None:
+        fecha = date.today()
+    franjas = _franjas_del_dia(local, fecha)
+    total_slots = sum(len(_slots_en_franja(fecha, ap, ci)) for ap, ci in franjas)
+    return total_slots * local.num_mecanicos
+
+
+def generar_citas_para_local(local, fecha: date) -> list:
+    from scheduling.models import Cita
+
     if Cita.objects.filter(local=local, fecha=fecha).exists():
         return []
 
-    apertura = datetime.combine(fecha, local.hora_apertura)
-    cierre = datetime.combine(fecha, local.hora_cierre)
-    slot_duration = timedelta(hours=2)
+    franjas = _franjas_del_dia(local, fecha)  # <-- ahora pasa fecha
+    if not franjas:
+        return []
 
     citas_creadas = []
-    hora_actual = apertura
-
-    while hora_actual + slot_duration <= cierre:
-        hora_fin = hora_actual + slot_duration
-        for _ in range(local.num_mecanicos):
-            cita = Cita.objects.create(
-                local=local,
-                fecha=fecha,
-                hora_inicio=hora_actual.time(),
-                hora_fin=hora_fin.time(),
-                estado=Cita.Estado.LIBRE,
-            )
-            citas_creadas.append(cita)
-        hora_actual += slot_duration
+    for apertura, cierre in franjas:
+        for inicio, fin in _slots_en_franja(fecha, apertura, cierre):
+            for _ in range(local.num_mecanicos):
+                cita = Cita.objects.create(
+                    local=local,
+                    fecha=fecha,
+                    hora_inicio=inicio.time(),
+                    hora_fin=fin.time(),
+                    estado=Cita.Estado.LIBRE,
+                )
+                citas_creadas.append(cita)
 
     return citas_creadas
 
