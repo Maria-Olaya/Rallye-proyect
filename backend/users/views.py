@@ -87,3 +87,20 @@ class LogoutView(APIView):
             return Response({"message": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
         except Exception:
             return Response({"error": "Token inválido o ya expirado."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserProfileView(APIView):
+    """
+    GET /api/users/profile/
+    Retorna información del usuario autenticado
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "email": user.email,
+            "username": user.username,
+            "local_id": user.local.id if user.local else None,
+            "local_nombre": user.local.nombre if user.local else None,
+        })

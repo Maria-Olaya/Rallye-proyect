@@ -60,6 +60,12 @@ urlpatterns = [
         TemplateView.as_view(template_name="admin_panel/editar_motocicleta.html"),
         name="panel_editar_moto",
     ),
+
+    path(
+    "panel/mi-local/",
+    TemplateView.as_view(template_name="admin_panel/editar_local.html"),
+    name="panel_editar_local",
+    ),
     path("admin/", admin.site.urls),
     path("api/core/", include("core.urls")),
     path("api/users/", include("users.urls")),
