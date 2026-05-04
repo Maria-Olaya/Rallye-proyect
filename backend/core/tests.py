@@ -11,16 +11,23 @@ def make_local():
     municipio = Municipio.objects.create(nombre="Medellin", departamento="Antioquia")
     sede = Sede.objects.create(nombre="Sede Centro", direccion="Calle 1", municipio=municipio)
     return Local.objects.create(
-        nombre="Local Centro", sede=sede, direccion="Cra 50",
-        telefono="3001234567", correo_admin="local@test.com",
-        hora_apertura="08:00", hora_cierre="18:00", num_mecanicos=3,
+        nombre="Local Centro",
+        sede=sede,
+        direccion="Cra 50",
+        telefono="3001234567",
+        correo_admin="local@test.com",
+        hora_apertura="08:00",
+        hora_cierre="18:00",
+        num_mecanicos=3,
     )
 
 
 def make_admin(local):
     user = User.objects.create_user(
-        username="admin1", email="admin@rallye.com",
-        password="Segura123!", local=local,
+        username="admin1",
+        email="admin@rallye.com",
+        password="Segura123!",
+        local=local,
     )
     return user
 
@@ -57,8 +64,10 @@ class LocalUpdateTest(TestCase):
     def test_admin_otro_local_recibe_404(self):
         otro_local = make_local()
         otro_admin = User.objects.create_user(
-            username="admin2", email="admin2@rallye.com",
-            password="Segura123!", local=otro_local,
+            username="admin2",
+            email="admin2@rallye.com",
+            password="Segura123!",
+            local=otro_local,
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(otro_admin)}")
         resp = self.client.patch(self.url, {"telefono": "3119999999"}, format="json")

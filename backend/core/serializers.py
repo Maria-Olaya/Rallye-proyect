@@ -30,6 +30,7 @@ class SedeSerializer(serializers.ModelSerializer):
 # lo que el template necesita (nombre, correo_admin, num_mecanicos, activo)
 # y PATCH pueda actualizar los campos editables.
 
+
 class LocalUpdateSerializer(serializers.ModelSerializer):
     """Serializer para edición de información del local (HU-16)."""
 
@@ -39,7 +40,7 @@ class LocalUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Local
         fields = [
-            "nombre",           # read-only, para mostrar en el formulario
+            "nombre",  # read-only, para mostrar en el formulario
             "telefono",
             "direccion",
             "descripcion",

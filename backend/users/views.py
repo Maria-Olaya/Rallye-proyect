@@ -94,13 +94,16 @@ class UserProfileView(APIView):
     GET /api/users/profile/
     Retorna información del usuario autenticado
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        return Response({
-            "email": user.email,
-            "username": user.username,
-            "local_id": user.local.id if user.local else None,
-            "local_nombre": user.local.nombre if user.local else None,
-        })
+        return Response(
+            {
+                "email": user.email,
+                "username": user.username,
+                "local_id": user.local.id if user.local else None,
+                "local_nombre": user.local.nombre if user.local else None,
+            }
+        )
