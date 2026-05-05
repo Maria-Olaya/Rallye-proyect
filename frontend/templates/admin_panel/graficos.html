@@ -1,0 +1,1203 @@
+{% extends "base.html" %}
+{% block title %}Resumen comercial | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    .navbar-menu { display: none !important; }
+
+    .admin-nav-menu {
+        display: flex;
+        gap: 1.8rem;
+        list-style: none;
+        align-items: center;
+    }
+
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: color 0.2s;
+        position: relative;
+    }
+
+    .admin-nav-menu a:hover,
+    .admin-nav-menu a.active {
+        color: var(--red);
+    }
+
+    .admin-dropdown {
+        position: relative;
+    }
+
+    .admin-dropdown-trigger {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        background: none;
+        border: none;
+        padding: 0;
+        transition: color 0.2s;
+    }
+
+    .admin-dropdown-trigger:hover {
+        color: var(--red);
+    }
+
+    .admin-dropdown-trigger svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s;
+    }
+
+    .admin-dropdown-trigger.open svg {
+        transform: rotate(180deg);
+    }
+
+    .admin-dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 14px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        list-style: none;
+        min-width: 190px;
+        z-index: 200;
+        padding: 0.4rem 0;
+        border-radius: 0 0 4px 4px;
+    }
+
+    .admin-dropdown-menu.open {
+        display: block;
+    }
+
+    .admin-dropdown-menu li a {
+        display: block;
+        padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+
+    .admin-dropdown-menu li a:hover {
+        background: #f5f5f5;
+        color: var(--red);
+    }
+
+    .admin-dropdown-menu li + li {
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .admin-btn-salir {
+        background: #333;
+        color: #fff !important;
+        padding: 0.4rem 1.1rem;
+        border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+    }
+
+    .admin-btn-salir:hover {
+        background: #111;
+    }
+
+    .commercial-page {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+    }
+
+    .commercial-shell {
+        width: min(100%, 1180px);
+        margin: 0 auto;
+        background: #f7f7f7;
+        color: #111;
+        border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
+        overflow: hidden;
+    }
+
+    .commercial-header {
+        padding: 1.7rem 2.2rem 1.2rem;
+        border-bottom: 1px solid #e8e8e8;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .commercial-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(2rem, 3vw, 3.1rem);
+        color: var(--red);
+        margin: 0 0 0.2rem;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    .commercial-subtitle {
+        color: #7c8795;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin: 0;
+    }
+
+    .internal-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.85rem;
+        background: #fff5f5;
+        border: 1px solid #ffd3d3;
+        color: var(--red);
+        border-radius: 999px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+    }
+
+    .commercial-body {
+        padding: 1.4rem 2.2rem 2rem;
+    }
+
+    .filter-card {
+        background: #fff;
+        border: 1px solid #e7e7e7;
+        border-radius: 16px;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.9rem;
+        align-items: end;
+        margin-bottom: 1rem;
+    }
+
+    .filter-field label {
+        display: block;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 0.35rem;
+    }
+
+    .filter-field input {
+        width: 100%;
+        border: 2px solid #dedede;
+        border-radius: 10px;
+        padding: 0.62rem 0.8rem;
+        font-family: 'DM Sans', sans-serif;
+        color: #111;
+        outline: none;
+        background: #fff;
+    }
+
+    .filter-field input:focus {
+        border-color: var(--red);
+    }
+
+    .commercial-btn {
+        border: none;
+        border-radius: 10px;
+        padding: 0.72rem 1rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: transform 0.1s, opacity 0.15s, background 0.15s;
+    }
+
+    .commercial-btn:active {
+        transform: scale(0.98);
+    }
+
+    .commercial-btn.primary {
+        background: var(--red);
+        color: #fff;
+    }
+
+    .commercial-btn.primary:hover {
+        background: var(--red-hover);
+    }
+
+    .commercial-btn.secondary {
+        background: #eee;
+        color: #333;
+    }
+
+    .commercial-btn.secondary:hover {
+        background: #e2e2e2;
+    }
+
+    .context-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 0.6rem 0 1rem;
+        color: #687385;
+        font-size: 0.86rem;
+    }
+
+    .context-row strong {
+        color: #111;
+    }
+
+    .status-message {
+        display: none;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border: 1px solid transparent;
+    }
+
+    .status-message.error {
+        display: block;
+        background: #fff1f1;
+        border-color: #ffd1d1;
+        color: #9b0000;
+    }
+
+    .status-message.info {
+        display: block;
+        background: #f2f4f7;
+        border-color: #e4e7ec;
+        color: #475467;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .kpi-card {
+        background: #fff;
+        border: 1px solid #e7e7e7;
+        border-radius: 16px;
+        padding: 1rem;
+        min-height: 118px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .kpi-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        color: #667085;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .kpi-value {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(1.7rem, 2.2vw, 2.35rem);
+        font-weight: 700;
+        color: #111;
+        line-height: 1;
+        margin-top: 0.6rem;
+    }
+
+    .kpi-value.long-text {
+        font-size: clamp(1.15rem, 1.5vw, 1.55rem);
+        line-height: 1.15;
+    }
+
+    .kpi-help {
+        color: #98a2b3;
+        font-size: 0.78rem;
+        margin-top: 0.6rem;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .chart-card,
+    .table-card {
+        background: #fff;
+        border: 1px solid #e7e7e7;
+        border-radius: 16px;
+        padding: 1rem;
+        min-width: 0;
+    }
+
+    .chart-title,
+    .table-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #111;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin: 0 0 0.9rem;
+    }
+
+    .bar-chart {
+        height: 310px;
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 0.6rem;
+        padding: 0.4rem 0.2rem 0.2rem;
+        overflow-x: auto;
+    }
+
+    .y-axis {
+        height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-end;
+        color: #7c8795;
+        font-size: 0.72rem;
+        padding-right: 0.35rem;
+        border-right: 1px solid #e6e6e6;
+    }
+
+    .bars-area {
+        min-width: 100%;
+        height: 285px;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        position: relative;
+        padding: 0 0.4rem;
+        overflow-x: auto;
+    }
+
+    .bars-grid {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        pointer-events: none;
+    }
+
+    .grid-line {
+        width: 100%;
+        border-top: 1px solid #eeeeee;
+    }
+
+    .bar-item {
+        min-width: 34px;
+        height: 285px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.35rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .bar-column {
+        height: 240px;
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .bar-value {
+        width: 100%;
+        background: var(--red);
+        border-radius: 8px 8px 0 0;
+        opacity: 0.9;
+        transition: height 0.2s ease;
+    }
+
+    .bar-value.is-zero {
+        height: 0 !important;
+        background: transparent !important;
+        opacity: 0;
+    }
+
+    .bar-label {
+        color: #727b88;
+        font-size: 0.68rem;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        white-space: nowrap;
+    }
+
+    .donut-wrap {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+        gap: 1.2rem;
+        align-items: center;
+    }
+
+    .donut {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: conic-gradient(var(--red) 0deg, #ddd 0deg);
+        position: relative;
+        margin: 0 auto;
+    }
+
+    .donut::after {
+        content: attr(data-total) "\A Total";
+        white-space: pre;
+        position: absolute;
+        inset: 38px;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: #111;
+        line-height: 1.05;
+    }
+
+    .legend-list {
+        list-style: none;
+        display: grid;
+        gap: 0.65rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .legend-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        color: #525b68;
+        font-size: 0.86rem;
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.45rem;
+    }
+
+    .top-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.85rem;
+    }
+
+    .top-list li {
+        display: grid;
+        grid-template-columns: minmax(170px, 1.2fr) minmax(140px, 2fr) auto;
+        gap: 0.75rem;
+        align-items: center;
+        font-size: 0.88rem;
+        color: #333;
+        padding: 0.15rem 0;
+    }
+
+    .top-name {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .progress-track {
+        display: block;
+        width: 100%;
+        height: 14px;
+        background: #f1f1f1;
+        border: 1px solid #e3e3e3;
+        border-radius: 999px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .progress-fill {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--red), #f04438);
+        border-radius: inherit;
+        min-width: 12px;
+        box-shadow: 0 2px 5px rgba(204,0,0,0.22);
+    }
+
+    .top-count {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 96px;
+        padding: 0.28rem 0.62rem;
+        border-radius: 999px;
+        background: #fff5f5;
+        border: 1px solid #ffd3d3;
+        color: var(--red);
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .table-card {
+        overflow-x: auto;
+    }
+
+    table.commercial-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+        min-width: 760px;
+    }
+
+    .commercial-table th {
+        text-align: left;
+        padding: 0.8rem;
+        background: #f1f1f1;
+        color: #666;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .commercial-table td {
+        padding: 0.8rem;
+        border-bottom: 1px solid #eeeeee;
+        color: #333;
+        vertical-align: middle;
+    }
+
+    @media (max-width: 980px) {
+        .filter-card,
+        .kpi-grid,
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .donut-wrap {
+            grid-template-columns: 1fr;
+        }
+
+        .top-list li {
+            grid-template-columns: 1fr;
+            gap: 0.4rem;
+        }
+
+        .top-count {
+            width: fit-content;
+        }
+
+        .commercial-header,
+        .commercial-body {
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+
+        .admin-nav-menu {
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+
+        if (navbar) {
+            const navbarMenu = navbar.querySelector('.navbar-menu');
+
+            if (navbarMenu) {
+                navbarMenu.style.display = 'none';
+            }
+
+            const adminMenu = document.createElement('ul');
+            adminMenu.className = 'admin-nav-menu';
+            adminMenu.innerHTML = `
+                <li><a href="/panel/">HOME</a></li>
+                <li><a href="/panel/mi-local/">MI LOCAL</a></li>
+                <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+                <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+                <li><a href="/panel/graficos/" class="active">GRÁFICOS</a></li>
+                <li class="admin-dropdown">
+                    <button class="admin-dropdown-trigger" id="crudTrigger">
+                        GESTIONAR MOTOCICLETAS
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <ul class="admin-dropdown-menu" id="crudMenu">
+                        <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                        <li><a href="/panel/motocicletas/">Editar moto</a></li>
+                    </ul>
+                </li>
+                <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+            `;
+            navbar.appendChild(adminMenu);
+        }
+
+        const crudTrigger = document.getElementById('crudTrigger');
+        const crudMenu = document.getElementById('crudMenu');
+
+        if (crudTrigger && crudMenu) {
+            crudTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                crudMenu.classList.toggle('open');
+                crudTrigger.classList.toggle('open');
+            });
+
+            document.addEventListener('click', () => {
+                crudMenu.classList.remove('open');
+                crudTrigger.classList.remove('open');
+            });
+        }
+
+        const btnSalirAdmin = document.getElementById('btnSalirAdmin');
+
+        if (btnSalirAdmin) {
+            btnSalirAdmin.addEventListener('click', () => {
+                const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+                const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+
+                fetch('/api/users/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + access
+                    },
+                    body: JSON.stringify({ refresh })
+                }).finally(() => {
+                    sessionStorage.clear();
+                    window.location.href = '/login/';
+                });
+            });
+        }
+    });
+</script>
+
+<section class="commercial-page">
+    <div class="commercial-shell">
+        <header class="commercial-header">
+            <div>
+                <h1 class="commercial-title">Resumen comercial</h1>
+                <p class="commercial-subtitle">
+                    Visualiza las cotizaciones de motocicletas generadas para tu local.
+                </p>
+            </div>
+            <span class="internal-badge">Uso interno</span>
+        </header>
+
+        <div class="commercial-body">
+            <form class="filter-card" id="filterForm">
+                <div class="filter-field">
+                    <label for="fechaInicio">Fecha inicio</label>
+                    <input type="date" id="fechaInicio" name="fecha_inicio">
+                </div>
+
+                <div class="filter-field">
+                    <label for="fechaFin">Fecha fin</label>
+                    <input type="date" id="fechaFin" name="fecha_fin">
+                </div>
+
+                <button type="submit" class="commercial-btn primary">Filtrar</button>
+                <button type="button" class="commercial-btn secondary" id="btnLimpiar">Limpiar</button>
+            </form>
+
+            <div class="context-row">
+                <span>Local: <strong id="localNombre">Cargando...</strong></span>
+                <span>Período consultado: <strong id="periodoTexto">Cargando...</strong></span>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+
+            <div class="kpi-grid">
+                <article class="kpi-card">
+                    <span class="kpi-label">Total cotizaciones</span>
+                    <strong class="kpi-value" id="kpiTotal">0</strong>
+                    <span class="kpi-help">Cantidad de cotizaciones creadas.</span>
+                </article>
+
+                <article class="kpi-card">
+                    <span class="kpi-label">Valor total estimado</span>
+                    <strong class="kpi-value" id="kpiValor">$ 0</strong>
+                    <span class="kpi-help">Suma del total estimado cotizado.</span>
+                </article>
+
+                <article class="kpi-card">
+                    <span class="kpi-label">Promedio por cotización</span>
+                    <strong class="kpi-value" id="kpiPromedio">$ 0</strong>
+                    <span class="kpi-help">Valor promedio por cotización.</span>
+                </article>
+
+                <article class="kpi-card">
+                    <span class="kpi-label">Tipo más cotizado</span>
+                    <strong class="kpi-value" id="kpiTipoTop">Sin datos</strong>
+                    <span class="kpi-help">Tipo de motocicleta con mayor interés.</span>
+                </article>
+            </div>
+
+            <div class="charts-grid">
+                <article class="chart-card">
+                    <h2 class="chart-title">Cotizaciones por fecha</h2>
+                    <div class="bar-chart" id="chartFechas"></div>
+                </article>
+
+                <article class="chart-card">
+                    <h2 class="chart-title">Cotizaciones por tipo</h2>
+                    <div class="donut-wrap">
+                        <div class="donut" id="donutTipos" data-total="0"></div>
+                        <ul class="legend-list" id="legendTipos"></ul>
+                    </div>
+                </article>
+            </div>
+
+            <div class="charts-grid">
+                <article class="chart-card">
+                    <h2 class="chart-title">Motocicletas más cotizadas</h2>
+                    <ul class="top-list" id="topMotos"></ul>
+                </article>
+
+                <article class="chart-card">
+                    <h2 class="chart-title">Lectura comercial</h2>
+                    <p id="lecturaComercial" style="color:#667085;font-size:0.9rem;line-height:1.55;margin:0;">
+                        Cargando análisis del período seleccionado...
+                    </p>
+                </article>
+            </div>
+
+            <article class="table-card">
+                <h2 class="table-title">Cotizaciones recientes</h2>
+                <table class="commercial-table">
+                    <thead>
+                        <tr>
+                            <th>Radicado</th>
+                            <th>Motocicleta</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Total estimado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaRecientes">
+                        <tr>
+                            <td colspan="5">Cargando cotizaciones...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+
+    if (!accessToken) {
+        window.location.replace('/login/');
+    }
+
+    const formatoCOP = new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+    });
+
+    function formatMoney(value) {
+        return formatoCOP.format(Number(value || 0));
+    }
+
+    function formatDateDisplay(isoDate) {
+        if (!isoDate) return 'Sin fecha';
+
+        const [year, month, day] = isoDate.split('-');
+
+        return `${day}/${month}/${year}`;
+    }
+
+    function getDefaultDates() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        const toIsoLocal = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        };
+
+        return {
+            inicio: toIsoLocal(firstDay),
+            fin: toIsoLocal(today)
+        };
+    }
+
+    function setStatus(message, type = 'info') {
+        const status = document.getElementById('statusMessage');
+
+        if (!message) {
+            status.className = 'status-message';
+            status.textContent = '';
+            return;
+        }
+
+        status.className = `status-message ${type}`;
+        status.textContent = message;
+    }
+
+    function obtenerTiposMasCotizados(items) {
+        if (!items.length) {
+            return [];
+        }
+
+        const mayorCantidad = Number(items[0].cantidad) || 0;
+
+        if (!mayorCantidad) {
+            return [];
+        }
+
+        return items
+            .filter(item => (Number(item.cantidad) || 0) === mayorCantidad)
+            .map(item => item.tipo_display || 'Sin tipo');
+    }
+
+    async function cargarResumen() {
+        setStatus('Cargando resumen comercial...', 'info');
+
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+        const params = new URLSearchParams();
+
+        if (fechaInicio) {
+            params.append('fecha_inicio', fechaInicio);
+        }
+
+        if (fechaFin) {
+            params.append('fecha_fin', fechaFin);
+        }
+
+        const url = `/api/catalog/resumen-comercial/${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            });
+
+            if (response.status === 401) {
+                sessionStorage.clear();
+                window.location.replace('/login/');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorText = Object.values(data).join(' ');
+                setStatus(errorText || 'No fue posible cargar el resumen comercial.', 'error');
+                return;
+            }
+
+            renderResumen(data);
+
+            if ((data.metricas?.total_cotizaciones || 0) === 0) {
+                setStatus('No hay cotizaciones registradas para el período seleccionado.', 'info');
+            } else {
+                setStatus('', 'info');
+            }
+        } catch (error) {
+            setStatus('Error de conexión al cargar el resumen comercial.', 'error');
+        }
+    }
+
+    function renderResumen(data) {
+        const metricas = data.metricas || {};
+        const tiposMasCotizados = obtenerTiposMasCotizados(data.por_tipo || []);
+        const textoTipos = tiposMasCotizados.length ? tiposMasCotizados.join(', ') : 'Sin datos';
+        const kpiTipoTop = document.getElementById('kpiTipoTop');
+
+        document.getElementById('localNombre').textContent = data.local?.nombre || 'Sin local asignado';
+
+        document.getElementById('periodoTexto').textContent = data.periodo
+            ? `${formatDateDisplay(data.periodo.fecha_inicio)} - ${formatDateDisplay(data.periodo.fecha_fin)}`
+            : 'Sin período';
+
+        document.getElementById('kpiTotal').textContent = metricas.total_cotizaciones || 0;
+        document.getElementById('kpiValor').textContent = formatMoney(metricas.valor_total_estimado);
+        document.getElementById('kpiPromedio').textContent = formatMoney(metricas.promedio_cotizacion);
+
+        kpiTipoTop.textContent = textoTipos;
+        kpiTipoTop.classList.toggle('long-text', textoTipos.length > 18);
+
+        renderFechas(data.por_fecha || []);
+        renderTipos(data.por_tipo || [], metricas.total_cotizaciones || 0);
+        renderTopMotos(data.motos_mas_cotizadas || []);
+        renderTabla(data.cotizaciones_recientes || []);
+        renderLectura(data);
+    }
+
+    function renderFechas(items) {
+        const contenedor = document.getElementById('chartFechas');
+        contenedor.innerHTML = '';
+
+        if (!items.length) {
+            contenedor.innerHTML = '<p style="color:#98a2b3;align-self:center;margin:auto;">Sin datos para graficar.</p>';
+            return;
+        }
+
+        const maxCantidadReal = Math.max(...items.map(item => Number(item.cantidad) || 0));
+
+        if (maxCantidadReal === 0) {
+            contenedor.innerHTML = '<p style="color:#98a2b3;align-self:center;margin:auto;">No hay cotizaciones registradas en este período.</p>';
+            return;
+        }
+
+        let paso = 1;
+
+        if (maxCantidadReal > 5) {
+            paso = Math.ceil(maxCantidadReal / 5);
+        }
+
+        const maxEscala = Math.ceil(maxCantidadReal / paso) * paso;
+        const ticks = [];
+
+        for (let valor = maxEscala; valor >= 0; valor -= paso) {
+            ticks.push(valor);
+        }
+
+        const ejeY = document.createElement('div');
+        ejeY.className = 'y-axis';
+        ejeY.innerHTML = ticks.map(valor => `<span>${valor}</span>`).join('');
+
+        const areaBarras = document.createElement('div');
+        areaBarras.className = 'bars-area';
+
+        const grid = document.createElement('div');
+        grid.className = 'bars-grid';
+        grid.innerHTML = ticks.map(() => '<span class="grid-line"></span>').join('');
+        areaBarras.appendChild(grid);
+
+        items.forEach(item => {
+            const cantidad = Number(item.cantidad) || 0;
+            const altura = cantidad > 0 ? (cantidad / maxEscala) * 100 : 0;
+
+            const bar = document.createElement('div');
+            bar.className = 'bar-item';
+            bar.title = `${formatDateDisplay(item.fecha)}: ${cantidad} cotizaciones`;
+
+            bar.innerHTML = `
+                <div class="bar-column">
+                    <div class="bar-value ${cantidad === 0 ? 'is-zero' : ''}" style="height:${altura}%"></div>
+                </div>
+                <span class="bar-label">${formatDateDisplay(item.fecha).slice(0, 5)}</span>
+            `;
+
+            areaBarras.appendChild(bar);
+        });
+
+        contenedor.appendChild(ejeY);
+        contenedor.appendChild(areaBarras);
+    }
+
+    function renderTipos(items, total) {
+        const donut = document.getElementById('donutTipos');
+        const legend = document.getElementById('legendTipos');
+        const colors = ['#cc0000', '#111111', '#757575', '#b42318', '#f04438', '#98a2b3'];
+
+        donut.dataset.total = total || 0;
+        legend.innerHTML = '';
+
+        if (!items.length || !total) {
+            donut.style.background = '#e5e7eb';
+            legend.innerHTML = '<li>Sin datos por tipo.</li>';
+            return;
+        }
+
+        let acumulado = 0;
+
+        const partes = items.map((item, index) => {
+            const inicio = acumulado;
+            const grados = (item.cantidad / total) * 360;
+            acumulado += grados;
+
+            return `${colors[index % colors.length]} ${inicio}deg ${acumulado}deg`;
+        });
+
+        donut.style.background = `conic-gradient(${partes.join(', ')})`;
+
+        items.forEach((item, index) => {
+            const porcentaje = total ? ((item.cantidad / total) * 100).toFixed(1) : '0.0';
+            const li = document.createElement('li');
+
+            li.innerHTML = `
+                <span>
+                    <span class="legend-dot" style="background:${colors[index % colors.length]}"></span>
+                    ${item.tipo_display}
+                </span>
+                <strong>${porcentaje}% (${item.cantidad})</strong>
+            `;
+
+            legend.appendChild(li);
+        });
+    }
+
+    function renderTopMotos(items) {
+        const lista = document.getElementById('topMotos');
+        lista.innerHTML = '';
+
+        if (!items.length) {
+            lista.innerHTML = '<li style="display:block;color:#98a2b3;">Sin motocicletas cotizadas.</li>';
+            return;
+        }
+
+        const max = Math.max(...items.map(item => Number(item.cantidad) || 0), 1);
+
+        items.forEach(item => {
+            const cantidad = Number(item.cantidad) || 0;
+            const porcentaje = cantidad > 0 ? Math.max((cantidad / max) * 100, 12) : 0;
+            const textoCantidad = `${cantidad} ${cantidad === 1 ? 'cotización' : 'cotizaciones'}`;
+            const li = document.createElement('li');
+
+            li.innerHTML = `
+                <span class="top-name">${item.motocicleta}</span>
+                <span class="progress-track" title="${textoCantidad}">
+                    <span class="progress-fill" style="width:${porcentaje}%"></span>
+                </span>
+                <strong class="top-count">${textoCantidad}</strong>
+            `;
+
+            lista.appendChild(li);
+        });
+    }
+
+    function renderTabla(items) {
+        const tbody = document.getElementById('tablaRecientes');
+        tbody.innerHTML = '';
+
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No hay cotizaciones recientes en este período.</td></tr>';
+            return;
+        }
+
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td>${item.radicado}</td>
+                <td>${item.motocicleta}</td>
+                <td>${item.cliente}</td>
+                <td>${item.fecha}</td>
+                <td>${formatMoney(item.total_estimado)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderLectura(data) {
+        const total = data.metricas?.total_cotizaciones || 0;
+        const topMoto = data.motos_mas_cotizadas?.[0];
+        const tiposMasCotizados = obtenerTiposMasCotizados(data.por_tipo || []);
+        const lectura = document.getElementById('lecturaComercial');
+
+        if (!total) {
+            lectura.textContent = 'En el período seleccionado no hay cotizaciones registradas. Cuando los usuarios coticen motocicletas desde el catálogo, aquí se mostrarán las tendencias comerciales del local.';
+            return;
+        }
+
+        const partes = [
+            `Durante el período seleccionado se registraron ${total} cotizaciones para este local.`
+        ];
+
+        if (tiposMasCotizados.length === 1) {
+            partes.push(`El tipo de motocicleta con mayor interés fue ${tiposMasCotizados[0]}.`);
+        } else if (tiposMasCotizados.length > 1) {
+            partes.push(`Los tipos de motocicleta con mayor interés fueron ${tiposMasCotizados.join(', ')}.`);
+        }
+
+        if (topMoto) {
+            partes.push(`La motocicleta más cotizada fue ${topMoto.motocicleta}, con ${topMoto.cantidad} registros.`);
+        }
+
+        partes.push(`El valor total estimado cotizado fue ${formatMoney(data.metricas.valor_total_estimado)}.`);
+
+        lectura.textContent = partes.join(' ');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const defaults = getDefaultDates();
+
+        document.getElementById('fechaInicio').value = defaults.inicio;
+        document.getElementById('fechaFin').value = defaults.fin;
+
+        document.getElementById('filterForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            cargarResumen();
+        });
+
+        document.getElementById('btnLimpiar').addEventListener('click', () => {
+            const fechas = getDefaultDates();
+
+            document.getElementById('fechaInicio').value = fechas.inicio;
+            document.getElementById('fechaFin').value = fechas.fin;
+
+            cargarResumen();
+        });
+
+        cargarResumen();
+    });
+</script>
+{% endblock %}
