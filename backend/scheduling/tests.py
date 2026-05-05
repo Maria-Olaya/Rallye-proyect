@@ -569,11 +569,11 @@ class AgendaAdminTest(TestCase):
         self.local = make_local(time(8, 0), time(18, 0), 2)
         self.fecha = date(2026, 5, 10)
 
-        # Crear usuario admin vinculado al local
         from users.models import User
 
         self.user = User.objects.create_user(
             username="admin_test",
+            email="admin_test@test.com",
             password="testpass123",
             local=self.local,
         )
