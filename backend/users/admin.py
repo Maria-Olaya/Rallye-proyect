@@ -11,7 +11,14 @@ class CustomUserAdmin(UserAdmin):
     Los superusers crean administradores desde aquí.
     """
 
-    list_display = ("username", "is_active", "is_staff", "is_superuser", "date_joined")
+    list_display = ("username", "local", "is_active", "is_staff", "is_superuser", "date_joined")
     list_filter = ("is_active", "is_staff", "is_superuser")
     search_fields = ("username",)
     ordering = ("-date_joined",)
+
+    fieldsets = UserAdmin.fieldsets + (
+        ("Local asignado", {"fields": ("local",)}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ("Local asignado", {"fields": ("local",)}),
+    )

@@ -556,3 +556,172 @@ class MarcarCitasAtendidasTest(TestCase):
         self._cita_asignada(date(2030, 1, 1), time(8, 0), time(10, 0))
         total = marcar_citas_atendidas()
         self.assertEqual(total, 0)
+
+
+
+# ─────────────────────────────────────────
+# HU-19 · Visualizar agenda de atención
+# ─────────────────────────────────────────
+
+
+class AgendaAdminTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local(time(8, 0), time(18, 0), 2)
+        self.fecha = date(2026, 5, 10)
+
+        # Crear usuario admin vinculado al local
+        from users.models import User
+        self.user = User.objects.create_user(
+            username="admin_test",
+            password="testpass123",
+            local=self.local,
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _cita(self, estado, hora_inicio=time(8, 0), hora_fin=time(10, 0), **kwargs):
+        defaults = dict(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=hora_inicio,
+            hora_fin=hora_fin,
+            estado=estado,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Laura Torres",
+            cliente_documento="1099887766",
+            cliente_telefono="3109876543",
+            cliente_correo="laura@test.com",
+            placa_moto="XYZ45W",
+            referencia_moto="MT-03",
+            anio_moto=2023,
+        )
+        defaults.update(kwargs)
+        return Cita.objects.create(**defaults)
+
+    def test_cp_hu19_01_agenda_retorna_solo_citas_no_libres(self):
+        """CP-HU19-01 · Caja negra — flujo feliz · CA-01
+        La agenda no debe mostrar citas LIBRE, solo ASIGNADA y ATENDIDO."""
+        self._cita(Cita.Estado.LIBRE)
+        self._cita(Cita.Estado.ASIGNADA, hora_inicio=time(10, 0), hora_fin=time(12, 0))
+        self._cita(Cita.Estado.ATENDIDO, hora_inicio=time(13, 0), hora_fin=time(15, 0))
+
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        estados = {c["estado"] for c in response.data}
+        self.assertNotIn("LIBRE", estados)
+
+    def test_cp_hu19_02_agenda_ordenada_por_hora_inicio(self):
+        """CP-HU19-02 · Caja negra — CA-01
+        Las citas deben venir ordenadas de menor a mayor hora."""
+        self._cita(Cita.Estado.ASIGNADA, hora_inicio=time(13, 0), hora_fin=time(15, 0))
+        self._cita(Cita.Estado.ASIGNADA, hora_inicio=time(8, 0), hora_fin=time(10, 0))
+        self._cita(Cita.Estado.ATENDIDO, hora_inicio=time(10, 0), hora_fin=time(12, 0))
+
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+
+        self.assertEqual(response.status_code, 200)
+        horas = [c["hora_inicio"] for c in response.data]
+        self.assertEqual(horas, sorted(horas))
+
+    def test_cp_hu19_03_sin_fecha_retorna_400(self):
+        """CP-HU19-03 · Caja negra — validación · CA-01
+        Sin el parámetro fecha el endpoint debe retornar 400."""
+        response = self.client.get("/api/scheduling/agenda/")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.data)
+
+    def test_cp_hu19_04_fecha_invalida_retorna_400(self):
+        """CP-HU19-04 · Caja negra — validación · CA-01
+        Una fecha con formato incorrecto debe retornar 400."""
+        response = self.client.get("/api/scheduling/agenda/?fecha=32-13-2026")
+        self.assertEqual(response.status_code, 400)
+
+    def test_cp_hu19_05_sin_autenticacion_retorna_401(self):
+        """CP-HU19-05 · Seguridad · CA-01
+        Un cliente sin token no debe poder acceder a la agenda."""
+        client_anonimo = APIClient()
+        response = client_anonimo.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+        self.assertEqual(response.status_code, 401)
+
+    def test_cp_hu19_06_admin_sin_local_retorna_403(self):
+        """CP-HU19-06 · Seguridad · CA-01
+        Un admin sin local asignado debe recibir 403."""
+        from users.models import User
+        user_sin_local = User.objects.create_user(
+            username="admin_sin_local",
+            email="sin_local@test.com",
+            password="testpass123",
+            local=None,
+        )
+        client2 = APIClient()
+        client2.force_authenticate(user=user_sin_local)
+        response = client2.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_cp_hu19_07_admin_solo_ve_citas_de_su_local(self):
+        """CP-HU19-07 · Restricción de negocio · CA-01
+        El admin no debe ver citas de otro local."""
+        otro_local = make_local(time(8, 0), time(18, 0), 1, nombre="OtroLocal")
+        Cita.objects.create(
+            local=otro_local,
+            fecha=self.fecha,
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.ASIGNADA,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Otro Cliente",
+            cliente_documento="000",
+            cliente_telefono="3000000000",
+            cliente_correo="otro@test.com",
+            placa_moto="ZZZ99Z",
+            referencia_moto="NMAX",
+            anio_moto=2021,
+        )
+        self._cita(Cita.Estado.ASIGNADA, hora_inicio=time(10, 0), hora_fin=time(12, 0))
+
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["local_nombre"], self.local.nombre)
+
+    def test_cp_hu19_08_dia_sin_citas_retorna_lista_vacia(self):
+        """CP-HU19-08 · Caja negra — CA-01
+        Un día sin citas asignadas ni atendidas retorna lista vacía."""
+        response = self.client.get("/api/scheduling/agenda/?fecha=2099-01-01")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_cp_hu19_09_campos_obligatorios_presentes_en_respuesta(self):
+        """CP-HU19-09 · Integración · CA-01
+        La respuesta debe incluir todos los campos requeridos por la HU."""
+        self._cita(Cita.Estado.ASIGNADA)
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        cita = response.data[0]
+
+        campos_requeridos = [
+            "id", "fecha", "hora_inicio", "hora_fin",
+            "estado", "estado_display", "tipo_servicio", "tipo_servicio_display",
+            "cliente_nombre", "cliente_documento", "tipo_documento",
+            "cliente_telefono", "cliente_correo",
+            "placa_moto", "referencia_moto", "anio_moto",
+            "local_nombre", "sede_nombre",
+        ]
+        for campo in campos_requeridos:
+            self.assertIn(campo, cita, msg=f"Campo ausente: {campo}")
+
+    def test_cp_hu19_10_canceladas_aparecen_en_agenda(self):
+        """CP-HU19-10 · Caja negra — CA-01
+        Las citas CANCELADA también deben aparecer en la agenda."""
+        self._cita(Cita.Estado.CANCELADA)
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["estado"], "CANCELADA")

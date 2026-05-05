@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 from core.models import Local
 from scheduling.models import Cita
@@ -219,3 +220,56 @@ class CancelarCitaView(APIView):
             {"mensaje": "Cita cancelada. El horario volvió a quedar disponible."},
             status=status.HTTP_200_OK,
         )
+
+
+class AgendaAdminView(APIView):
+    """
+    GET /api/scheduling/agenda/
+    HU-19: Visualizar agenda de atención del taller.
+    Solo el administrador autenticado puede ver las citas de su propio local.
+    Filtra por fecha (requerida). Ordena por hora_inicio.
+    No incluye citas LIBRES (sin cliente asignado).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Actualizar estados vencidos antes de mostrar
+        marcar_citas_atendidas()
+
+        fecha_str = request.query_params.get("fecha", "").strip()
+
+        if not fecha_str:
+            return Response(
+                {"error": "El parámetro 'fecha' es obligatorio (formato: YYYY-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            fecha = date.fromisoformat(fecha_str)
+        except ValueError:
+            return Response(
+                {"error": "Formato de fecha inválido. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        local_id = request.user.local_id
+        if not local_id:
+            return Response(
+                {"error": "Tu usuario no tiene un local asignado."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        citas = (
+            Cita.objects.filter(
+                local_id=local_id,
+                fecha=fecha,
+            )
+            .exclude(estado=Cita.Estado.LIBRE)
+            .select_related("local", "local__sede")
+            .order_by("hora_inicio")
+        )
+
+        from scheduling.serializers import AgendaAdminSerializer
+        serializer = AgendaAdminSerializer(citas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
