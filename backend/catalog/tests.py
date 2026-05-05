@@ -1,7 +1,8 @@
 # catalog/tests.py
 
 from decimal import Decimal
-
+from datetime import timedelta
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase
@@ -1228,3 +1229,260 @@ class RegistrarConsultaRepuestoTest(TestCase):
         self.client.credentials()
         response = self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         self.assertEqual(response.status_code, 201)
+
+
+# ── HU-20 · Visualizar resumen comercial ─────────────────────────────────────
+
+
+class ResumenComercialCotizacionesTest(TestCase):
+    """
+    Cubre los criterios de aceptación de HU-20:
+      CA-01  El resumen comercial muestra datos de cotizaciones.
+      CA-02  La información es de uso interno.
+      CA-03  Permite filtrar por período.
+      CA-04  Genera métricas por cantidad, tipo y fecha.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/catalog/resumen-comercial/"
+
+        self.local = make_local(nombre="Rallye Motor's - Turbo")
+        self.local.correo_admin = "admin.turbo@rallye.com"
+        self.local.save(update_fields=["correo_admin"])
+
+        municipio_otro = Municipio.objects.create(
+            nombre="OtroMunicipio",
+            departamento="Antioquia",
+        )
+        sede_otra = Sede.objects.create(
+            nombre="OtraSede",
+            direccion="Calle 99",
+            municipio=municipio_otro,
+        )
+        self.otro_local = Local.objects.create(
+            nombre="Rallye Motor's - Otro Local",
+            sede=sede_otra,
+            direccion="Calle 100",
+            telefono="3009999999",
+            correo_admin="otro.admin@rallye.com",
+            num_mecanicos=1,
+            horarios=[],
+        )
+
+        self.admin = User.objects.create_user(
+            username="admin_turbo",
+            email="admin.turbo@rallye.com",
+            password="Segura123!",
+        )
+
+        self.moto_urbana = Motocicleta.objects.create(
+            referencia="FZ",
+            anio=2024,
+            tipo="URBANA",
+            cilindraje=149,
+            precio=Decimal("12500000.00"),
+            caracteristicas="Motocicleta urbana Yamaha FZ.",
+            activa=True,
+        )
+        self.moto_todoterreno = Motocicleta.objects.create(
+            referencia="XTZ",
+            anio=2024,
+            tipo="TODOTERRENO",
+            cilindraje=150,
+            precio=Decimal("13500000.00"),
+            caracteristicas="Motocicleta todoterreno Yamaha XTZ.",
+            activa=True,
+        )
+
+    def _autenticar(self, user=None):
+        user = user or self.admin
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {get_token(user)}")
+
+    def _crear_cotizacion(
+        self,
+        *,
+        local=None,
+        moto=None,
+        total=Decimal("12700000.00"),
+        fecha=None,
+        radicado="COT-HU20-001",
+    ):
+        local = local or self.local
+        moto = moto or self.moto_urbana
+
+        cotizacion = CotizacionMotocicleta.objects.create(
+            usuario=self.admin,
+            motocicleta=moto,
+            local=local,
+            radicado=radicado,
+            precio_base=Decimal("10000000.00"),
+            impuestos_estimados=Decimal("1900000.00"),
+            tramites_estimados=Decimal("800000.00"),
+            total_estimado=total,
+            cliente_nombre="Cliente Prueba",
+            cliente_correo="cliente@test.com",
+            cliente_telefono="3001234567",
+            correo_cotizacion_enviado=True,
+            comentario="Cotización de prueba HU-20.",
+        )
+
+        if fecha is not None:
+            CotizacionMotocicleta.objects.filter(pk=cotizacion.pk).update(
+                created_at=fecha,
+                fecha_envio_cotizacion=fecha,
+            )
+            cotizacion.refresh_from_db()
+
+        return cotizacion
+
+    def test_cp_hu20_01_sin_autenticacion_retorna_401(self):
+        """CP-HU20-01 · Control de acceso · CA-02"""
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_cp_hu20_02_detecta_local_por_correo_admin(self):
+        """CP-HU20-02 · Integración · CA-01 · CA-02"""
+        self._crear_cotizacion(
+            local=self.local,
+            moto=self.moto_urbana,
+            total=Decimal("12700000.00"),
+            radicado="COT-HU20-001",
+        )
+        self._crear_cotizacion(
+            local=self.otro_local,
+            moto=self.moto_todoterreno,
+            total=Decimal("15000000.00"),
+            radicado="COT-HU20-002",
+        )
+
+        self._autenticar()
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["local"]["id"], self.local.id)
+        self.assertEqual(response.data["local"]["nombre"], self.local.nombre)
+        self.assertEqual(response.data["metricas"]["total_cotizaciones"], 1)
+
+    def test_cp_hu20_03_filtra_solo_cotizaciones_del_local_del_admin(self):
+        """CP-HU20-03 · Integración · CA-01 · CA-02"""
+        self._crear_cotizacion(
+            local=self.local,
+            moto=self.moto_urbana,
+            total=Decimal("12700000.00"),
+            radicado="COT-HU20-003",
+        )
+        self._crear_cotizacion(
+            local=self.otro_local,
+            moto=self.moto_todoterreno,
+            total=Decimal("15000000.00"),
+            radicado="COT-HU20-004",
+        )
+
+        self._autenticar()
+        response = self.client.get(self.url)
+
+        radicados = [item["radicado"] for item in response.data["cotizaciones_recientes"]]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("COT-HU20-003", radicados)
+        self.assertNotIn("COT-HU20-004", radicados)
+        self.assertEqual(response.data["metricas"]["total_cotizaciones"], 1)
+
+    def test_cp_hu20_04_calcula_metricas_comerciales_correctamente(self):
+        """CP-HU20-04 · Caja negra · CA-01 · CA-04"""
+        self._crear_cotizacion(
+            moto=self.moto_urbana,
+            total=Decimal("10000000.00"),
+            radicado="COT-HU20-005",
+        )
+        self._crear_cotizacion(
+            moto=self.moto_urbana,
+            total=Decimal("12000000.00"),
+            radicado="COT-HU20-006",
+        )
+        self._crear_cotizacion(
+            moto=self.moto_todoterreno,
+            total=Decimal("14000000.00"),
+            radicado="COT-HU20-007",
+        )
+
+        self._autenticar()
+        response = self.client.get(self.url)
+
+        metricas = response.data["metricas"]
+        tipos = response.data["por_tipo"]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(metricas["total_cotizaciones"], 3)
+        self.assertEqual(float(metricas["valor_total_estimado"]), 36000000.0)
+        self.assertEqual(float(metricas["promedio_cotizacion"]), 12000000.0)
+        self.assertEqual(tipos[0]["tipo_display"], "Urbana")
+        self.assertEqual(tipos[0]["cantidad"], 2)
+
+    def test_cp_hu20_05_filtra_por_periodo(self):
+        """CP-HU20-05 · Caja negra · CA-03"""
+        hoy = timezone.now()
+        fecha_fuera_periodo = hoy - timedelta(days=10)
+
+        self._crear_cotizacion(
+            moto=self.moto_urbana,
+            total=Decimal("10000000.00"),
+            fecha=hoy,
+            radicado="COT-HU20-008",
+        )
+        self._crear_cotizacion(
+            moto=self.moto_todoterreno,
+            total=Decimal("14000000.00"),
+            fecha=fecha_fuera_periodo,
+            radicado="COT-HU20-009",
+        )
+
+        self._autenticar()
+        fecha_hoy = timezone.localdate().isoformat()
+        response = self.client.get(
+            self.url,
+            {
+                "fecha_inicio": fecha_hoy,
+                "fecha_fin": fecha_hoy,
+            },
+        )
+
+        radicados = [item["radicado"] for item in response.data["cotizaciones_recientes"]]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["metricas"]["total_cotizaciones"], 1)
+        self.assertIn("COT-HU20-008", radicados)
+        self.assertNotIn("COT-HU20-009", radicados)
+
+    def test_cp_hu20_06_fecha_inicio_mayor_a_fecha_fin_retorna_400(self):
+        """CP-HU20-06 · Caja negra · CA-03"""
+        self._autenticar()
+        response = self.client.get(
+            self.url,
+            {
+                "fecha_inicio": "2026-05-10",
+                "fecha_fin": "2026-05-01",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("periodo", response.data)
+
+    def test_cp_hu20_07_admin_sin_local_asociado_retorna_resumen_vacio(self):
+        """CP-HU20-07 · Control de acceso lógico · CA-02"""
+        admin_sin_local = User.objects.create_user(
+            username="admin_sin_local",
+            email="sin.local@rallye.com",
+            password="Segura123!",
+        )
+
+        self._autenticar(admin_sin_local)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["local"])
+        self.assertEqual(response.data["metricas"]["total_cotizaciones"], 0)
+        self.assertEqual(response.data["por_fecha"], [])
+        self.assertEqual(response.data["por_tipo"], [])

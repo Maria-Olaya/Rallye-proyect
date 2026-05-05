@@ -13,10 +13,12 @@ from catalog.views import (
     ListadoAdminMotocicletasView,
     ModelosMotoView,
     RegistrarConsultaRepuestoView,
+    ResumenComercialCotizacionesView,
 )
 
 urlpatterns = [
     path("cotizaciones/motocicletas/", CotizarMotocicletaView.as_view(), name="cotizar_moto"),
+    path("resumen-comercial/", ResumenComercialCotizacionesView.as_view(), name="resumen_comercial"),
     path("motocicletas/agregar/", AgregarMotocicletaView.as_view(), name="agregar_moto"),
     path("motocicletas/admin/", ListadoAdminMotocicletasView.as_view(), name="admin_motos"),
     path("motocicletas/<int:pk>/editar/", EditarMotocicletaView.as_view(), name="editar_moto"),

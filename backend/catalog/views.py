@@ -1,6 +1,13 @@
 # catalog/views.py
 
 import urllib.parse
+from datetime import datetime, timedelta
+from decimal import Decimal
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Avg, Count, Q, Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -22,6 +29,7 @@ from catalog.services import (
     enviar_cotizacion_por_correo,
     generar_radicado_cotizacion,
 )
+from core.models import Local
 
 
 class AgregarMotocicletaView(APIView):
@@ -268,6 +276,250 @@ class ListadoAdminMotocicletasView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class ResumenComercialCotizacionesView(APIView):
+    """
+    GET /api/catalog/resumen-comercial/
+    HU-20 — Resumen comercial interno basado únicamente en cotizaciones de motocicletas.
+
+    Regla de local:
+    1. Primero intenta usar request.user.local, si existe.
+    2. Si el usuario no tiene local directo, busca un Local activo cuyo correo_admin
+       coincida con el email del administrador autenticado.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def _decimal_to_float(value):
+        if value is None:
+            return 0
+        if isinstance(value, Decimal):
+            return float(value)
+        return value
+
+    @staticmethod
+    def _parse_fecha(valor, nombre_campo):
+        if not valor:
+            return None, None
+        try:
+            return datetime.strptime(valor, "%Y-%m-%d").date(), None
+        except ValueError:
+            return None, f"{nombre_campo} debe tener formato YYYY-MM-DD."
+
+    @staticmethod
+    def _obtener_local_administrador(user):
+        """
+        Obtiene el local asociado al administrador autenticado.
+
+        Primero intenta usar una relación directa user.local.
+        Si esa relación no existe o está vacía, busca el local activo cuyo
+        correo_admin sea igual al email del usuario autenticado.
+        """
+        local = None
+
+        try:
+            local = getattr(user, "local", None)
+        except ObjectDoesNotExist:
+            local = None
+
+        if local is not None:
+            return local
+
+        email = (getattr(user, "email", "") or "").strip()
+
+        if not email:
+            return None
+
+        return (
+            Local.objects.select_related("sede").filter(correo_admin__iexact=email, activo=True).order_by("id").first()
+        )
+
+    @staticmethod
+    def _respuesta_sin_local():
+        return Response(
+            {
+                "mensaje": (
+                    "No se encontró un local asociado al administrador autenticado. "
+                    "Verifica que el correo del usuario coincida con el correo_admin de un local activo."
+                ),
+                "local": None,
+                "periodo": None,
+                "metricas": {
+                    "total_cotizaciones": 0,
+                    "valor_total_estimado": 0,
+                    "promedio_cotizacion": 0,
+                    "correos_enviados": 0,
+                },
+                "por_fecha": [],
+                "por_tipo": [],
+                "motos_mas_cotizadas": [],
+                "cotizaciones_recientes": [],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def get(self, request):
+        local = self._obtener_local_administrador(request.user)
+
+        if local is None:
+            return self._respuesta_sin_local()
+
+        fecha_inicio_txt = request.query_params.get("fecha_inicio", "").strip()
+        fecha_fin_txt = request.query_params.get("fecha_fin", "").strip()
+
+        hoy = timezone.localdate()
+        fecha_inicio, error_inicio = self._parse_fecha(fecha_inicio_txt, "fecha_inicio")
+        fecha_fin, error_fin = self._parse_fecha(fecha_fin_txt, "fecha_fin")
+
+        if error_inicio:
+            return Response({"fecha_inicio": error_inicio}, status=status.HTTP_400_BAD_REQUEST)
+        if error_fin:
+            return Response({"fecha_fin": error_fin}, status=status.HTTP_400_BAD_REQUEST)
+
+        if fecha_inicio is None and fecha_fin is None:
+            fecha_inicio = hoy.replace(day=1)
+            fecha_fin = hoy
+        elif fecha_inicio is None:
+            fecha_inicio = fecha_fin.replace(day=1)
+        elif fecha_fin is None:
+            fecha_fin = hoy
+
+        if fecha_inicio > fecha_fin:
+            return Response(
+                {"periodo": "La fecha de inicio no puede ser mayor que la fecha fin."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cotizaciones = (
+            CotizacionMotocicleta.objects.select_related("motocicleta", "local", "local__sede")
+            .filter(local=local)
+            .filter(created_at__date__gte=fecha_inicio, created_at__date__lte=fecha_fin)
+        )
+
+        agregados = cotizaciones.aggregate(
+            total_cotizaciones=Count("id"),
+            valor_total_estimado=Sum("total_estimado"),
+            promedio_cotizacion=Avg("total_estimado"),
+            correos_enviados=Count("id", filter=Q(correo_cotizacion_enviado=True)),
+        )
+
+        por_fecha_queryset = (
+            cotizaciones.annotate(fecha=TruncDate("created_at"))
+            .values("fecha")
+            .annotate(cantidad=Count("id"), valor_total=Sum("total_estimado"))
+            .order_by("fecha")
+        )
+
+        datos_por_fecha = {
+            item["fecha"]: {
+                "cantidad": item["cantidad"],
+                "valor_total": self._decimal_to_float(item["valor_total"]),
+            }
+            for item in por_fecha_queryset
+        }
+
+        por_fecha = []
+        total_dias = (fecha_fin - fecha_inicio).days
+
+        if total_dias <= 92:
+            fecha_actual = fecha_inicio
+            while fecha_actual <= fecha_fin:
+                datos = datos_por_fecha.get(fecha_actual, {"cantidad": 0, "valor_total": 0})
+                por_fecha.append(
+                    {
+                        "fecha": fecha_actual.isoformat(),
+                        "cantidad": datos["cantidad"],
+                        "valor_total": datos["valor_total"],
+                    }
+                )
+                fecha_actual += timedelta(days=1)
+        else:
+            por_fecha = [
+                {
+                    "fecha": item["fecha"].isoformat(),
+                    "cantidad": item["cantidad"],
+                    "valor_total": self._decimal_to_float(item["valor_total"]),
+                }
+                for item in por_fecha_queryset
+            ]
+
+        tipos_display = dict(Motocicleta.TipoMotocicleta.choices)
+
+        por_tipo = [
+            {
+                "tipo": item["motocicleta__tipo"] or "SIN_TIPO",
+                "tipo_display": tipos_display.get(item["motocicleta__tipo"], "Sin tipo"),
+                "cantidad": item["cantidad"],
+                "valor_total": self._decimal_to_float(item["valor_total"]),
+            }
+            for item in cotizaciones.values("motocicleta__tipo")
+            .annotate(cantidad=Count("id"), valor_total=Sum("total_estimado"))
+            .order_by("-cantidad", "motocicleta__tipo")
+        ]
+
+        motos_mas_cotizadas = [
+            {
+                "motocicleta": (
+                    f"{item['motocicleta__marca']} {item['motocicleta__referencia']} {item['motocicleta__anio']}"
+                ),
+                "cantidad": item["cantidad"],
+                "valor_total": self._decimal_to_float(item["valor_total"]),
+            }
+            for item in cotizaciones.values(
+                "motocicleta__marca",
+                "motocicleta__referencia",
+                "motocicleta__anio",
+            )
+            .annotate(cantidad=Count("id"), valor_total=Sum("total_estimado"))
+            .order_by("-cantidad", "motocicleta__referencia")[:5]
+        ]
+
+        cotizaciones_recientes = []
+
+        for cotizacion in cotizaciones.order_by("-created_at")[:8]:
+            cotizaciones_recientes.append(
+                {
+                    "radicado": cotizacion.radicado or "Sin radicado",
+                    "motocicleta": (
+                        f"{cotizacion.motocicleta.marca} "
+                        f"{cotizacion.motocicleta.referencia} "
+                        f"{cotizacion.motocicleta.anio}"
+                    ),
+                    "cliente": cotizacion.cliente_nombre or "Cliente no registrado",
+                    "fecha": timezone.localtime(cotizacion.created_at).strftime("%d/%m/%Y %H:%M"),
+                    "total_estimado": self._decimal_to_float(cotizacion.total_estimado),
+                    "correo_enviado": cotizacion.correo_cotizacion_enviado,
+                }
+            )
+
+        return Response(
+            {
+                "local": {
+                    "id": local.id,
+                    "nombre": local.nombre,
+                    "sede": local.sede.nombre if local.sede_id else None,
+                    "direccion": local.direccion,
+                    "correo_admin": local.correo_admin,
+                },
+                "periodo": {
+                    "fecha_inicio": fecha_inicio.isoformat(),
+                    "fecha_fin": fecha_fin.isoformat(),
+                },
+                "metricas": {
+                    "total_cotizaciones": agregados["total_cotizaciones"] or 0,
+                    "valor_total_estimado": self._decimal_to_float(agregados["valor_total_estimado"]),
+                    "promedio_cotizacion": self._decimal_to_float(agregados["promedio_cotizacion"]),
+                    "correos_enviados": agregados["correos_enviados"] or 0,
+                },
+                "por_fecha": por_fecha,
+                "por_tipo": por_tipo,
+                "motos_mas_cotizadas": motos_mas_cotizadas,
+                "cotizaciones_recientes": cotizaciones_recientes,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 # ── HU: Consultar repuestos guiado + Registrar interés ───────────────────────
 
 
@@ -327,8 +579,6 @@ class RegistrarConsultaRepuestoView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        from core.models import Local
-
         repuesto_nombre = request.data.get("repuesto_nombre", "").strip()
         if not repuesto_nombre:
             return Response(
