@@ -558,7 +558,6 @@ class MarcarCitasAtendidasTest(TestCase):
         self.assertEqual(total, 0)
 
 
-
 # ─────────────────────────────────────────
 # HU-19 · Visualizar agenda de atención
 # ─────────────────────────────────────────
@@ -572,6 +571,7 @@ class AgendaAdminTest(TestCase):
 
         # Crear usuario admin vinculado al local
         from users.models import User
+
         self.user = User.objects.create_user(
             username="admin_test",
             password="testpass123",
@@ -650,6 +650,7 @@ class AgendaAdminTest(TestCase):
         """CP-HU19-06 · Seguridad · CA-01
         Un admin sin local asignado debe recibir 403."""
         from users.models import User
+
         user_sin_local = User.objects.create_user(
             username="admin_sin_local",
             email="sin_local@test.com",
@@ -707,12 +708,24 @@ class AgendaAdminTest(TestCase):
         cita = response.data[0]
 
         campos_requeridos = [
-            "id", "fecha", "hora_inicio", "hora_fin",
-            "estado", "estado_display", "tipo_servicio", "tipo_servicio_display",
-            "cliente_nombre", "cliente_documento", "tipo_documento",
-            "cliente_telefono", "cliente_correo",
-            "placa_moto", "referencia_moto", "anio_moto",
-            "local_nombre", "sede_nombre",
+            "id",
+            "fecha",
+            "hora_inicio",
+            "hora_fin",
+            "estado",
+            "estado_display",
+            "tipo_servicio",
+            "tipo_servicio_display",
+            "cliente_nombre",
+            "cliente_documento",
+            "tipo_documento",
+            "cliente_telefono",
+            "cliente_correo",
+            "placa_moto",
+            "referencia_moto",
+            "anio_moto",
+            "local_nombre",
+            "sede_nombre",
         ]
         for campo in campos_requeridos:
             self.assertIn(campo, cita, msg=f"Campo ausente: {campo}")

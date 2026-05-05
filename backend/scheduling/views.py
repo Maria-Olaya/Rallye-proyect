@@ -271,5 +271,6 @@ class AgendaAdminView(APIView):
         )
 
         from scheduling.serializers import AgendaAdminSerializer
+
         serializer = AgendaAdminSerializer(citas, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

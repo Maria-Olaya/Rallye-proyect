@@ -16,9 +16,5 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ("username",)
     ordering = ("-date_joined",)
 
-    fieldsets = UserAdmin.fieldsets + (
-        ("Local asignado", {"fields": ("local",)}),
-    )
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ("Local asignado", {"fields": ("local",)}),
-    )
+    fieldsets = UserAdmin.fieldsets + (("Local asignado", {"fields": ("local",)}),)
+    add_fieldsets = UserAdmin.add_fieldsets + (("Local asignado", {"fields": ("local",)}),)
