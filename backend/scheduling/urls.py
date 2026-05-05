@@ -1,6 +1,7 @@
 from django.urls import path
 from scheduling.views import (
     AgendarCitaView,
+    AgendaAdminView,
     CancelarCitaView,
     CitasDisponiblesView,
     CitaPorPlacaView,
@@ -11,4 +12,5 @@ urlpatterns = [
     path("agendar/<int:cita_id>/", AgendarCitaView.as_view(), name="agendar-cita"),
     path("cita-por-placa/", CitaPorPlacaView.as_view(), name="cita-por-placa"),
     path("cancelar/<int:cita_id>/", CancelarCitaView.as_view(), name="cancelar-cita"),
+    path("agenda/", AgendaAdminView.as_view(), name="agenda-admin"),
 ]

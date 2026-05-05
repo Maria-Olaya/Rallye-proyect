@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+{% block title %}Agenda del Taller | Rallye Motor's{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Navbar admin ── */
+    .navbar-menu { display: none !important; }
+    .admin-nav-menu {
+        display: flex; gap: 1.8rem; list-style: none; align-items: center;
+    }
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: color 0.2s;
+    }
+    .admin-nav-menu a:hover { color: var(--red); }
+    .admin-dropdown { position: relative; }
+    .admin-dropdown-trigger {
+        cursor: pointer; user-select: none; -webkit-user-select: none;
+        display: flex; align-items: center; gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #111;
+        background: none; border: none; padding: 0; transition: color 0.2s;
+    }
+    .admin-dropdown-trigger:hover { color: var(--red); }
+    .admin-dropdown-trigger svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .admin-dropdown-trigger.open svg { transform: rotate(180deg); }
+    .admin-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 14px); left: 50%;
+        transform: translateX(-50%); background: #fff; border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15); list-style: none; min-width: 190px;
+        z-index: 200; padding: 0.4rem 0; border-radius: 0 0 4px 4px;
+    }
+    .admin-dropdown-menu.open { display: block; }
+    .admin-dropdown-menu li a {
+        display: block; padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; color: #111;
+        text-decoration: none; transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .admin-dropdown-menu li a:hover { background: #f5f5f5; color: var(--red); }
+    .admin-dropdown-menu li + li { border-top: 1px solid #f0f0f0; }
+    .admin-btn-salir {
+        background: #333; color: #fff !important; padding: 0.4rem 1.1rem; border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: none; transition: background 0.2s;
+    }
+    .admin-btn-salir:hover { background: #111; }
+
+    /* ── Página ── */
+    .agenda-page {
+        min-height: calc(100vh - 64px - 59px);
+        background: linear-gradient(90deg, #080808 0%, #0a0a0a 68%, #120304 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .agenda-shell {
+        width: min(100%, 1120px);
+        background: #f7f7f7;
+        border-radius: 22px;
+        box-shadow: 0 26px 54px rgba(0,0,0,0.3);
+        overflow: hidden;
+        margin: 0 auto;
+    }
+
+    /* ── Topbar ── */
+    .agenda-topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.4rem 2.2rem 0;
+    }
+    .agenda-breadcrumb {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem;
+        font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+    }
+    .agenda-breadcrumb a { color: #aaa; text-decoration: none; transition: color 0.15s; }
+    .agenda-breadcrumb a:hover { color: var(--red); }
+    .agenda-breadcrumb-sep { color: #ccc; }
+    .agenda-breadcrumb-current { color: var(--red); }
+    .agenda-back {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.38rem 1rem; border: 1.5px solid #ccc; border-radius: 999px;
+        text-decoration: none; color: #555; background: transparent;
+        font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+        letter-spacing: 0.1em; text-transform: uppercase; transition: border-color 0.2s, color 0.2s;
+    }
+    .agenda-back:hover { border-color: var(--red); color: var(--red); }
+    .agenda-back svg { width: 12px; height: 12px; }
+
+    /* ── Header ── */
+    .agenda-header {
+        padding: 1rem 2.2rem 1.4rem;
+        border-bottom: 1px solid #e8e8e8;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .agenda-header-left {}
+    .agenda-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700; color: var(--red);
+        margin: 0 0 0.2rem; line-height: 1;
+    }
+    .agenda-subtitle {
+        font-family: 'Barlow Condensed', sans-serif;
+        color: #8b94a3; font-size: 0.88rem;
+    }
+
+    /* ── Filtros ── */
+    .agenda-filters {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .agenda-filter-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.76rem; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #616975;
+    }
+    .agenda-date-input {
+        border: 2px solid #dedede; border-radius: 10px;
+        padding: 0.55rem 0.85rem; font-size: 0.875rem;
+        font-family: 'DM Sans', sans-serif; background: #fff; color: #111;
+        outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .agenda-date-input:focus {
+        border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08);
+    }
+    .agenda-btn-filter {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.55rem 1.2rem; border: none; border-radius: 10px;
+        background: var(--red); color: #fff; text-transform: uppercase;
+        letter-spacing: 0.1em; font-size: 0.82rem; font-weight: 700;
+        font-family: 'Barlow Condensed', sans-serif;
+        cursor: pointer; transition: background 0.15s;
+    }
+    .agenda-btn-filter:hover { background: #b30000; }
+    .agenda-btn-today {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.55rem 1rem; border: 2px solid #dedede; border-radius: 10px;
+        background: #fff; color: #555; text-transform: uppercase;
+        letter-spacing: 0.1em; font-size: 0.82rem; font-weight: 700;
+        font-family: 'Barlow Condensed', sans-serif;
+        cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .agenda-btn-today:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Navegación de fechas ── */
+    .agenda-date-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1rem 2.2rem 0;
+    }
+    .agenda-nav-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 2px solid #dedede; background: #fff; color: #555;
+        cursor: pointer; transition: border-color 0.15s, color 0.15s;
+        flex-shrink: 0;
+    }
+    .agenda-nav-btn:hover { border-color: var(--red); color: var(--red); }
+    .agenda-nav-btn svg { width: 14px; height: 14px; }
+    .agenda-date-display {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.1rem; font-weight: 700;
+        color: #111; letter-spacing: 0.04em;
+        text-transform: uppercase; min-width: 220px; text-align: center;
+    }
+
+    /* ── Cuerpo ── */
+    .agenda-body {
+        padding: 1.2rem 2.2rem 2rem;
+    }
+
+    /* ── Resumen ── */
+    .agenda-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.7rem;
+        margin-bottom: 1.2rem;
+    }
+    .agenda-summary-card {
+        background: #fff;
+        border: 2px solid #e8e8e8;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        text-align: center;
+    }
+    .agenda-summary-num {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 2rem; font-weight: 700; line-height: 1;
+        color: #111;
+    }
+    .agenda-summary-num.red { color: var(--red); }
+    .agenda-summary-num.green { color: #16a34a; }
+    .agenda-summary-num.orange { color: #d97706; }
+    .agenda-summary-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.7rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: #9ca3af; margin-top: 0.25rem;
+    }
+
+    /* ── Lista de citas ── */
+    .agenda-list {
+        display: grid;
+        gap: 0.6rem;
+    }
+    .agenda-cita {
+        background: #fff;
+        border: 2px solid #e8e8e8;
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        display: grid;
+        grid-template-columns: 90px 1fr auto;
+        gap: 1rem;
+        align-items: start;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .agenda-cita:hover {
+        border-color: #ccc;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    /* Columna hora */
+    .agenda-cita-hora {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding-top: 0.1rem;
+    }
+    .agenda-hora-inicio {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.45rem; font-weight: 700;
+        color: #111; line-height: 1;
+    }
+    .agenda-hora-sep {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.65rem; color: #aaa;
+        letter-spacing: 0.05em; margin: 0.1rem 0;
+    }
+    .agenda-hora-fin {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.85rem; color: #888;
+    }
+
+    /* Columna datos */
+    .agenda-cita-datos {}
+    .agenda-servicio-nombre {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.1rem; font-weight: 700;
+        color: #111; margin-bottom: 0.5rem;
+    }
+    .agenda-cita-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem 0.8rem;
+    }
+    .agenda-dato {
+        display: flex;
+        flex-direction: column;
+    }
+    .agenda-dato-label {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.65rem; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase;
+        color: #9ca3af;
+    }
+    .agenda-dato-value {
+        font-size: 0.82rem;
+        color: #374151;
+        font-family: 'DM Sans', sans-serif;
+        word-break: break-word;
+    }
+
+    /* Columna estado */
+    .agenda-estado {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+    .agenda-badge {
+        display: inline-flex; align-items: center;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .agenda-badge.ASIGNADA  { background: #dbeafe; color: #1d4ed8; }
+    .agenda-badge.ATENDIDO  { background: #dcfce7; color: #166534; }
+    .agenda-badge.CANCELADA { background: #fee2e2; color: #991b1b; }
+
+    /* ── Empty state ── */
+    .agenda-empty {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    .agenda-empty-icon {
+        width: 56px; height: 56px;
+        background: #f0f0f0; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1rem;
+        color: #bbb;
+    }
+    .agenda-empty-icon svg { width: 28px; height: 28px; }
+    .agenda-empty-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.2rem; font-weight: 700; color: #555;
+        margin-bottom: 0.3rem;
+    }
+    .agenda-empty-text {
+        font-size: 0.85rem; color: #9ca3af;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── Prompt inicial ── */
+    .agenda-prompt {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    .agenda-prompt-icon {
+        width: 56px; height: 56px;
+        background: #f0f0f0; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1rem;
+        color: #bbb;
+    }
+    .agenda-prompt-icon svg { width: 28px; height: 28px; }
+    .agenda-prompt-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.2rem; font-weight: 700; color: #555;
+        margin-bottom: 0.3rem;
+    }
+    .agenda-prompt-text {
+        font-size: 0.85rem; color: #9ca3af;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── Cargando ── */
+    .agenda-loading {
+        text-align: center; padding: 2.5rem 1rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase;
+        color: #9ca3af;
+    }
+
+    /* ── Error ── */
+    .agenda-error-msg {
+        background: #ffe5e5; color: #9f1111; border: 1px solid #ffd0d0;
+        border-radius: 10px; padding: 0.7rem 1rem;
+        font-size: 0.82rem; font-family: 'Barlow Condensed', sans-serif;
+        letter-spacing: 0.03em; display: none;
+    }
+    .agenda-error-msg.visible { display: block; }
+
+    @media (max-width: 820px) {
+        .agenda-page { padding: 0.5rem; }
+        .agenda-topbar, .agenda-header, .agenda-body { padding-left: 1rem; padding-right: 1rem; }
+        .agenda-summary { grid-template-columns: repeat(2, 1fr); }
+        .agenda-cita { grid-template-columns: 1fr; }
+        .agenda-cita-hora { flex-direction: row; gap: 0.4rem; align-items: baseline; justify-content: flex-start; }
+        .agenda-hora-sep { display: none; }
+        .agenda-estado { flex-direction: row; align-items: center; justify-content: flex-start; }
+        .agenda-cita-grid { grid-template-columns: repeat(2, 1fr); }
+        .agenda-header { flex-direction: column; align-items: flex-start; }
+        .agenda-filters { width: 100%; }
+        .agenda-date-input { flex: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        navbar.querySelector('.navbar-menu').style.display = 'none';
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/mi-local/">MI LOCAL</a></li>
+            <li><a href="/panel/agenda/" style="color:var(--red)">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    GESTIONAR MOTOCICLETAS
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Editar moto</a></li>
+                </ul>
+            </li>
+            <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+        `;
+        navbar.appendChild(adminMenu);
+
+        document.getElementById('crudTrigger').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('crudMenu').classList.toggle('open');
+            document.getElementById('crudTrigger').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('crudMenu')?.classList.remove('open');
+            document.getElementById('crudTrigger')?.classList.remove('open');
+        });
+        document.getElementById('btnSalirAdmin').addEventListener('click', () => {
+            const access  = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+            const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+            fetch('/api/users/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + access },
+                body: JSON.stringify({ refresh })
+            }).finally(() => { sessionStorage.clear(); window.location.href = '/login/'; });
+        });
+    });
+</script>
+
+<section class="agenda-page">
+    <div class="agenda-shell">
+
+        <!-- Topbar -->
+        <div class="agenda-topbar">
+            <div class="agenda-breadcrumb">
+                <a href="/panel/">Panel</a>
+                <span class="agenda-breadcrumb-sep">›</span>
+                <span class="agenda-breadcrumb-current">Agenda del Taller</span>
+            </div>
+            <a class="agenda-back" href="/panel/">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Volver al panel
+            </a>
+        </div>
+
+        <!-- Header con filtros -->
+        <div class="agenda-header">
+            <div class="agenda-header-left">
+                <h1 class="agenda-title">Agenda del Taller</h1>
+                <p class="agenda-subtitle">Selecciona una fecha y presiona <strong>Ver agenda</strong> para consultar las citas del día.</p>
+            </div>
+            <div class="agenda-filters">
+                <span class="agenda-filter-label">Fecha:</span>
+                <input type="date" id="inputFecha" class="agenda-date-input">
+                <button id="btnHoy" class="agenda-btn-today" type="button">Hoy</button>
+                <button id="btnBuscar" class="agenda-btn-filter" type="button">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Ver agenda
+                </button>
+            </div>
+        </div>
+
+        <!-- Navegación de fechas -->
+        <div class="agenda-date-nav">
+            <button class="agenda-nav-btn" id="btnDiaAnterior" title="Día anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <div class="agenda-date-display" id="dateDisplay">—</div>
+            <button class="agenda-nav-btn" id="btnDiaSiguiente" title="Día siguiente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="agenda-body">
+
+            <!-- Resumen -->
+            <div class="agenda-summary">
+                <div class="agenda-summary-card">
+                    <div class="agenda-summary-num" id="totalCitas">—</div>
+                    <div class="agenda-summary-label">Total Citas</div>
+                </div>
+                <div class="agenda-summary-card">
+                    <div class="agenda-summary-num red" id="totalAsignadas">—</div>
+                    <div class="agenda-summary-label">Pendientes</div>
+                </div>
+                <div class="agenda-summary-card">
+                    <div class="agenda-summary-num green" id="totalAtendidas">—</div>
+                    <div class="agenda-summary-label">Atendidas</div>
+                </div>
+                <div class="agenda-summary-card">
+                    <div class="agenda-summary-num orange" id="totalCanceladas">—</div>
+                    <div class="agenda-summary-label">Canceladas</div>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div id="errorMsg" class="agenda-error-msg"></div>
+
+            <!-- Lista -->
+            <div id="agendaLista" class="agenda-list">
+                <div class="agenda-prompt">
+                    <div class="agenda-prompt-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="agenda-prompt-title">Selecciona una fecha</div>
+                    <div class="agenda-prompt-text">Elige una fecha y presiona <strong>Ver agenda</strong> para ver las citas del día.</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const accessToken = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+    if (!accessToken) window.location.replace('/login/');
+
+    const SERVICIOS = {
+        MANTENIMIENTO: 'Mantenimiento General',
+        REVISION:      'Revisión General',
+        ALISTAMIENTO:  'Alistamiento',
+        GARANTIA:      'Revisión por Garantía',
+    };
+
+    const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+    let fechaActual = new Date();
+    fechaActual.setHours(0, 0, 0, 0);
+    let agendaCargada = false;
+
+    // ── Utilidades de fecha ──────────────────────────────────────────
+    function toISODate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dia}`;
+    }
+
+    function formatHora(h) {
+        if (!h) return '—';
+        return h.slice(0, 5);
+    }
+
+    function formatFechaLarga(d) {
+        return `${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+    }
+
+    // ── Actualizar UI de fecha ───────────────────────────────────────
+    function actualizarFechaUI() {
+        document.getElementById('dateDisplay').textContent = formatFechaLarga(fechaActual);
+        document.getElementById('inputFecha').value = toISODate(fechaActual);
+    }
+
+    // ── Badge de estado ──────────────────────────────────────────────
+    function badgeEstado(estado) {
+        const labels = {
+            ASIGNADA:  'Pendiente',
+            ATENDIDO:  'Atendido',
+            CANCELADA: 'Cancelada',
+        };
+        return `<span class="agenda-badge ${estado}">${labels[estado] || estado}</span>`;
+    }
+
+    // ── Renderizar citas ─────────────────────────────────────────────
+    function renderCitas(citas) {
+        const lista = document.getElementById('agendaLista');
+
+        document.getElementById('totalCitas').textContent     = citas.length;
+        document.getElementById('totalAsignadas').textContent  = citas.filter(c => c.estado === 'ASIGNADA').length;
+        document.getElementById('totalAtendidas').textContent  = citas.filter(c => c.estado === 'ATENDIDO').length;
+        document.getElementById('totalCanceladas').textContent = citas.filter(c => c.estado === 'CANCELADA').length;
+
+        if (citas.length === 0) {
+            lista.innerHTML = `
+                <div class="agenda-empty">
+                    <div class="agenda-empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="agenda-empty-title">Sin citas para esta fecha</div>
+                    <div class="agenda-empty-text">No hay citas asignadas o atendidas en este día.</div>
+                </div>
+            `;
+            return;
+        }
+
+        lista.innerHTML = citas.map(c => {
+            const servicio = SERVICIOS[c.tipo_servicio] || c.tipo_servicio_display || '—';
+            const motoInfo = [c.placa_moto, c.referencia_moto, c.anio_moto].filter(Boolean).join(' · ') || '—';
+            const clienteDoc = c.cliente_documento ? `${c.tipo_documento || ''} ${c.cliente_documento}`.trim() : '—';
+
+            return `
+            <article class="agenda-cita">
+                <div class="agenda-cita-hora">
+                    <div class="agenda-hora-inicio">${formatHora(c.hora_inicio)}</div>
+                    <div class="agenda-hora-sep">hasta</div>
+                    <div class="agenda-hora-fin">${formatHora(c.hora_fin)}</div>
+                </div>
+                <div class="agenda-cita-datos">
+                    <div class="agenda-servicio-nombre">${servicio}</div>
+                    <div class="agenda-cita-grid">
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Cliente</span>
+                            <span class="agenda-dato-value">${c.cliente_nombre || '—'}</span>
+                        </div>
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Documento</span>
+                            <span class="agenda-dato-value">${clienteDoc}</span>
+                        </div>
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Teléfono</span>
+                            <span class="agenda-dato-value">${c.cliente_telefono || '—'}</span>
+                        </div>
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Correo</span>
+                            <span class="agenda-dato-value">${c.cliente_correo || '—'}</span>
+                        </div>
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Moto</span>
+                            <span class="agenda-dato-value">${motoInfo}</span>
+                        </div>
+                        <div class="agenda-dato">
+                            <span class="agenda-dato-label">Local</span>
+                            <span class="agenda-dato-value">${c.local_nombre || '—'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="agenda-estado">
+                    ${badgeEstado(c.estado)}
+                </div>
+            </article>
+            `;
+        }).join('');
+    }
+
+    // ── Fetch de la agenda ───────────────────────────────────────────
+    async function cargarAgenda(fecha) {
+        const lista    = document.getElementById('agendaLista');
+        const errorMsg = document.getElementById('errorMsg');
+
+        errorMsg.classList.remove('visible');
+        lista.innerHTML = '<div class="agenda-loading">Cargando agenda…</div>';
+
+        try {
+            const res = await fetch(`/api/scheduling/agenda/?fecha=${fecha}`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+
+            if (res.status === 401) {
+                window.location.replace('/login/');
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                errorMsg.textContent = data.error || 'Error al cargar la agenda.';
+                errorMsg.classList.add('visible');
+                lista.innerHTML = '';
+                return;
+            }
+
+            agendaCargada = true;
+            renderCitas(data);
+        } catch (e) {
+            errorMsg.textContent = 'Error de conexión. Verifica tu red e intenta de nuevo.';
+            errorMsg.classList.add('visible');
+            lista.innerHTML = '';
+        }
+    }
+
+    // ── Buscar por fecha del input ───────────────────────────────────
+    function buscarFecha() {
+        const val = document.getElementById('inputFecha').value;
+        if (!val) return;
+        const [y, m, d] = val.split('-').map(Number);
+        fechaActual = new Date(y, m - 1, d);
+        actualizarFechaUI();
+        cargarAgenda(val);
+    }
+
+    // ── Eventos ──────────────────────────────────────────────────────
+    document.getElementById('btnBuscar').addEventListener('click', buscarFecha);
+
+    document.getElementById('inputFecha').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') buscarFecha();
+    });
+
+    document.getElementById('btnHoy').addEventListener('click', () => {
+        fechaActual = new Date();
+        fechaActual.setHours(0, 0, 0, 0);
+        actualizarFechaUI();
+        cargarAgenda(toISODate(fechaActual));
+    });
+
+    document.getElementById('btnDiaAnterior').addEventListener('click', () => {
+        fechaActual.setDate(fechaActual.getDate() - 1);
+        actualizarFechaUI();
+        if (agendaCargada) cargarAgenda(toISODate(fechaActual));
+    });
+
+    document.getElementById('btnDiaSiguiente').addEventListener('click', () => {
+        fechaActual.setDate(fechaActual.getDate() + 1);
+        actualizarFechaUI();
+        if (agendaCargada) cargarAgenda(toISODate(fechaActual));
+    });
+
+    // ── Carga inicial: solo actualiza la fecha en UI, no carga datos ─
+    actualizarFechaUI();
+</script>
+{% endblock %}

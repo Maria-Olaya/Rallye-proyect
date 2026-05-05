@@ -117,3 +117,33 @@ class AgendarCitaSerializer(serializers.ModelSerializer):
         instance.estado = Cita.Estado.ASIGNADA
         instance.save()
         return instance
+
+
+class AgendaAdminSerializer(serializers.ModelSerializer):
+    tipo_servicio_display = serializers.CharField(source="get_tipo_servicio_display", read_only=True)
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    local_nombre = serializers.CharField(source="local.nombre", read_only=True)
+    sede_nombre = serializers.CharField(source="local.sede.nombre", read_only=True)
+
+    class Meta:
+        model = Cita
+        fields = [
+            "id",
+            "fecha",
+            "hora_inicio",
+            "hora_fin",
+            "estado",
+            "estado_display",
+            "tipo_servicio",
+            "tipo_servicio_display",
+            "cliente_nombre",
+            "cliente_documento",
+            "tipo_documento",
+            "cliente_telefono",
+            "cliente_correo",
+            "placa_moto",
+            "referencia_moto",
+            "anio_moto",
+            "local_nombre",
+            "sede_nombre",
+        ]
