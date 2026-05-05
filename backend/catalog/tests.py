@@ -1230,6 +1230,7 @@ class RegistrarConsultaRepuestoTest(TestCase):
         response = self.client.post("/api/catalog/repuestos/consulta/", self._payload_valido(), format="json")
         self.assertEqual(response.status_code, 201)
 
+
 # ── HU-20 · Visualizar resumen comercial ─────────────────────────────────────
 
 

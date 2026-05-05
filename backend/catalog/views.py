@@ -331,10 +331,7 @@ class ResumenComercialCotizacionesView(APIView):
             return None
 
         return (
-            Local.objects.select_related("sede")
-            .filter(correo_admin__iexact=email, activo=True)
-            .order_by("id")
-            .first()
+            Local.objects.select_related("sede").filter(correo_admin__iexact=email, activo=True).order_by("id").first()
         )
 
     @staticmethod
@@ -463,9 +460,7 @@ class ResumenComercialCotizacionesView(APIView):
         motos_mas_cotizadas = [
             {
                 "motocicleta": (
-                    f"{item['motocicleta__marca']} "
-                    f"{item['motocicleta__referencia']} "
-                    f"{item['motocicleta__anio']}"
+                    f"{item['motocicleta__marca']} {item['motocicleta__referencia']} {item['motocicleta__anio']}"
                 ),
                 "cantidad": item["cantidad"],
                 "valor_total": self._decimal_to_float(item["valor_total"]),
