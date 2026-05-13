@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mapa de Sedes - Rallye Motor's{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-2">Nuestras Sedes</h1>
+    <p class="text-gray-600 mb-8">Visualiza todas las ubicaciones donde operamos en Colombia</p>
+    
+    <!-- Mapa -->
+    <div id="mapa" class="w-full h-96 rounded-lg shadow-lg mb-8" style="height: 500px;"></div>
+    
+    <!-- Lista de Sedes -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="sedes-container">
+            <div class="flex justify-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+    // Inicializar mapa
+    const mapa = L.map('mapa').setView([4.5709, -74.2973], 6); // Centro de Colombia
+    
+    // Agregar capa base (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(mapa);
+    
+    // Obtener sedes de la API
+    fetch('/api/core/sedes/')
+        .then(response => response.json())
+        .then(data => {
+            const sedesContainer = document.getElementById('sedes-container');
+            sedesContainer.innerHTML = '';
+            
+            if (data.length === 0) {
+                sedesContainer.innerHTML = '<p class="text-gray-600">No hay sedes disponibles.</p>';
+                return;
+            }
+            
+            const bounds = L.latLngBounds();
+            
+            // Crear marcadores y lista
+            data.forEach(sede => {
+                // Agregar marcador al mapa
+                if (sede.lat && sede.lng) {
+                    const latlng = [parseFloat(sede.lat), parseFloat(sede.lng)];
+                    
+                    const marker = L.marker(latlng)
+                        .bindPopup(`<strong>${sede.nombre}</strong><br>${sede.municipio_nombre}`)
+                        .addTo(mapa);
+                    
+                    bounds.extend(latlng);
+                }
+                
+                // Crear tarjeta de sede
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow';
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold mb-2 text-gray-900">${sede.nombre}</h3>
+                    <p class="text-gray-600 mb-3">
+                        <svg class="inline-block w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                        ${sede.municipio_nombre}
+                    </p>
+                    <p class="text-sm text-gray-500 mb-4">${sede.direccion}</p>
+                    
+                    ${sede.locales && sede.locales.length > 0 ? `
+                        <div class="bg-gray-50 rounded p-3 text-sm">
+                            <p class="font-semibold text-gray-900 mb-2">Locales:</p>
+                            <ul class="space-y-1">
+                                ${sede.locales.map(local => `
+                                    <li class="text-gray-700">
+                                        • <strong>${local.nombre}</strong><br>
+                                        <span class="text-gray-600">${local.direccion}</span><br>
+                                        <span class="text-gray-600">Tel: ${local.telefono}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                
+                sedesContainer.appendChild(card);
+                
+                // Hacer clickeable para centrar el mapa
+                card.addEventListener('click', () => {
+                    if (sede.lat && sede.lng) {
+                        mapa.setView([parseFloat(sede.lat), parseFloat(sede.lng)], 15);
+                    }
+                });
+            });
+            
+            // Ajustar vista del mapa a todos los marcadores
+            if (bounds.isValid()) {
+                mapa.fitBounds(bounds, { padding: [50, 50] });
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando sedes:', error);
+            document.getElementById('sedes-container').innerHTML = 
+                '<p class="text-red-600">Error cargando las sedes. Intenta más tarde.</p>';
+        });
+</script>
+
+<style>
+    #mapa {
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .leaflet-popup-content-wrapper {
+        background-color: #fff;
+        border-radius: 0.375rem;
+    }
+    
+    .leaflet-popup-content {
+        font-family: 'DM Sans', sans-serif;
+        margin: 0;
+    }
+</style>
+{% endblock %}
