@@ -89,17 +89,15 @@ class LocalUpdateTest(TestCase):
         self.assertEqual(len(self.local.horarios), 2)
         self.assertIn("lun", self.local.horarios[0]["dias"])
 
+
 # ========== TESTS PARA HU-17: VISUALIZAR SEDES EN EL MAPA ==========
+
 
 class MapaSedesTest(TestCase):
     def setUp(self):
         # Crear municipios y sedes con coordenadas (como se ve en el commit)
-        self.municipio_bogota = Municipio.objects.create(
-            nombre="Bogotá", departamento="Cundinamarca"
-        )
-        self.municipio_medellin = Municipio.objects.create(
-            nombre="Medellín", departamento="Antioquia"
-        )
+        self.municipio_bogota = Municipio.objects.create(nombre="Bogotá", departamento="Cundinamarca")
+        self.municipio_medellin = Municipio.objects.create(nombre="Medellín", departamento="Antioquia")
 
         self.sede1 = Sede.objects.create(
             nombre="Sede Bogotá - Zona Centro",
