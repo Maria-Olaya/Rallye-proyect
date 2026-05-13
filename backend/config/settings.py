@@ -147,3 +147,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "rallyenotificaciones@gmail.com"
 EMAIL_HOST_PASSWORD = "jagygjcodvyhmqot"
 DEFAULT_FROM_EMAIL = "Rallye Motor's <rallyenotificaciones@gmail.com>"
+
+# ── CHARSET ──────────────────────────────────────────────────────────
+FILE_CHARSET = "utf-8"
+DEFAULT_CHARSET = "utf-8"

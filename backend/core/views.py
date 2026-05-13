@@ -1,4 +1,5 @@
 # core/views.py
+from django.shortcuts import render
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -70,3 +71,8 @@ class LocalUpdateView(APIView):
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def mapa_sedes(request):
+    """Vista para mostrar el mapa de sedes - HU-17"""
+    return render(request, "mapa_sedes.html")

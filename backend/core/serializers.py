@@ -19,10 +19,11 @@ class LocalSerializer(serializers.ModelSerializer):
 
 class SedeSerializer(serializers.ModelSerializer):
     locales = LocalSerializer(many=True, read_only=True)
+    municipio_nombre = serializers.CharField(source="municipio.nombre", read_only=True)
 
     class Meta:
         model = Sede
-        fields = ["id", "nombre", "locales"]
+        fields = ["id", "nombre", "municipio_nombre", "direccion", "lat", "lng", "locales"]
 
 
 # hu 16 - CORREGIDO
