@@ -1,3 +1,5 @@
+# core/models.py
+
 from django.db import models
 
 
@@ -36,6 +38,15 @@ class Local(models.Model):
         default=list,
         blank=True,
         help_text=('Lista de franjas: [{"dias":["lun","mar"], "apertura":"08:00", "cierre":"17:00"}]'),
+    )
+    # HU: Consultar info del local desde el mapa
+    tiene_comercio = models.BooleanField(
+        default=False,
+        help_text="El local ofrece servicio de venta (comercio).",
+    )
+    tiene_taller = models.BooleanField(
+        default=False,
+        help_text="El local ofrece servicio de taller mecánico.",
     )
 
     def __str__(self):
