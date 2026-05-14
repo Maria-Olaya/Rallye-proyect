@@ -88,3 +88,66 @@ class LocalUpdateTest(TestCase):
         self.local.refresh_from_db()
         self.assertEqual(len(self.local.horarios), 2)
         self.assertIn("lun", self.local.horarios[0]["dias"])
+
+
+# ========== TESTS PARA HU-17: VISUALIZAR SEDES EN EL MAPA ==========
+
+
+class MapaSedesTest(TestCase):
+    def setUp(self):
+        # Crear municipios y sedes con coordenadas (como se ve en el commit)
+        self.municipio_bogota = Municipio.objects.create(nombre="Bogotá", departamento="Cundinamarca")
+        self.municipio_medellin = Municipio.objects.create(nombre="Medellín", departamento="Antioquia")
+
+        self.sede1 = Sede.objects.create(
+            nombre="Sede Bogotá - Zona Centro",
+            direccion="Carrera 7 # 32-45, Bogotá",
+            municipio=self.municipio_bogota,
+            lat=4.7110,
+            lng=-74.0721,
+            activa=True,
+        )
+        self.sede2 = Sede.objects.create(
+            nombre="Sede Medellín - Centro",
+            direccion="Carrera 49 # 52-36, Medellín",
+            municipio=self.municipio_medellin,
+            lat=6.2443,
+            lng=-75.5812,
+            activa=True,
+        )
+
+    def test_api_sedes_devuelve_todas_las_sedes_con_coordenadas(self):
+        """Verifica que el endpoint /api/core/sedes/ retorne todas las sedes
+        con los campos necesarios para pintar el mapa (lat, lng, municipio)."""
+        response = self.client.get("/api/core/sedes/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)  # Dos sedes creadas
+
+        for sede in response.data:
+            self.assertIn("nombre", sede)
+            self.assertIn("municipio_nombre", sede)
+            self.assertIn("lat", sede)
+            self.assertIn("lng", sede)
+            self.assertIn("direccion", sede)
+            self.assertIsNotNone(sede["lat"])
+            self.assertIsNotNone(sede["lng"])
+            # Verificar que sean convertibles a número (no exigir float estricto)
+            try:
+                float(sede["lat"])
+                float(sede["lng"])
+            except (TypeError, ValueError):
+                self.fail(f"lat/lng no numéricos: {sede['lat']}, {sede['lng']}")
+
+    def test_vista_mapa_sedes_carga_template_correcto(self):
+        """La URL /mapa/ debe mostrar la plantilla mapa_sedes.html."""
+        response = self.client.get("/mapa/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mapa_sedes.html")
+
+    def test_vista_mapa_sedes_contiene_elementos_para_leaflet(self):
+        """Verifica que el HTML generado incluya el div del mapa y la llamada a la API."""
+        response = self.client.get("/mapa/")
+        content = response.content.decode("utf-8")
+        self.assertIn('<div id="mapa"', content)
+        self.assertIn("/api/core/sedes/", content)
+        self.assertIn("leaflet", content)
