@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         # Ajusta el nombre de la migración anterior de core según tu proyecto
         ("core", "0006_local_horarios"),  # <-- reemplaza con el nombre real de la última migración de core

@@ -31,7 +31,7 @@ class LocalSerializer(serializers.ModelSerializer):
             "horarios",
             "tiene_comercio",
             "tiene_taller",
-            "servicios",       # lista legible para el popup
+            "servicios",  # lista legible para el popup
             "activo",
         ]
 

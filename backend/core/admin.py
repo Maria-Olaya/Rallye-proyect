@@ -23,14 +23,18 @@ class LocalAdmin(admin.ModelAdmin):
     list_filter = ["activo", "tiene_comercio", "tiene_taller", "sede"]
     search_fields = ["nombre", "direccion", "telefono"]
     fieldsets = (
-        ("Información general", {
-            "fields": ("nombre", "sede", "direccion", "telefono", "correo_admin", "descripcion")
-        }),
-        ("Servicios", {
-            "fields": ("tiene_comercio", "tiene_taller", "num_mecanicos"),
-            "description": "Indica qué servicios ofrece este local.",
-        }),
-        ("Horarios y estado", {
-            "fields": ("horarios", "activo"),
-        }),
+        ("Información general", {"fields": ("nombre", "sede", "direccion", "telefono", "correo_admin", "descripcion")}),
+        (
+            "Servicios",
+            {
+                "fields": ("tiene_comercio", "tiene_taller", "num_mecanicos"),
+                "description": "Indica qué servicios ofrece este local.",
+            },
+        ),
+        (
+            "Horarios y estado",
+            {
+                "fields": ("horarios", "activo"),
+            },
+        ),
     )
