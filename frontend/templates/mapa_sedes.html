@@ -6,15 +6,16 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold mb-2">Nuestras Sedes</h1>
-    <p class="text-gray-600 mb-8">Visualiza todas las ubicaciones donde operamos en Colombia</p>
-    
+    <p class="text-gray-400 mb-8">Visualiza todas las ubicaciones donde operamos en Colombia</p>
+
     <!-- Mapa -->
-    <div id="mapa" class="w-full h-96 rounded-lg shadow-lg mb-8" style="height: 500px;"></div>
-    
+    <div id="mapa" style="width:100%; height:500px; border-radius:0.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.3);"></div>
+
     <!-- Lista de Sedes -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div id="sedes-container">
-            <div class="flex justify-center">
+    <div class="mt-10">
+        <h2 class="text-2xl font-bold mb-4">Listado de Sedes</h2>
+        <div id="sedes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="flex justify-center col-span-3 py-10">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
             </div>
         </div>
@@ -23,110 +24,414 @@
 
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-    // Inicializar mapa
-    const mapa = L.map('mapa').setView([4.5709, -74.2973], 6); // Centro de Colombia
-    
-    // Agregar capa base (OpenStreetMap)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(mapa);
-    
-    // Obtener sedes de la API
-    fetch('/api/core/sedes/')
-        .then(response => response.json())
-        .then(data => {
-            const sedesContainer = document.getElementById('sedes-container');
-            sedesContainer.innerHTML = '';
-            
-            if (data.length === 0) {
-                sedesContainer.innerHTML = '<p class="text-gray-600">No hay sedes disponibles.</p>';
-                return;
-            }
-            
-            const bounds = L.latLngBounds();
-            
-            // Crear marcadores y lista
-            data.forEach(sede => {
-                // Agregar marcador al mapa
-                if (sede.lat && sede.lng) {
-                    const latlng = [parseFloat(sede.lat), parseFloat(sede.lng)];
-                    
-                    const marker = L.marker(latlng)
-                        .bindPopup(`<strong>${sede.nombre}</strong><br>${sede.municipio_nombre}`)
-                        .addTo(mapa);
-                    
-                    bounds.extend(latlng);
-                }
-                
-                // Crear tarjeta de sede
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow';
-                card.innerHTML = `
-                    <h3 class="text-xl font-bold mb-2 text-gray-900">${sede.nombre}</h3>
-                    <p class="text-gray-600 mb-3">
-                        <svg class="inline-block w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                        </svg>
-                        ${sede.municipio_nombre}
-                    </p>
-                    <p class="text-sm text-gray-500 mb-4">${sede.direccion}</p>
-                    
-                    ${sede.locales && sede.locales.length > 0 ? `
-                        <div class="bg-gray-50 rounded p-3 text-sm">
-                            <p class="font-semibold text-gray-900 mb-2">Locales:</p>
-                            <ul class="space-y-1">
-                                ${sede.locales.map(local => `
-                                    <li class="text-gray-700">
-                                        • <strong>${local.nombre}</strong><br>
-                                        <span class="text-gray-600">${local.direccion}</span><br>
-                                        <span class="text-gray-600">Tel: ${local.telefono}</span>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                `;
-                
-                sedesContainer.appendChild(card);
-                
-                // Hacer clickeable para centrar el mapa
-                card.addEventListener('click', () => {
-                    if (sede.lat && sede.lng) {
-                        mapa.setView([parseFloat(sede.lat), parseFloat(sede.lng)], 15);
-                    }
-                });
-            });
-            
-            // Ajustar vista del mapa a todos los marcadores
-            if (bounds.isValid()) {
-                mapa.fitBounds(bounds, { padding: [50, 50] });
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando sedes:', error);
-            document.getElementById('sedes-container').innerHTML = 
-                '<p class="text-red-600">Error cargando las sedes. Intenta más tarde.</p>';
-        });
-</script>
 
 <style>
-    #mapa {
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-    
-    .leaflet-popup-content-wrapper {
-        background-color: #fff;
-        border-radius: 0.375rem;
-    }
-    
-    .leaflet-popup-content {
-        font-family: 'DM Sans', sans-serif;
-        margin: 0;
-    }
+/* ── Icono rojo personalizado (Yamaha) ──────────────────────────── */
+.yamaha-marker-icon {
+    width: 32px;
+    height: 42px;
+    position: relative;
+}
+
+/* ── Popup personalizado ────────────────────────────────────────── */
+.leaflet-popup-content-wrapper {
+    background: #1a1a1a;
+    color: #f3f4f6;
+    border-radius: 0.5rem;
+    border: 1px solid #dc2626;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 260px;
+    padding: 0;
+}
+
+.leaflet-popup-tip {
+    background: #1a1a1a;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    font-family: 'DM Sans', sans-serif;
+    width: auto !important;
+}
+
+.popup-header {
+    background: #dc2626;
+    padding: 10px 14px;
+    border-radius: 0.5rem 0.5rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.popup-header svg {
+    flex-shrink: 0;
+}
+
+.popup-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.popup-header p {
+    font-size: 0.72rem;
+    color: #fecaca;
+    margin: 2px 0 0;
+}
+
+.popup-body {
+    padding: 12px 14px;
+}
+
+.popup-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    color: #d1d5db;
+}
+
+.popup-row svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #ef4444;
+}
+
+.popup-row span {
+    line-height: 1.4;
+}
+
+.popup-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.badge-comercio {
+    background: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(220, 38, 38, 0.4);
+}
+
+.badge-taller {
+    background: rgba(37, 99, 235, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(37, 99, 235, 0.4);
+}
+
+.popup-whatsapp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #16a34a;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 7px 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.popup-whatsapp:hover {
+    background: #15803d;
+    color: #fff;
+}
+
+.popup-no-locales {
+    color: #9ca3af;
+    font-size: 0.8rem;
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0 4px;
+}
+
+/* ── Horario ─────────────────────────── */
+.popup-horario {
+    margin-top: 2px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+/* ── Tarjeta lista ──────────────────────────────────────────────── */
+.sede-card {
+    background: #111;
+    border-radius: 0.5rem;
+    border-left: 4px solid #dc2626;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.sede-card:hover {
+    box-shadow: 0 6px 20px rgba(220,38,38,0.25);
+    transform: translateY(-2px);
+}
 </style>
+
+<script>
+// ── SVG Icono rojo (pin Yamaha) ──────────────────────────────────────────────
+const yamahaIconSVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+  <path d="M16 0C9.373 0 4 5.596 4 12.5c0 9.5 12 29.5 12 29.5S28 22 28 12.5C28 5.596 22.627 0 16 0z"
+        fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5"/>
+  <circle cx="16" cy="13" r="6" fill="white" opacity="0.95"/>
+  <!-- Y Yamaha simplificada -->
+  <text x="16" y="17" text-anchor="middle" font-family="Arial Black,sans-serif"
+        font-size="9" font-weight="900" fill="#dc2626">Y</text>
+</svg>`;
+
+const yamahaIcon = L.divIcon({
+    html: yamahaIconSVG,
+    className: '',
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor: [0, -44],
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const DIAS_LABEL = {
+    lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue',
+    vie: 'Vie', sab: 'Sáb', dom: 'Dom'
+};
+
+function formatHorario(horarios) {
+    if (!horarios || horarios.length === 0) return '';
+    return horarios.map(h => {
+        const dias = (h.dias || []).map(d => DIAS_LABEL[d] || d).join(', ');
+        return `${dias}: ${h.apertura}–${h.cierre}`;
+    }).join(' | ');
+}
+
+function buildWhatsAppURL(telefono, localNombre) {
+    let tel = (telefono || '').replace(/\s|-/g, '');
+    if (tel.startsWith('+')) tel = tel.slice(1);
+    if (!tel.startsWith('57')) tel = `57${tel}`;
+    const msg = encodeURIComponent(`Hola, me interesa información sobre ${localNombre}. ¿Pueden ayudarme?`);
+    return `https://wa.me/${tel}?text=${msg}`;
+}
+
+// ── Construir contenido del popup para un local ──────────────────────────────
+function buildPopupLocal(local, sedeMunicipio) {
+    const horarioStr = formatHorario(local.horarios);
+    const whatsappURL = buildWhatsAppURL(local.telefono, local.nombre);
+
+    const badgesHtml = local.servicios && local.servicios.length > 0
+        ? `<div class="popup-badges">
+            ${local.tiene_comercio ? `<span class="badge badge-comercio">
+                <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3z"/>
+                </svg>
+                Comercio
+            </span>` : ''}
+            ${local.tiene_taller ? `<span class="badge badge-taller">
+                <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                </svg>
+                Taller
+            </span>` : ''}
+           </div>`
+        : `<p class="popup-no-locales">Sin servicios registrados</p>`;
+
+    return `
+    <div>
+      <div class="popup-header">
+        <svg width="18" height="18" fill="white" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <h3>${local.nombre}</h3>
+          <p>${sedeMunicipio}</p>
+        </div>
+      </div>
+      <div class="popup-body">
+
+        <div class="popup-row">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+          </svg>
+          <span>${local.direccion}</span>
+        </div>
+
+        <div class="popup-row">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+          </svg>
+          <span>${local.telefono}</span>
+        </div>
+
+        ${horarioStr ? `
+        <div class="popup-row">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+          </svg>
+          <span class="popup-horario">${horarioStr}</span>
+        </div>` : ''}
+
+        <div class="popup-row" style="margin-bottom:4px;">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+          </svg>
+          <span>Servicios disponibles:</span>
+        </div>
+        ${badgesHtml}
+
+      </div>
+      <a href="${whatsappURL}" target="_blank" class="popup-whatsapp">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.847L0 24l6.335-1.508A11.933 11.933 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.808 9.808 0 01-5.002-1.368l-.36-.214-3.722.976.993-3.634-.235-.374A9.787 9.787 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+        </svg>
+        Contactar por WhatsApp
+      </a>
+    </div>`;
+}
+
+// ── Popup para sede (cuando el marcador es de sede, no de local) ─────────────
+function buildPopupSede(sede) {
+    if (sede.locales && sede.locales.length > 0) {
+        // Usar datos del primer local activo como representativo
+        const local = sede.locales.find(l => l.activo !== false) || sede.locales[0];
+        return buildPopupLocal(local, sede.municipio_nombre);
+    }
+    // Sede sin locales
+    return `
+    <div>
+      <div class="popup-header">
+        <svg width="18" height="18" fill="white" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <h3>${sede.nombre}</h3>
+          <p>${sede.municipio_nombre}</p>
+        </div>
+      </div>
+      <div class="popup-body">
+        <div class="popup-row">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+          </svg>
+          <span>${sede.direccion}</span>
+        </div>
+        <p class="popup-no-locales">Sin locales registrados aún</p>
+      </div>
+    </div>`;
+}
+
+// ── Inicializar mapa ─────────────────────────────────────────────────────────
+const mapa = L.map('mapa').setView([4.5709, -74.2973], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+}).addTo(mapa);
+
+// ── Cargar sedes desde la API ────────────────────────────────────────────────
+fetch('/api/core/sedes/')
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('sedes-container');
+        container.innerHTML = '';
+
+        if (!data.length) {
+            container.innerHTML = '<p class="text-gray-500 col-span-3">No hay sedes disponibles.</p>';
+            return;
+        }
+
+        const bounds = L.latLngBounds();
+        // Mapa de marcadores por sede id para centrar desde tarjeta
+        const marcadores = {};
+
+        data.forEach(sede => {
+            // ── Marcador en el mapa ──────────────────────────────────────
+            if (sede.lat && sede.lng) {
+                const latlng = [parseFloat(sede.lat), parseFloat(sede.lng)];
+
+                const marker = L.marker(latlng, { icon: yamahaIcon })
+                    .addTo(mapa)
+                    .bindPopup(buildPopupSede(sede), {
+                        maxWidth: 300,
+                        minWidth: 260,
+                    });
+
+                marcadores[sede.id] = { marker, latlng };
+                bounds.extend(latlng);
+            }
+
+            // ── Tarjeta en la lista ──────────────────────────────────────
+            const card = document.createElement('div');
+            card.className = 'sede-card';
+            card.title = 'Clic para centrar en el mapa';
+
+            const localesHtml = sede.locales && sede.locales.length > 0
+                ? `<div class="mt-3 bg-gray-900 rounded p-3 text-sm space-y-3">
+                    <p class="font-semibold text-gray-200 mb-1">Locales:</p>
+                    ${sede.locales.map(local => `
+                        <div class="border-l-2 border-red-700 pl-3">
+                            <p class="font-bold text-white">${local.nombre}</p>
+                            <p class="text-gray-400 text-xs">${local.direccion}</p>
+                            <p class="text-gray-400 text-xs">Tel: ${local.telefono}</p>
+                            ${local.servicios && local.servicios.length
+                                ? `<div class="flex gap-1 flex-wrap mt-1">
+                                    ${local.tiene_comercio ? `<span class="badge badge-comercio" style="font-size:0.65rem;padding:2px 7px;">Comercio</span>` : ''}
+                                    ${local.tiene_taller  ? `<span class="badge badge-taller"   style="font-size:0.65rem;padding:2px 7px;">Taller</span>`   : ''}
+                                   </div>`
+                                : ''}
+                        </div>
+                    `).join('')}
+                   </div>`
+                : '<p class="text-gray-600 text-sm mt-2 italic">Sin locales registrados</p>';
+
+            card.innerHTML = `
+                <h3 class="text-lg font-bold text-white">${sede.nombre}</h3>
+                <p class="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                    </svg>
+                    ${sede.municipio_nombre}
+                </p>
+                <p class="text-gray-500 text-xs mt-1">${sede.direccion}</p>
+                ${localesHtml}
+            `;
+
+            card.addEventListener('click', () => {
+                const m = marcadores[sede.id];
+                if (m) {
+                    mapa.setView(m.latlng, 16);
+                    m.marker.openPopup();
+                    // Scroll suave al mapa
+                    document.getElementById('mapa').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            container.appendChild(card);
+        });
+
+        // Ajustar vista
+        if (bounds.isValid()) {
+            mapa.fitBounds(bounds, { padding: [50, 50] });
+        }
+    })
+    .catch(err => {
+        console.error('Error cargando sedes:', err);
+        document.getElementById('sedes-container').innerHTML =
+            '<p class="text-red-600 col-span-3">Error al cargar las sedes. Intenta más tarde.</p>';
+    });
+</script>
 {% endblock %}
