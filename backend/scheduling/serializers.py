@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 from rest_framework import serializers
 
-from scheduling.models import Cita
+from scheduling.models import Cita, CitaCancelada
 
 
 class CitaDisponibleSerializer(serializers.ModelSerializer):
@@ -124,6 +124,7 @@ class AgendaAdminSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     local_nombre = serializers.CharField(source="local.nombre", read_only=True)
     sede_nombre = serializers.CharField(source="local.sede.nombre", read_only=True)
+    origen = serializers.SerializerMethodField()
 
     class Meta:
         model = Cita
@@ -146,4 +147,57 @@ class AgendaAdminSerializer(serializers.ModelSerializer):
             "anio_moto",
             "local_nombre",
             "sede_nombre",
+            "origen",
         ]
+
+    def get_origen(self, obj):
+        return "CITA"
+
+
+class AgendaCanceladaSerializer(serializers.ModelSerializer):
+    estado = serializers.SerializerMethodField()
+    estado_display = serializers.SerializerMethodField()
+    tipo_servicio_display = serializers.SerializerMethodField()
+    local_nombre = serializers.CharField(source="local.nombre", read_only=True)
+    sede_nombre = serializers.CharField(source="local.sede.nombre", read_only=True)
+    origen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CitaCancelada
+        fields = [
+            "id",
+            "fecha",
+            "hora_inicio",
+            "hora_fin",
+            "estado",
+            "estado_display",
+            "tipo_servicio",
+            "tipo_servicio_display",
+            "cliente_nombre",
+            "cliente_documento",
+            "tipo_documento",
+            "cliente_telefono",
+            "cliente_correo",
+            "placa_moto",
+            "referencia_moto",
+            "anio_moto",
+            "local_nombre",
+            "sede_nombre",
+            "origen",
+            "cita_original_id",
+            "fecha_cancelacion",
+        ]
+
+    def get_estado(self, obj):
+        return Cita.Estado.CANCELADA
+
+    def get_estado_display(self, obj):
+        return "Cancelada"
+
+    def get_tipo_servicio_display(self, obj):
+        if not obj.tipo_servicio:
+            return ""
+        return dict(Cita.TipoServicio.choices).get(obj.tipo_servicio, obj.tipo_servicio)
+
+    def get_origen(self, obj):
+        return "HISTORIAL_CANCELACION"
