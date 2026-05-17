@@ -2,12 +2,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView, TemplateView
 from core.views import mapa_sedes
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
-    path("sedes/", TemplateView.as_view(template_name="public/sedes.html"), name="sedes"),
+    path("sedes/", RedirectView.as_view(url="/mapa/", permanent=False), name="sedes"),
     path("mapa/", mapa_sedes, name="mapa_sedes"),
     path("motos/", TemplateView.as_view(template_name="public/motos.html"), name="motos"),
     path(
