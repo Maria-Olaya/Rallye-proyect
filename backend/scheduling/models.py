@@ -55,3 +55,50 @@ class Cita(models.Model):
 
     def __str__(self):
         return f"{self.local} | {self.fecha} {self.hora_inicio}-{self.hora_fin} | {self.estado}"
+
+
+class CitaCancelada(models.Model):
+    """
+    Historial administrativo de citas canceladas.
+
+    Este modelo permite cumplir dos necesidades a la vez:
+    1. Conservar la trazabilidad de una cita cancelada para la agenda del administrador.
+    2. Liberar el slot original en Cita para que otro cliente pueda volver a tomar ese horario.
+    """
+
+    local = models.ForeignKey(Local, on_delete=models.PROTECT, related_name="citas_canceladas")
+    cita_original_id = models.PositiveIntegerField(null=True, blank=True)
+
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+
+    tipo_servicio = models.CharField(
+        max_length=20,
+        choices=Cita.TipoServicio.choices,
+        null=True,
+        blank=True,
+    )
+    tipo_documento = models.CharField(
+        max_length=5,
+        choices=Cita.TipoDocumento.choices,
+        blank=True,
+        default="",
+    )
+
+    cliente_nombre = models.CharField(max_length=120, blank=True, default="")
+    cliente_documento = models.CharField(max_length=20, blank=True, default="")
+    cliente_telefono = models.CharField(max_length=20, blank=True, default="")
+    cliente_correo = models.EmailField(blank=True, default="")
+
+    placa_moto = models.CharField(max_length=10, blank=True, default="")
+    referencia_moto = models.CharField(max_length=60, blank=True, default="")
+    anio_moto = models.PositiveIntegerField(null=True, blank=True)
+
+    fecha_cancelacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["fecha", "hora_inicio", "fecha_cancelacion"]
+
+    def __str__(self):
+        return f"{self.local} | {self.fecha} {self.hora_inicio}-{self.hora_fin} | CANCELADA"

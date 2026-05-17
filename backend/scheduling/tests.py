@@ -6,7 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from core.models import Local, Municipio, Sede
-from scheduling.models import Cita
+from scheduling.models import Cita, CitaCancelada
 from scheduling.services import (
     citas_por_dia,
     enviar_correo_cancelacion_admin,
@@ -488,6 +488,81 @@ class NotificacionCancelacionTest(TestCase):
 
 
 # ─────────────────────────────────────────
+# HU-02 / HU-06 · Cancelar cita y liberar horario
+# ─────────────────────────────────────────
+
+
+class CancelarCitaAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.local = make_local(time(8, 0), time(12, 0), 1, nombre="Local Rallye Motor's - Carepa")
+        self.fecha = date(2030, 4, 21)
+
+    def _cita_asignada(self):
+        return Cita.objects.create(
+            local=self.local,
+            fecha=self.fecha,
+            hora_inicio=time(8, 0),
+            hora_fin=time(10, 0),
+            estado=Cita.Estado.ASIGNADA,
+            tipo_servicio=Cita.TipoServicio.REVISION,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Sofía Pareja",
+            cliente_documento="1020105102",
+            cliente_telefono="3145941558",
+            cliente_correo="isabela23pareja@gmail.com",
+            placa_moto="AXA39C",
+            referencia_moto="FZ 150",
+            anio_moto=2022,
+        )
+
+    def test_cancelar_cita_guarda_historial_y_libera_horario(self):
+        """Al cancelar, la cita original vuelve a LIBRE y queda registro histórico CANCELADA."""
+        cita = self._cita_asignada()
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post(
+                f"/api/scheduling/cancelar/{cita.id}/",
+                {"placa_moto": "AXA39C"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, Cita.Estado.LIBRE)
+        self.assertIsNone(cita.tipo_servicio)
+        self.assertEqual(cita.cliente_nombre, "")
+        self.assertEqual(cita.placa_moto, "")
+
+        historial = CitaCancelada.objects.get(cita_original_id=cita.id)
+        self.assertEqual(historial.local, self.local)
+        self.assertEqual(historial.fecha, self.fecha)
+        self.assertEqual(historial.hora_inicio, time(8, 0))
+        self.assertEqual(historial.hora_fin, time(10, 0))
+        self.assertEqual(historial.tipo_servicio, Cita.TipoServicio.REVISION)
+        self.assertEqual(historial.cliente_nombre, "Sofía Pareja")
+        self.assertEqual(historial.placa_moto, "AXA39C")
+
+    def test_cancelar_cita_permite_que_horario_vuelva_a_disponibles(self):
+        """Después de cancelar, el mismo slot debe aparecer nuevamente como disponible."""
+        cita = self._cita_asignada()
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post(
+                f"/api/scheduling/cancelar/{cita.id}/",
+                {"placa_moto": "AXA39C"},
+                format="json",
+            )
+
+        response = self.client.get(f"/api/scheduling/disponibles/?local={self.local.id}&fecha={self.fecha}")
+
+        self.assertEqual(response.status_code, 200)
+        ids_disponibles = [item["id"] for item in response.data]
+        self.assertIn(cita.id, ids_disponibles)
+
+
+# ─────────────────────────────────────────
 # Marcar citas atendidas (lazy update)
 # ─────────────────────────────────────────
 
@@ -598,6 +673,26 @@ class AgendaAdminTest(TestCase):
         )
         defaults.update(kwargs)
         return Cita.objects.create(**defaults)
+
+    def _cita_cancelada_historial(self, hora_inicio=time(8, 0), hora_fin=time(10, 0), **kwargs):
+        defaults = dict(
+            local=self.local,
+            cita_original_id=999,
+            fecha=self.fecha,
+            hora_inicio=hora_inicio,
+            hora_fin=hora_fin,
+            tipo_servicio=Cita.TipoServicio.MANTENIMIENTO,
+            tipo_documento=Cita.TipoDocumento.CC,
+            cliente_nombre="Laura Torres",
+            cliente_documento="1099887766",
+            cliente_telefono="3109876543",
+            cliente_correo="laura@test.com",
+            placa_moto="XYZ45W",
+            referencia_moto="MT-03",
+            anio_moto=2023,
+        )
+        defaults.update(kwargs)
+        return CitaCancelada.objects.create(**defaults)
 
     def test_cp_hu19_01_agenda_retorna_solo_citas_no_libres(self):
         """CP-HU19-01 · Caja negra — flujo feliz · CA-01
@@ -730,11 +825,24 @@ class AgendaAdminTest(TestCase):
         for campo in campos_requeridos:
             self.assertIn(campo, cita, msg=f"Campo ausente: {campo}")
 
-    def test_cp_hu19_10_canceladas_aparecen_en_agenda(self):
+    def test_cp_hu19_10_canceladas_historicas_aparecen_en_agenda(self):
         """CP-HU19-10 · Caja negra — CA-01
-        Las citas CANCELADA también deben aparecer en la agenda."""
-        self._cita(Cita.Estado.CANCELADA)
+        Las citas canceladas desde el historial también deben aparecer en la agenda."""
+        self._cita_cancelada_historial()
         response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["estado"], "CANCELADA")
+        self.assertEqual(response.data[0]["origen"], "HISTORIAL_CANCELACION")
+
+    def test_cp_hu19_11_cancelada_historica_no_bloquea_slot_libre(self):
+        """CP-HU19-11 · Integración — CA-01
+        La agenda muestra la cancelada histórica aunque el slot original esté LIBRE."""
+        self._cita(Cita.Estado.LIBRE)
+        self._cita_cancelada_historial()
+
+        response = self.client.get(f"/api/scheduling/agenda/?fecha={self.fecha}")
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["estado"], "CANCELADA")

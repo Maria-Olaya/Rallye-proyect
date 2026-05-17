@@ -8,8 +8,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import Local
-from scheduling.models import Cita
+from scheduling.models import Cita, CitaCancelada
 from scheduling.serializers import (
+    AgendaAdminSerializer,
+    AgendaCanceladaSerializer,
     AgendarCitaSerializer,
     CitaDisponibleSerializer,
     CitaParaCancelarSerializer,
@@ -35,6 +37,26 @@ def _liberar_cita(cita: Cita) -> None:
     cita.referencia_moto = ""
     cita.anio_moto = None
     cita.save()
+
+
+def _registrar_cita_cancelada(cita: Cita) -> CitaCancelada:
+    """Guarda en historial los datos de una cita antes de liberar el slot."""
+    return CitaCancelada.objects.create(
+        local=cita.local,
+        cita_original_id=cita.id,
+        fecha=cita.fecha,
+        hora_inicio=cita.hora_inicio,
+        hora_fin=cita.hora_fin,
+        tipo_servicio=cita.tipo_servicio,
+        tipo_documento=cita.tipo_documento,
+        cliente_nombre=cita.cliente_nombre,
+        cliente_documento=cita.cliente_documento,
+        cliente_telefono=cita.cliente_telefono,
+        cliente_correo=cita.cliente_correo,
+        placa_moto=cita.placa_moto,
+        referencia_moto=cita.referencia_moto,
+        anio_moto=cita.anio_moto,
+    )
 
 
 def _normalizar_placa(valor: str) -> str:
@@ -205,14 +227,17 @@ class CancelarCitaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 1. Cambiar temporalmente a CANCELADA para notificar correctamente
+        # 1. Guardar historial de la cita cancelada antes de limpiar el slot.
+        _registrar_cita_cancelada(cita)
+
+        # 2. Cambiar temporalmente a CANCELADA para que el correo salga correctamente.
         cita.estado = Cita.Estado.CANCELADA
         cita.save(update_fields=["estado"])
 
-        # 2. Enviar correo al administrador con la cita marcada como cancelada
+        # 3. Enviar correo al administrador con la cita marcada como cancelada.
         enviar_correo_cancelacion_admin(cita)
 
-        # 3. Liberar el slot para que vuelva a quedar disponible
+        # 4. Liberar el slot original para que otro cliente pueda tomar ese horario.
         _liberar_cita(cita)
 
         return Response(
@@ -228,6 +253,7 @@ class AgendaAdminView(APIView):
     Solo el administrador autenticado puede ver las citas de su propio local.
     Filtra por fecha (requerida). Ordena por hora_inicio.
     No incluye citas LIBRES (sin cliente asignado).
+    Sí incluye cancelaciones históricas para que el admin tenga trazabilidad.
     """
 
     permission_classes = [IsAuthenticated]
@@ -269,7 +295,17 @@ class AgendaAdminView(APIView):
             .order_by("hora_inicio")
         )
 
-        from scheduling.serializers import AgendaAdminSerializer
+        canceladas = (
+            CitaCancelada.objects.filter(
+                local_id=local_id,
+                fecha=fecha,
+            )
+            .select_related("local", "local__sede")
+            .order_by("hora_inicio")
+        )
 
-        serializer = AgendaAdminSerializer(citas, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = list(AgendaAdminSerializer(citas, many=True).data)
+        data += list(AgendaCanceladaSerializer(canceladas, many=True).data)
+        data.sort(key=lambda cita: cita["hora_inicio"])
+
+        return Response(data, status=status.HTTP_200_OK)
