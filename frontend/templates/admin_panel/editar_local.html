@@ -5,6 +5,133 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
+    /* ── Navbar admin ── */
+    .navbar-menu {
+        display: none !important;
+    }
+
+    .admin-nav-menu {
+        display: flex;
+        gap: 1.8rem;
+        list-style: none;
+        align-items: center;
+    }
+
+    .admin-nav-menu a {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .admin-nav-menu a:hover,
+    .admin-nav-menu a.active {
+        color: var(--red);
+    }
+
+    .admin-dropdown {
+        position: relative;
+    }
+
+    .admin-dropdown-trigger {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #111;
+        background: none;
+        border: none;
+        padding: 0;
+        transition: color 0.2s;
+    }
+
+    .admin-dropdown-trigger:hover {
+        color: var(--red);
+    }
+
+    .admin-dropdown-trigger svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s;
+    }
+
+    .admin-dropdown-trigger.open svg {
+        transform: rotate(180deg);
+    }
+
+    .admin-dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 14px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border-top: 3px solid var(--red);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        list-style: none;
+        min-width: 190px;
+        z-index: 200;
+        padding: 0.4rem 0;
+        border-radius: 0 0 4px 4px;
+    }
+
+    .admin-dropdown-menu.open {
+        display: block;
+    }
+
+    .admin-dropdown-menu li a {
+        display: block;
+        padding: 0.65rem 1.3rem;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #111;
+        text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+
+    .admin-dropdown-menu li a:hover {
+        background: #f5f5f5;
+        color: var(--red);
+    }
+
+    .admin-dropdown-menu li + li {
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .admin-btn-salir {
+        background: #333;
+        color: #fff !important;
+        padding: 0.4rem 1.1rem;
+        border-radius: 2px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+    }
+
+    .admin-btn-salir:hover {
+        background: #111;
+    }
+
     .ml-page { min-height:calc(100vh - 64px); background:#0d0d0d; padding:2.5rem 1.5rem; }
     .ml-container { max-width:860px; margin:0 auto; display:grid; gap:1.5rem; }
 
@@ -93,6 +220,87 @@
 {% endblock %}
 
 {% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        const publicMenu = navbar ? navbar.querySelector('.navbar-menu') : null;
+
+        if (publicMenu) {
+            publicMenu.style.display = 'none';
+        }
+
+        if (!navbar || navbar.querySelector('.admin-nav-menu')) {
+            return;
+        }
+
+        const adminMenu = document.createElement('ul');
+        adminMenu.className = 'admin-nav-menu';
+
+        adminMenu.innerHTML = `
+            <li><a href="/panel/">HOME</a></li>
+            <li><a href="/panel/mi-local/" class="active">MI LOCAL</a></li>
+            <li><a href="/panel/agenda/">AGENDA DEL TALLER</a></li>
+            <li><a href="/panel/diagnostico/">DIAGNÓSTICO</a></li>
+            <li><a href="/panel/graficos/">GRÁFICOS</a></li>
+
+            <li class="admin-dropdown">
+                <button class="admin-dropdown-trigger" id="crudTrigger">
+                    GESTIONAR MOTOCICLETAS
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+
+                <ul class="admin-dropdown-menu" id="crudMenu">
+                    <li><a href="/panel/motocicletas/agregar/">Agregar moto</a></li>
+                    <li><a href="/panel/motocicletas/">Editar moto</a></li>
+                </ul>
+            </li>
+
+            <li><button class="admin-btn-salir" id="btnSalirAdmin">SALIR</button></li>
+        `;
+
+        navbar.appendChild(adminMenu);
+
+        const crudTrigger = document.getElementById('crudTrigger');
+        const crudMenu = document.getElementById('crudMenu');
+
+        if (crudTrigger && crudMenu) {
+            crudTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                crudMenu.classList.toggle('open');
+                crudTrigger.classList.toggle('open');
+            });
+
+            document.addEventListener('click', () => {
+                crudMenu.classList.remove('open');
+                crudTrigger.classList.remove('open');
+            });
+        }
+
+        const btnSalirAdmin = document.getElementById('btnSalirAdmin');
+
+        if (btnSalirAdmin) {
+            btnSalirAdmin.addEventListener('click', () => {
+                const access = sessionStorage.getItem('access_token') || sessionStorage.getItem('access');
+                const refresh = sessionStorage.getItem('refresh_token') || sessionStorage.getItem('refresh');
+
+                fetch('/api/users/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + access,
+                    },
+                    body: JSON.stringify({ refresh }),
+                }).finally(() => {
+                    sessionStorage.clear();
+                    window.location.href = '/login/';
+                });
+            });
+        }
+    });
+</script>
+
 <div class="ml-page">
   <div class="ml-container">
 
